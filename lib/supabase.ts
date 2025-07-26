@@ -80,3 +80,26 @@ export interface ShelfSlot {
   created_at: string
   updated_at: string
 }
+
+export interface Application {
+  id: string
+  business_name: string
+  email: string
+  phone: string
+  website?: string
+  social_media?: string
+  business_type: string
+  business_stage: string
+  monthly_revenue?: string
+  team_size?: string
+  product_description: string
+  why_join: string
+  unique_value: string
+  community_contribution: string
+  status: "pending" | "under_review" | "approved" | "rejected"
+  notes?: string
+  reviewed_by?: string
+  reviewed_at?: string
+  created_at: string
+  updated_at: string
+}

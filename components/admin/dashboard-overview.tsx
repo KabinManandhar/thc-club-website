@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, MessageSquare, Calendar, Package, TrendingUp, AlertCircle, Shield } from "lucide-react"
+import { Users, MessageSquare, Calendar, Package, TrendingUp, AlertCircle, Shield, FileText } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { adminAuth } from "@/lib/auth"
 
@@ -18,6 +18,8 @@ interface DashboardStats {
   pendingBookings: number
   availableSlots: number
   occupiedSlots: number
+  applicationsCount: number
+  pendingApplications: number
 }
 
 export function DashboardOverview() {
@@ -32,6 +34,8 @@ export function DashboardOverview() {
     pendingBookings: 0,
     availableSlots: 0,
     occupiedSlots: 0,
+    applicationsCount: 0,
+    pendingApplications: 0,
   })
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
@@ -63,6 +67,9 @@ export function DashboardOverview() {
       // Fetch shelf slots stats
       const { data: slotsData } = await supabase.from("shelf_slots").select("status")
 
+      // Fetch applications stats
+      const { data: applicationsData } = await supabase.from("applications").select("status")
+
       setStats({
         waitlistCount: waitlistData?.length || 0,
         pendingWaitlist: waitlistData?.filter((w) => w.status === "pending").length || 0,
@@ -74,6 +81,8 @@ export function DashboardOverview() {
         pendingBookings: bookingsData?.filter((b) => b.status === "pending").length || 0,
         availableSlots: slotsData?.filter((s) => s.status === "available").length || 0,
         occupiedSlots: slotsData?.filter((s) => s.status === "occupied").length || 0,
+        applicationsCount: applicationsData?.length || 0,
+        pendingApplications: applicationsData?.filter((a) => a.status === "pending").length || 0,
       })
     } catch (error) {
       console.error("Error fetching stats:", error)
@@ -114,6 +123,14 @@ export function DashboardOverview() {
       icon: Package,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
+    },
+    {
+      title: "Applications",
+      value: stats.applicationsCount,
+      pending: stats.pendingApplications,
+      icon: FileText,
+      color: "text-indigo-600",
+      bgColor: "bg-indigo-50",
     },
   ]
 

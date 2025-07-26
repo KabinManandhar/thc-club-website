@@ -10,12 +10,14 @@ import { WaitlistModal } from "@/components/waitlist-modal"
 import { UserLoginForm } from "@/components/user-login-form"
 import { userAuth } from "@/lib/user-auth"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import { ApplicationModal } from "@/components/application-modal"
 
 export default function WaitlistPage() {
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isApplicationOpen, setIsApplicationOpen] = useState(false)
 
   useEffect(() => {
     checkAuth()
@@ -136,9 +138,9 @@ export default function WaitlistPage() {
                   <Button
                     size="sm"
                     className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-medium"
-                    onClick={() => setIsWaitlistOpen(true)}
+                    onClick={() => setIsApplicationOpen(true)}
                   >
-                    join waitlist
+                    start application
                   </Button>
                 </div>
               </div>
@@ -184,9 +186,9 @@ export default function WaitlistPage() {
                   <Button
                     size="lg"
                     className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-8 py-6 text-lg group hover-lift"
-                    onClick={() => setIsWaitlistOpen(true)}
+                    onClick={() => setIsApplicationOpen(true)}
                   >
-                    join waitlist
+                    start application
                     <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </Button>
                   <Button
@@ -301,9 +303,9 @@ export default function WaitlistPage() {
                 <Button
                   size="lg"
                   className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-8 py-4 group"
-                  onClick={() => setIsWaitlistOpen(true)}
+                  onClick={() => setIsApplicationOpen(true)}
                 >
-                  join waitlist
+                  start application
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Button>
                 <Button
@@ -373,9 +375,9 @@ export default function WaitlistPage() {
                 <Button
                   size="lg"
                   className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-12 py-6 text-lg group hover-lift"
-                  onClick={() => setIsWaitlistOpen(true)}
+                  onClick={() => setIsApplicationOpen(true)}
                 >
-                  join waitlist
+                  start application
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Button>
                 <Button
@@ -459,6 +461,9 @@ export default function WaitlistPage() {
 
         {/* Waitlist Modal */}
         <WaitlistModal isOpen={isWaitlistOpen} onClose={() => setIsWaitlistOpen(false)} />
+
+        {/* Application Modal */}
+        <ApplicationModal isOpen={isApplicationOpen} onClose={() => setIsApplicationOpen(false)} />
       </div>
     </TooltipProvider>
   )

@@ -9,6 +9,7 @@ import { adminAuth } from "@/lib/auth"
 import { EnquiriesManagement } from "@/components/admin/enquiries-management"
 import { VisitRequestsManagement } from "@/components/admin/visit-requests-management"
 import { ShelfSlotsManagement } from "@/components/admin/shelf-slots-management"
+import { ApplicationsManagement } from "@/components/admin/applications-management"
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard")
@@ -66,6 +67,8 @@ export default function AdminDashboard() {
             <p className="text-gray-600">Coming Soon - System configuration and preferences</p>
           </div>
         )
+      case "applications":
+        return <ApplicationsManagement />
       default:
         return <DashboardOverview />
     }
