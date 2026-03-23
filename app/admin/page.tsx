@@ -9,15 +9,25 @@ import { adminAuth } from "@/lib/auth"
 import { EnquiriesManagement } from "@/components/admin/enquiries-management"
 import { VisitRequestsManagement } from "@/components/admin/visit-requests-management"
 import { ShelfSlotsManagement } from "@/components/admin/shelf-slots-management"
+import { BrandManagement } from "@/components/admin/brand-management"
+import { SalesInput } from "@/components/admin/sales-input"
+import { InvoiceGenerator } from "@/components/admin/invoice-generator"
+import { BookingsManagement } from "@/components/admin/bookings-management"
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
   const [activeTab, setActiveTab] = useState("dashboard")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const searchParams = useSearchParams()
 
   useEffect(() => {
+    if (searchParams.get("test_mode") === "true") {
+      localStorage.setItem("thc_test_mode", "true")
+    }
     checkAuth()
-  }, [])
+  }, [searchParams])
 
   const checkAuth = async () => {
     try {
@@ -50,13 +60,14 @@ export default function AdminDashboard() {
         return <EnquiriesManagement />
       case "visits":
         return <VisitRequestsManagement />
+      case "brands":
+        return <BrandManagement />
       case "bookings":
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">Booking Requests Management</h2>
-            <p className="text-gray-600">Coming Soon - Handle shelf slot booking applications</p>
-          </div>
-        )
+        return <BookingsManagement />
+      case "invoices":
+        return <InvoiceGenerator />
+      case "sales":
+        return <SalesInput />
       case "slots":
         return <ShelfSlotsManagement />
       case "settings":
@@ -90,5 +101,17 @@ export default function AdminDashboard() {
     <AdminLayout activeTab={activeTab} onTabChange={setActiveTab} onLogout={handleLogout}>
       {renderContent()}
     </AdminLayout>
+  )
+}
+
+export default function AdminDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FFFCEB] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D]"></div>
+      </div>
+    }>
+      <AdminDashboardContent />
+    </Suspense>
   )
 }

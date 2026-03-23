@@ -48,32 +48,31 @@ export function DashboardOverview() {
 
   const fetchStats = async () => {
     try {
-      // Fetch waitlist stats
-      const { data: waitlistData } = await supabase.from("waitlist").select("status")
+      const [waitlistRes, enquiriesRes, visitsRes, bookingsRes, slotsRes] = await Promise.all([
+        supabase.from("waitlist_entries").select("status"),
+        supabase.from("enquiries").select("status"),
+        supabase.from("visit_requests").select("status"),
+        supabase.from("shelf_bookings").select("status"),
+        supabase.from("shelf_slots").select("status"),
+      ])
 
-      // Fetch enquiries stats
-      const { data: enquiriesData } = await supabase.from("enquiries").select("status")
-
-      // Fetch visit requests stats
-      const { data: visitsData } = await supabase.from("visit_requests").select("status")
-
-      // Fetch booking requests stats
-      const { data: bookingsData } = await supabase.from("booking_requests").select("status")
-
-      // Fetch shelf slots stats
-      const { data: slotsData } = await supabase.from("shelf_slots").select("status")
+      const waitlistData = waitlistRes.data || []
+      const enquiriesData = enquiriesRes.data || []
+      const visitsData = visitsRes.data || []
+      const bookingsData = bookingsRes.data || []
+      const slotsData = slotsRes.data || []
 
       setStats({
-        waitlistCount: waitlistData?.length || 0,
-        pendingWaitlist: waitlistData?.filter((w) => w.status === "pending").length || 0,
-        enquiriesCount: enquiriesData?.length || 0,
-        newEnquiries: enquiriesData?.filter((e) => e.status === "new").length || 0,
-        visitRequestsCount: visitsData?.length || 0,
-        pendingVisits: visitsData?.filter((v) => v.status === "pending").length || 0,
-        bookingRequestsCount: bookingsData?.length || 0,
-        pendingBookings: bookingsData?.filter((b) => b.status === "pending").length || 0,
-        availableSlots: slotsData?.filter((s) => s.status === "available").length || 0,
-        occupiedSlots: slotsData?.filter((s) => s.status === "occupied").length || 0,
+        waitlistCount: waitlistData.length,
+        pendingWaitlist: waitlistData.filter((w) => w.status === "pending").length,
+        enquiriesCount: enquiriesData.length,
+        newEnquiries: enquiriesData.filter((e) => e.status === "new").length,
+        visitRequestsCount: visitsData.length,
+        pendingVisits: visitsData.filter((v) => v.status === "pending").length,
+        bookingRequestsCount: bookingsData.length,
+        pendingBookings: bookingsData.filter((b) => b.status === "pending").length,
+        availableSlots: slotsData.filter((s) => s.status === "available").length,
+        occupiedSlots: slotsData.filter((s) => s.status === "occupied").length,
       })
     } catch (error) {
       console.error("Error fetching stats:", error)
@@ -214,7 +213,7 @@ export function DashboardOverview() {
                   style={{ width: `${(stats.occupiedSlots / 108) * 100}%` }}
                 ></div>
               </div>
-              <p className="text-xs text-gray-500">{((stats.occupiedSlots / 108) * 100).toFixed(1)}% occupancy rate</p>
+              <p className="text-xs text-gray-500">{stats.occupiedSlots > 0 ? ((stats.occupiedSlots / 108) * 100).toFixed(1) : "0.0"}% occupancy rate</p>
             </div>
           </CardContent>
         </Card>

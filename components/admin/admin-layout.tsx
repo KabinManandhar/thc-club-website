@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, MessageSquare, Calendar, Package, BarChart3, Settings, LogOut, Menu, X, User } from "lucide-react"
+import { Users, MessageSquare, Calendar, Package, BarChart3, Settings, LogOut, Menu, X, User, Receipt, BookOpen } from "lucide-react"
 import Image from "next/image"
 import { adminAuth, type AdminUser } from "@/lib/auth"
 
@@ -38,8 +38,11 @@ export function AdminLayout({ children, activeTab, onTabChange, onLogout }: Admi
     { id: "waitlist", label: "Waitlist", icon: Users },
     { id: "enquiries", label: "Enquiries", icon: MessageSquare },
     { id: "visits", label: "Visit Requests", icon: Calendar },
-    { id: "bookings", label: "Bookings", icon: Package },
-    { id: "slots", label: "Shelf Slots", icon: Package },
+    { id: "brands", label: "Brand Management", icon: Users },
+    { id: "bookings", label: "Shelf Bookings", icon: BookOpen },
+    { id: "invoices", label: "Invoice Generator", icon: Receipt },
+    { id: "sales", label: "Sales Input", icon: BarChart3 },
+    { id: "slots", label: "Visual Shelf Grid", icon: Package },
     { id: "settings", label: "Settings", icon: Settings },
   ]
 

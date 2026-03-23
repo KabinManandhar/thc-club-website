@@ -5,9 +5,17 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ArrowRight, Zap, Shield, ChevronDown, Heart, Users, CheckCircle, Eye, LogOut } from "lucide-react"
+import { ChevronDown, LogOut, Clock, CheckCircle, ArrowRight, Eye, Heart, Users, Zap, Shield } from "lucide-react"
 import { useState, useEffect } from "react"
-import { userAuth } from "@/lib/user-auth"
+import { userAuth, type ApprovedUser } from "@/lib/user-auth"
+import { supabase, type Brand, type ShelfBooking } from "@/lib/supabase"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { InventoryManagement } from "@/components/club/inventory-management"
+import { SalesTracker } from "@/components/club/sales-tracker"
+import { OnboardingWizard } from "@/components/club/onboarding-wizard"
+import { useSearchParams } from "next/navigation"
+
+import { Suspense } from "react"
 
 const FAQItem = ({ question, answer, emoji }: { question: string; answer: string; emoji: string }) => {
   const [isOpen, setIsOpen] = useState(false)
@@ -40,13 +48,20 @@ const FAQItem = ({ question, answer, emoji }: { question: string; answer: string
   )
 }
 
-export default function ClubPage() {
+function ClubPageContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<ApprovedUser | null>(null)
+  const [brand, setBrand] = useState<Brand | null>(null)
+  const [activeBooking, setActiveBooking] = useState<ShelfBooking | null>(null)
+  const searchParams = useSearchParams()
 
   useEffect(() => {
+    if (searchParams.get("test_mode") === "true") {
+      localStorage.setItem("thc_test_mode", "true")
+    }
     checkAuth()
-  }, [])
+  }, [searchParams])
 
   const checkAuth = async () => {
     try {
@@ -55,12 +70,57 @@ export default function ClubPage() {
         window.location.href = "/"
         return
       }
+      const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'development' || process.env.NODE_ENV === 'development'
+      const isTestMode = typeof window !== 'undefined' && isDev && localStorage.getItem('thc_test_mode') === 'true'
+
+      let user = await userAuth.getCurrentUser()
+
+      // In test mode with no real session, use a seed dev user
+      if (!user && isTestMode) {
+        user = { email: 'dev@thcclub.com', business_name: 'Dev Brand (Test)', id: 'test-user' } as any
+      }
+
+      setCurrentUser(user)
+      if (user) await loadBrandData(user.email)
       setIsAuthenticated(true)
     } catch (error) {
-      console.error("Auth check error:", error)
-      window.location.href = "/"
+      console.error('Auth check error:', error)
+      window.location.href = '/'
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const loadBrandData = async (email: string) => {
+    try {
+      const { data: brandData } = await supabase
+        .from("brands")
+        .select("*")
+        .eq("email", email)
+        .maybeSingle()
+
+      if (brandData) {
+        setBrand(brandData)
+        const { data: bookingData } = await supabase
+          .from("shelf_bookings")
+          .select("*")
+          .eq("brand_id", brandData.id)
+          .in("status", ["active", "pending"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        setActiveBooking(bookingData || null)
+      } else {
+        // Auto-create a brand profile linked to this email
+        const { data: newBrand } = await supabase
+          .from("brands")
+          .insert({ email, business_name: email.split('@')[0], onboarding_status: "pending" })
+          .select("*")
+          .single()
+        setBrand(newBrand || null)
+      }
+    } catch (err) {
+      console.error("Error loading brand data:", err)
     }
   }
 
@@ -177,23 +237,20 @@ longer terms = better pricing.`,
     window.location.href = "/"
   }
 
+  const isActive = activeBooking?.status === "active" || brand?.onboarding_status === "active"
+  const isPending = activeBooking?.status === "pending" || brand?.onboarding_status === "slot_selected"
+  const needsOnboarding = !brand || (brand.onboarding_status === "pending" && !activeBooking)
+
   return (
     <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk">
-      {/* Persistent Marquee */}
+      {/* Marquee */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-3 overflow-hidden border-b border-[#FE7F2D]/20">
         <div className="marquee whitespace-nowrap">
-          <span className="inline-block px-12 text-base font-bold tracking-wide">
-            welcome to the club. you made it. now let's build something real together.
-          </span>
-          <span className="inline-block px-12 text-base font-bold tracking-wide">
-            welcome to the club. you made it. now let's build something real together.
-          </span>
-          <span className="inline-block px-12 text-base font-bold tracking-wide">
-            welcome to the club. you made it. now let's build something real together.
-          </span>
-          <span className="inline-block px-12 text-base font-bold tracking-wide">
-            welcome to the club. you made it. now let's build something real together.
-          </span>
+          {[1,2,3,4].map(i => (
+            <span key={i} className="inline-block px-12 text-base font-bold tracking-wide">
+              welcome to the club. you made it. now let's build something real together.
+            </span>
+          ))}
         </div>
       </div>
 
@@ -202,38 +259,65 @@ longer terms = better pricing.`,
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Image
-                src="/logo.png"
-                alt="thc club logo"
-                width={100}
-                height={50}
-                className="h-8 w-auto transition-transform hover:scale-105"
-              />
+              <Image src="/logo.png" alt="thc club logo" width={100} height={50} className="h-8 w-auto" />
               <Badge className="bg-green-100 text-green-800 text-xs">member access</Badge>
+              {isActive && <Badge className="bg-[#FE7F2D] text-white text-xs">active slot</Badge>}
+              {isPending && !isActive && <Badge className="bg-yellow-100 text-yellow-800 text-xs flex items-center gap-1"><Clock className="w-3 h-3" />pending approval</Badge>}
             </div>
-            <div className="flex items-center gap-6">
-              <Image
-                src="/broski.png"
-                alt="broski mascot"
-                width={32}
-                height={32}
-                className="h-8 w-8 transition-transform hover:rotate-12"
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-[#010307]/20 hover:bg-[#010307]/5 font-medium"
-                onClick={handleLogout}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                logout
+            <div className="flex items-center gap-4">
+              <div className="text-right hidden sm:block">
+                <p className="text-xs text-gray-500">Logged in as</p>
+                <p className="text-sm font-bold">{currentUser?.business_name || brand?.business_name || "Brand"}</p>
+              </div>
+              <Button size="sm" variant="outline" className="border-[#010307]/20" onClick={handleLogout}>
+                <LogOut className="w-4 h-4 mr-2" /> logout
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Main Content */}
+      <div className="container mx-auto px-4 sm:px-6 py-8">
+        {/* Onboarding Wizard — shown only if no booking has been made */}
+        {needsOnboarding && brand ? (
+          <OnboardingWizard
+            brandId={brand.id}
+            businessName={brand.business_name}
+            onComplete={() => loadBrandData(brand.email)}
+          />
+        ) : isPending && !isActive ? (
+          /* Pending Approval Screen */
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
+            <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center">
+              <Clock className="w-12 h-12 text-yellow-600" />
+            </div>
+            <h2 className="text-3xl font-black">Booking Under Review</h2>
+            <p className="text-gray-600 max-w-md">
+              Your shelf booking request has been submitted. The THC Club team will review and assign your slot within <strong>3–5 business days</strong>.
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 max-w-md text-left space-y-2">
+              <p className="font-semibold text-amber-800">Booking Summary</p>
+              {activeBooking && (
+                <>
+                  <p className="text-sm">Shelf: <strong>{activeBooking.shelf_type?.replace("_", " ")}</strong></p>
+                  <p className="text-sm">Duration: <strong>{activeBooking.duration?.replace("_", " ")}</strong></p>
+                  <p className="text-sm">Monthly: <strong>NPR {activeBooking.monthly_rent?.toLocaleString()}</strong></p>
+                </>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Active Dashboard Tabs */
+          <Tabs defaultValue="overview" className="w-full">
+            <TabsList className="w-full justify-start border-b border-[#FE7F2D]/20 rounded-none h-auto p-0 bg-transparent mb-8 overflow-x-auto hide-scrollbar">
+              <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">Club Overview</TabsTrigger>
+              <TabsTrigger value="inventory" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">My Products</TabsTrigger>
+              <TabsTrigger value="sales" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">Sales Tracker</TabsTrigger>
+            </TabsList>
+          
+          <TabsContent value="overview">
+            {/* Hero Section */}
       <section className="container mx-auto px-6 py-20 lg:py-32">
         <div className="max-w-6xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -839,6 +923,17 @@ longer terms = better pricing.`,
         </div>
       </section>
 
+          </TabsContent>
+          <TabsContent value="inventory" className="py-6">
+            {brand && <InventoryManagement brandId={brand.id} />}
+          </TabsContent>
+          <TabsContent value="sales" className="py-6">
+            {brand && <SalesTracker brandId={brand.id} />}
+          </TabsContent>
+        </Tabs>
+        )}
+      </div>
+
       {/* Footer */}
       <footer className="bg-[#010307] text-white py-16 border-t border-[#FE7F2D]">
         <div className="container mx-auto px-6">
@@ -893,5 +988,17 @@ longer terms = better pricing.`,
         </div>
       </footer>
     </div>
+  )
+}
+
+export default function ClubPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#FFFCEB] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D]"></div>
+      </div>
+    }>
+      <ClubPageContent />
+    </Suspense>
   )
 }

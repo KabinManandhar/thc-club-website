@@ -29,7 +29,7 @@ export function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     setIsSubmitting(true)
 
     try {
-      const { error } = await supabase.from("waitlist").insert([
+      const { error } = await supabase.from("waitlist_entries").insert([
         {
           business_name: formData.businessName,
           email: formData.email,

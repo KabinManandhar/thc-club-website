@@ -1,0 +1,265 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { supabase, type ShelfBooking } from "@/lib/supabase"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog"
+import { CheckCircle2, XCircle, Clock, Package } from "lucide-react"
+
+const SHELF_LABELS = { bottom: "Bottom Level", eye_level: "Eye Level", top_level: "Top Level" }
+const DURATION_LABELS = { quarterly: "Quarterly (3 mo)", half_yearly: "Half-Yearly (6 mo)", yearly: "Yearly (12 mo)" }
+
+export function BookingsManagement() {
+  const [bookings, setBookings] = useState<ShelfBooking[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filterStatus, setFilterStatus] = useState("pending")
+  const [actionBooking, setActionBooking] = useState<ShelfBooking | null>(null)
+  const [actionType, setActionType] = useState<"approve" | "reject" | null>(null)
+  const [adminNotes, setAdminNotes] = useState("")
+  const [slotNumber, setSlotNumber] = useState("")
+  const [saving, setSaving] = useState(false)
+
+  const fetchBookings = async () => {
+    setLoading(true)
+    let query = supabase
+      .from("shelf_bookings")
+      .select("*, brands(business_name, email, phone)")
+      .order("created_at", { ascending: false })
+    if (filterStatus !== "all") query = query.eq("status", filterStatus)
+    const { data } = await query
+    setBookings(data || [])
+    setLoading(false)
+  }
+
+  useEffect(() => { fetchBookings() }, [filterStatus])
+
+  const openAction = (booking: ShelfBooking, type: "approve" | "reject") => {
+    setActionBooking(booking)
+    setActionType(type)
+    setAdminNotes("")
+    setSlotNumber("")
+  }
+
+  const handleAction = async () => {
+    if (!actionBooking || !actionType) return
+    if (actionType === "approve" && !slotNumber) return
+    setSaving(true)
+
+    const startDate = new Date()
+    const months = actionBooking.duration === "quarterly" ? 3 : actionBooking.duration === "half_yearly" ? 6 : 12
+    const endDate = new Date(startDate)
+    endDate.setMonth(endDate.getMonth() + months)
+
+    if (actionType === "approve") {
+      // Update booking
+      await supabase.from("shelf_bookings").update({
+        status: "active",
+        slot_number: parseInt(slotNumber),
+        start_date: startDate.toISOString().split("T")[0],
+        end_date: endDate.toISOString().split("T")[0],
+        admin_notes: adminNotes,
+      }).eq("id", actionBooking.id)
+
+      // Update brand onboarding status to active
+      await supabase.from("brands").update({ onboarding_status: "active" }).eq("id", actionBooking.brand_id)
+
+      // Update shelf slot occupancy
+      await supabase
+        .from("shelf_slots")
+        .update({
+          status: "occupied",
+          occupied_by: (actionBooking.brands as any)?.business_name || "",
+          booking_id: actionBooking.id,
+          rent_amount: actionBooking.monthly_rent,
+          occupied_from: startDate.toISOString().split("T")[0],
+          occupied_until: endDate.toISOString().split("T")[0],
+        })
+        .eq("slot_number", parseInt(slotNumber))
+        .eq("shelf_type", actionBooking.shelf_type)
+    } else {
+      await supabase.from("shelf_bookings").update({
+        status: "rejected",
+        admin_notes: adminNotes,
+      }).eq("id", actionBooking.id)
+
+      await supabase.from("brands").update({ onboarding_status: "rejected" }).eq("id", actionBooking.brand_id)
+    }
+
+    setSaving(false)
+    setActionBooking(null)
+    setActionType(null)
+    fetchBookings()
+  }
+
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case "pending": return <Badge className="bg-yellow-100 text-yellow-800"><Clock className="w-3 h-3 mr-1" />Pending</Badge>
+      case "active": return <Badge className="bg-green-100 text-green-800"><CheckCircle2 className="w-3 h-3 mr-1" />Active</Badge>
+      case "rejected": return <Badge className="bg-red-100 text-red-800"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>
+      case "expired": return <Badge variant="outline">Expired</Badge>
+      default: return <Badge>{status}</Badge>
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold">Shelf Booking Requests</h2>
+          <p className="text-gray-600">Approve or reject brand applications for shelf slots.</p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {["pending", "active", "rejected", "all"].map((s) => (
+            <Button
+              key={s}
+              variant={filterStatus === s ? "default" : "outline"}
+              size="sm"
+              onClick={() => setFilterStatus(s)}
+              className={filterStatus === s ? "bg-[#010307] text-white" : ""}
+            >
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-gray-50">
+                <TableRow>
+                  <TableHead>Brand</TableHead>
+                  <TableHead>Shelf Request</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10 text-gray-400">Loading...</TableCell>
+                  </TableRow>
+                ) : bookings.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-10">
+                      <Package className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+                      <p className="text-gray-400 text-sm">No {filterStatus === "all" ? "" : filterStatus} bookings found</p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  bookings.map((b) => (
+                    <TableRow key={b.id}>
+                      <TableCell>
+                        <div className="font-medium">{(b.brands as any)?.business_name}</div>
+                        <div className="text-xs text-gray-500">{(b.brands as any)?.email}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">{SHELF_LABELS[b.shelf_type]}</div>
+                        <div className="text-xs text-gray-500">{DURATION_LABELS[b.duration]}</div>
+                        {b.slot_number && <div className="text-xs text-[#FE7F2D]">Slot #{b.slot_number}</div>}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        NPR {b.total_amount.toLocaleString()}
+                      </TableCell>
+                      <TableCell>{statusBadge(b.status)}</TableCell>
+                      <TableCell className="text-sm text-gray-500">
+                        {new Date(b.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {b.status === "pending" && (
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                              onClick={() => openAction(b, "approve")}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-red-300 text-red-600 hover:bg-red-50"
+                              onClick={() => openAction(b, "reject")}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Action Dialog */}
+      <Dialog open={!!actionBooking} onOpenChange={(open) => !open && setActionBooking(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className={actionType === "approve" ? "text-green-700" : "text-red-700"}>
+              {actionType === "approve" ? "Approve Booking" : "Reject Booking"}
+            </DialogTitle>
+          </DialogHeader>
+          {actionBooking && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
+                <p><strong>Brand:</strong> {(actionBooking.brands as any)?.business_name}</p>
+                <p><strong>Shelf:</strong> {SHELF_LABELS[actionBooking.shelf_type]} — {DURATION_LABELS[actionBooking.duration]}</p>
+                <p><strong>Total:</strong> NPR {actionBooking.total_amount.toLocaleString()}</p>
+              </div>
+
+              {actionType === "approve" && (
+                <div>
+                  <Label>Assign Slot Number *</Label>
+                  <input
+                    type="number"
+                    value={slotNumber}
+                    onChange={(e) => setSlotNumber(e.target.value)}
+                    placeholder={
+                      actionBooking.shelf_type === "bottom" ? "1–36" :
+                      actionBooking.shelf_type === "eye_level" ? "37–72" : "73–108"
+                    }
+                    className="w-full mt-1 border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FE7F2D]"
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label>Admin Notes (optional)</Label>
+                <Textarea
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  placeholder="Internal notes..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setActionBooking(null)}>Cancel</Button>
+            <Button
+              onClick={handleAction}
+              disabled={saving || (actionType === "approve" && !slotNumber)}
+              className={actionType === "approve" ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"}
+            >
+              {saving ? "Processing..." : actionType === "approve" ? "Confirm Approval" : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

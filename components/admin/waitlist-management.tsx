@@ -26,8 +26,7 @@ export function WaitlistManagement() {
 
   const fetchWaitlist = async () => {
     try {
-      const { data, error } = await supabase.from("waitlist").select("*").order("created_at", { ascending: false })
-
+      const { data, error } = await supabase.from("waitlist_entries").select("*").order("created_at", { ascending: false })
       if (error) throw error
       setWaitlist(data || [])
     } catch (error) {
@@ -40,7 +39,7 @@ export function WaitlistManagement() {
   const updateWaitlistStatus = async (id: string, status: "approved" | "rejected", notes?: string) => {
     try {
       const { error } = await supabase
-        .from("waitlist")
+        .from("waitlist_entries")
         .update({
           status,
           notes,

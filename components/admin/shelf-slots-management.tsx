@@ -327,243 +327,192 @@ export function ShelfSlotsManagement() {
         </Card>
       </div>
 
-      {/* Slots Grid */}
-      <div className="grid gap-4">
-        {filteredSlots.map((slot) => (
-          <Card key={slot.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-[#FE7F2D]" />
-                      <h3 className="font-bold text-lg">Slot #{slot.slot_number}</h3>
-                    </div>
-                    {getShelfTypeBadge(slot.shelf_type)}
-                    {getStatusBadge(slot.status)}
-                    {slot.occupied_until && isExpiringSoon(slot.occupied_until) && (
-                      <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        Expiring Soon
-                      </Badge>
-                    )}
-                    {slot.occupied_until && isExpired(slot.occupied_until) && (
-                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        Expired
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    {slot.occupied_by && (
-                      <p className="flex items-center gap-1">
-                        <User className="w-3 h-3" />
-                        <strong>Occupied by:</strong> {slot.occupied_by}
-                      </p>
-                    )}
-                    {slot.rent_amount && (
-                      <p>
-                        <strong>Rent:</strong> NPR {slot.rent_amount}/month
-                      </p>
-                    )}
-                    {slot.occupied_from && (
-                      <p className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <strong>From:</strong> {new Date(slot.occupied_from).toLocaleDateString()}
-                      </p>
-                    )}
-                    {slot.occupied_until && (
-                      <p className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <strong>Until:</strong> {new Date(slot.occupied_until).toLocaleDateString()}
-                        {isExpiringSoon(slot.occupied_until) && (
-                          <span className="text-orange-600 text-xs ml-1">
-                            (
-                            {Math.ceil(
-                              (new Date(slot.occupied_until).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
-                            )}{" "}
-                            days left)
-                          </span>
-                        )}
-                      </p>
-                    )}
-                    <p>
-                      <strong>Last Updated:</strong> {new Date(slot.updated_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <div className="ml-4">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedSlot(slot)
-                          setUpdateData({
-                            status: slot.status,
-                            occupied_by: slot.occupied_by || "",
-                            rent_amount: slot.rent_amount?.toString() || "",
-                            occupied_from: slot.occupied_from || "",
-                            occupied_until: slot.occupied_until || "",
-                            notes: "",
-                          })
-                        }}
-                      >
-                        <Settings className="w-4 h-4 mr-2" />
-                        Manage
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>Manage Slot #{selectedSlot?.slot_number}</DialogTitle>
-                      </DialogHeader>
-                      {selectedSlot && (
-                        <div className="space-y-6">
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <h4 className="font-semibold mb-2">Slot Information</h4>
-                            <div className="text-sm text-gray-600 space-y-1">
-                              <p>
-                                <strong>Slot Number:</strong> #{selectedSlot.slot_number}
-                              </p>
-                              <p>
-                                <strong>Shelf Type:</strong> {selectedSlot.shelf_type.replace("_", " ")}
-                              </p>
-                              <p>
-                                <strong>Current Status:</strong> {selectedSlot.status}
-                              </p>
-                              <p>
-                                <strong>Created:</strong> {new Date(selectedSlot.created_at).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
+      {/* Visual Grid Layout */}
+      <div className="space-y-12">
+        {/* Top Level Shelf */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Badge className="bg-purple-100 text-purple-800">Top Level Shelf (Premium)</Badge>
+            <span className="text-sm text-gray-500 font-medium">Slots 73 - 108</span>
+          </div>
+          <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-2 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
+            {slots.filter(s => s.shelf_type === "top_level").map(slot => (
+              <SlotSquare 
+                key={slot.id} 
+                slot={slot} 
+                onSelect={() => {
+                  setSelectedSlot(slot)
+                  setUpdateData({
+                    status: slot.status,
+                    occupied_by: slot.occupied_by || "",
+                    rent_amount: slot.rent_amount?.toString() || "",
+                    occupied_from: slot.occupied_from || "",
+                    occupied_until: slot.occupied_until || "",
+                    notes: "",
+                  })
+                }} 
+              />
+            ))}
+          </div>
+        </section>
 
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="status">Status</Label>
-                              <Select
-                                value={updateData.status}
-                                onValueChange={(value) => setUpdateData((prev) => ({ ...prev, status: value }))}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="available">Available</SelectItem>
-                                  <SelectItem value="occupied">Occupied</SelectItem>
-                                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
+        {/* Eye Level Shelf */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Badge className="bg-orange-100 text-orange-800">Eye Level Shelf (Best Visibility)</Badge>
+            <span className="text-sm text-gray-500 font-medium">Slots 37 - 72</span>
+          </div>
+          <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-2 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
+            {slots.filter(s => s.shelf_type === "eye_level").map(slot => (
+              <SlotSquare 
+                key={slot.id} 
+                slot={slot} 
+                onSelect={() => {
+                  setSelectedSlot(slot)
+                  setUpdateData({
+                    status: slot.status,
+                    occupied_by: slot.occupied_by || "",
+                    rent_amount: slot.rent_amount?.toString() || "",
+                    occupied_from: slot.occupied_from || "",
+                    occupied_until: slot.occupied_until || "",
+                    notes: "",
+                  })
+                }} 
+              />
+            ))}
+          </div>
+        </section>
 
-                            <div>
-                              <Label htmlFor="rent_amount">Monthly Rent (NPR)</Label>
-                              <Input
-                                id="rent_amount"
-                                type="number"
-                                placeholder="1000"
-                                value={updateData.rent_amount}
-                                onChange={(e) => setUpdateData((prev) => ({ ...prev, rent_amount: e.target.value }))}
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <Label htmlFor="occupied_by">Occupied By</Label>
-                            <Input
-                              id="occupied_by"
-                              placeholder="Business/Brand name"
-                              value={updateData.occupied_by}
-                              onChange={(e) => setUpdateData((prev) => ({ ...prev, occupied_by: e.target.value }))}
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="occupied_from">Occupied From</Label>
-                              <Input
-                                id="occupied_from"
-                                type="date"
-                                value={updateData.occupied_from}
-                                onChange={(e) => setUpdateData((prev) => ({ ...prev, occupied_from: e.target.value }))}
-                              />
-                            </div>
-
-                            <div>
-                              <Label htmlFor="occupied_until">Occupied Until</Label>
-                              <Input
-                                id="occupied_until"
-                                type="date"
-                                value={updateData.occupied_until}
-                                onChange={(e) => setUpdateData((prev) => ({ ...prev, occupied_until: e.target.value }))}
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <Label htmlFor="notes">Notes</Label>
-                            <Textarea
-                              id="notes"
-                              placeholder="Add notes about this slot..."
-                              value={updateData.notes}
-                              onChange={(e) => setUpdateData((prev) => ({ ...prev, notes: e.target.value }))}
-                              rows={3}
-                            />
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={() =>
-                                updateSlot(selectedSlot.id, {
-                                  status: updateData.status as "available" | "occupied" | "maintenance",
-                                  occupied_by: updateData.occupied_by || null,
-                                  rent_amount: updateData.rent_amount
-                                    ? Number.parseFloat(updateData.rent_amount)
-                                    : null,
-                                  occupied_from: updateData.occupied_from || null,
-                                  occupied_until: updateData.occupied_until || null,
-                                })
-                              }
-                              className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white"
-                            >
-                              Update Slot
-                            </Button>
-                            {updateData.status === "available" && (
-                              <Button
-                                onClick={() =>
-                                  updateSlot(selectedSlot.id, {
-                                    status: "available",
-                                    occupied_by: null,
-                                    rent_amount: null,
-                                    occupied_from: null,
-                                    occupied_until: null,
-                                  })
-                                }
-                                variant="outline"
-                              >
-                                Clear Occupancy
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        {/* Bottom Shelf */}
+        <section>
+          <div className="flex items-center gap-2 mb-4">
+            <Badge className="bg-blue-100 text-blue-800">Bottom Shelf (Standard)</Badge>
+            <span className="text-sm text-gray-500 font-medium">Slots 1 - 36</span>
+          </div>
+          <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-2 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
+            {slots.filter(s => s.shelf_type === "bottom").map(slot => (
+              <SlotSquare 
+                key={slot.id} 
+                slot={slot} 
+                onSelect={() => {
+                  setSelectedSlot(slot)
+                  setUpdateData({
+                    status: slot.status,
+                    occupied_by: slot.occupied_by || "",
+                    rent_amount: slot.rent_amount?.toString() || "",
+                    occupied_from: slot.occupied_from || "",
+                    occupied_until: slot.occupied_until || "",
+                    notes: "",
+                  })
+                }} 
+              />
+            ))}
+          </div>
+        </section>
       </div>
 
-      {filteredSlots.length === 0 && (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No shelf slots found.</p>
-          </CardContent>
-        </Card>
-      )}
+      {/* Management Dialog */}
+      <Dialog open={!!selectedSlot} onOpenChange={(open) => !open && setSelectedSlot(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Slot #{selectedSlot?.slot_number}</DialogTitle>
+          </DialogHeader>
+          {selectedSlot && (
+            <div className="space-y-6">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">Slot Information</h4>
+                <div className="text-sm text-gray-600 space-y-1">
+                  <p><strong>Slot Number:</strong> #{selectedSlot.slot_number}</p>
+                  <p><strong>Shelf Type:</strong> {selectedSlot.shelf_type.replace("_", " ")}</p>
+                  <p><strong>Current Status:</strong> {selectedSlot.status}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={updateData.status}
+                    onValueChange={(value) => setUpdateData((prev) => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="available">Available</SelectItem>
+                      <SelectItem value="occupied">Occupied</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="rent_amount">Monthly Rent (NPR)</Label>
+                  <Input
+                    id="rent_amount"
+                    type="number"
+                    value={updateData.rent_amount}
+                    onChange={(e) => setUpdateData((prev) => ({ ...prev, rent_amount: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="occupied_by">Occupied By</Label>
+                <Input
+                  id="occupied_by"
+                  value={updateData.occupied_by}
+                  onChange={(e) => setUpdateData((prev) => ({ ...prev, occupied_by: e.target.value }))}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button
+                  onClick={() =>
+                    updateSlot(selectedSlot.id, {
+                      status: updateData.status as "available" | "occupied" | "maintenance",
+                      occupied_by: updateData.occupied_by || undefined,
+                      rent_amount: updateData.rent_amount ? Number.parseFloat(updateData.rent_amount) : undefined,
+                    })
+                  }
+                  className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white flex-1"
+                >
+                  Save Changes
+                </Button>
+                <Button variant="outline" onClick={() => setSelectedSlot(null)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
+
+function SlotSquare({ slot, onSelect }: { slot: ShelfSlot; onSelect: () => void }) {
+  const isExpiring = (date: string | null | undefined) => {
+    if (!date) return false
+    const d = new Date(date)
+    const today = new Date()
+    const diff = Math.ceil((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    return diff <= 30 && diff > 0
+  }
+
+  return (
+    <div 
+      onClick={onSelect}
+      className={`
+        aspect-square rounded-md border flex flex-col items-center justify-center cursor-pointer transition-all hover:scale-110 shadow-sm
+        ${slot.status === "available" ? "bg-white border-green-200 hover:border-green-500 text-green-700" : ""}
+        ${slot.status === "occupied" ? "bg-red-50 border-red-200 hover:border-red-500 text-red-700" : ""}
+        ${slot.status === "maintenance" ? "bg-yellow-50 border-yellow-200 hover:border-yellow-500 text-yellow-700" : ""}
+        ${isExpiring(slot.occupied_until) ? "ring-2 ring-orange-400 ring-offset-1" : ""}
+      `}
+      title={`${slot.status}${slot.occupied_by ? ` - ${slot.occupied_by}` : ""}`}
+    >
+      <span className="text-[10px] font-bold opacity-50">#{slot.slot_number}</span>
+      {slot.status === "occupied" && <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1" />}
+      {slot.status === "available" && <div className="w-1.5 h-1.5 bg-green-400 rounded-full mt-1" />}
     </div>
   )
 }

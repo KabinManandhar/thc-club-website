@@ -2,6 +2,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { Space_Grotesk } from "next/font/google"
 import "./globals.css"
+import { EnvBanner } from "@/components/env-banner"
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -21,7 +22,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={spaceGrotesk.variable}>
-      <body className="font-space-grotesk">{children}</body>
+      <body className="font-space-grotesk">
+        <EnvBanner />
+        {children}
+      </body>
     </html>
   )
 }
