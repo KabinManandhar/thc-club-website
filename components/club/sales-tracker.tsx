@@ -198,10 +198,10 @@ export function SalesTracker({ brandId }: SalesTrackerProps) {
             </TableHeader>
             <TableBody>
               {[
-                { range: "Below NPR 10,000", fee: "3%", waiver: "Full rent", tier: "Starter", active: currentSales < 10000 },
-                { range: "NPR 10,000 – 50,000", fee: "5%", waiver: "Full rent", tier: "Silver", active: currentSales >= 10000 && currentSales < 50000 },
-                { range: "NPR 50,000 – 1,00,000", fee: "7%", waiver: "50% rent waived", tier: "Gold", active: currentSales >= 50000 && currentSales < 100000 },
-                { range: "Above NPR 1,00,000", fee: "10%", waiver: "100% rent waived", tier: "Platinum", active: currentSales >= 100000 },
+                { range: "Below NPR 10,000", fee: "3%", waiver: "Pay Full Rent", tier: "Starter", active: currentSales < 10000 },
+                { range: "NPR 10,000 – 50,000", fee: "5%", waiver: "Pay Full Rent", tier: "Silver", active: currentSales >= 10000 && currentSales < 50000 },
+                { range: "NPR 50,000 – 1,00,000", fee: "7%", waiver: "50% Rent Waived", tier: "Gold", active: currentSales >= 50000 && currentSales < 100000 },
+                { range: "Above NPR 1,00,000", fee: "10%", waiver: "100% Rent Waived", tier: "Platinum", active: currentSales >= 100000 },
               ].map((row) => (
                 <TableRow key={row.tier} className={row.active ? "bg-orange-50/50" : ""}>
                   <TableCell>{row.range}</TableCell>

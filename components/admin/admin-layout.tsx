@@ -35,13 +35,9 @@ export function AdminLayout({ children, activeTab, onTabChange, onLogout }: Admi
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-    { id: "waitlist", label: "Waitlist", icon: Users },
-    { id: "enquiries", label: "Enquiries", icon: MessageSquare },
-    { id: "visits", label: "Visit Requests", icon: Calendar },
     { id: "brands", label: "Brand Management", icon: Users },
     { id: "bookings", label: "Shelf Bookings", icon: BookOpen },
     { id: "invoices", label: "Invoice Generator", icon: Receipt },
-    { id: "sales", label: "Sales Input", icon: BarChart3 },
     { id: "slots", label: "Visual Shelf Grid", icon: Package },
     { id: "settings", label: "Settings", icon: Settings },
   ]

@@ -4,7 +4,7 @@ export interface ApprovedUser {
   id: string
   email: string
   business_name: string
-  login_code: string
+  password: string
   is_active: boolean
   first_login?: string
   last_login?: string
@@ -16,19 +16,19 @@ export interface UserAuthState {
 }
 
 export const userAuth = {
-  async login(email: string, loginCode: string): Promise<{ user: ApprovedUser | null; error: string | null }> {
+  async login(email: string, password: string): Promise<{ user: ApprovedUser | null; error: string | null }> {
     try {
-      // Check if user exists and login code is correct
+      // Check if user exists and password is correct
       const { data: user, error } = await supabase
         .from("approved_users")
         .select("*")
         .eq("email", email.toLowerCase())
-        .eq("login_code", loginCode)
+        .eq("password", password)
         .eq("is_active", true)
         .single()
 
       if (error || !user) {
-        return { user: null, error: "Invalid email or login code" }
+        return { user: null, error: "Invalid email or password" }
       }
 
       // Create session token
@@ -117,12 +117,65 @@ export const userAuth = {
     return user !== null
   },
 
-  async requestLoginCode(email: string): Promise<{ success: boolean; error?: string }> {
+  async signUp(
+    email: string,
+    password: string,
+    businessName: string,
+    phone: string,
+    brandDescription: string,
+    socialHandle: string
+  ): Promise<{ user: ApprovedUser | null; error: string | null }> {
+    try {
+      // Check if user already exists
+      const { data: existing } = await supabase
+        .from("approved_users")
+        .select("id")
+        .eq("email", email.toLowerCase())
+        .maybeSingle()
+
+      if (existing) {
+        return { user: null, error: "An account with this email already exists" }
+      }
+
+      // Create user
+      const { data: newUser, error: createError } = await supabase
+        .from("approved_users")
+        .insert({
+          email: email.toLowerCase(),
+          password: password,
+          business_name: businessName,
+          is_active: true, // Everyone can login to see pricing
+        })
+        .select("*")
+        .single()
+
+      if (createError || !newUser) {
+        return { user: null, error: createError?.message || "Registration failed" }
+      }
+
+      // Create a brand profile
+      await supabase.from("brands").insert({
+        email: email.toLowerCase(),
+        business_name: businessName,
+        phone: phone,
+        description: brandDescription,
+        instagram_handle: socialHandle,
+        onboarding_status: "pending",
+      })
+
+      return { user: newUser, error: null }
+    } catch (error) {
+      console.error("Sign up error:", error)
+      return { user: null, error: "Registration failed" }
+    }
+  },
+
+  async resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
     try {
       // Check if user exists in approved_users
       const { data: user, error } = await supabase
         .from("approved_users")
-        .select("email, business_name, login_code")
+        .select("email")
         .eq("email", email.toLowerCase())
         .eq("is_active", true)
         .single()
@@ -131,11 +184,10 @@ export const userAuth = {
         return { success: false, error: "Email not found in approved users list" }
       }
 
-      // In a real app, you'd send an email here
-      // For now, we'll just return success (admin can share the code manually)
+      // In a real app, you'd send a reset link here
       return { success: true }
     } catch (error) {
-      console.error("Request login code error:", error)
+      console.error("Reset password error:", error)
       return { success: false, error: "Failed to process request" }
     }
   },

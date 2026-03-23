@@ -57,6 +57,8 @@ export interface ShelfSlot {
   id: string
   slot_number: number
   shelf_type: "bottom" | "eye_level" | "top_level"
+  section?: string
+  shelf_name?: string
   status: "available" | "occupied" | "maintenance"
   occupied_by?: string
   booking_id?: string
@@ -167,6 +169,37 @@ export interface BrandSales {
   rent_waiver_percent?: number
   created_at: string
   updated_at: string
+}
+
+export interface BrandChangeRequest {
+  id: string
+  brand_id: string
+  request_type: "product_add" | "product_update" | "brand_update"
+  target_id?: string
+  new_data: any
+  status: "pending" | "approved" | "rejected"
+  admin_notes?: string
+  created_at: string
+  updated_at: string
+  // joined
+  brands?: Brand
+}
+
+export interface StockUpdateRequest {
+  id: string
+  brand_id: string
+  product_id: string
+  current_stock: number
+  requested_stock: number
+  change_amount: number
+  reason?: string
+  status: "pending" | "approved" | "rejected"
+  admin_notes?: string
+  created_at: string
+  updated_at: string
+  // joined
+  brands?: Brand
+  brand_products?: BrandProduct
 }
 
 // ============================================================

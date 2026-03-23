@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog"
-import { CheckCircle2, XCircle, Clock, Package } from "lucide-react"
+import { CheckCircle2, XCircle, Clock, Package, MapPin } from "lucide-react"
+import { ShelfGridPicker } from "./shelf-grid-picker"
+import { type ShelfSlot } from "@/lib/supabase"
 
 const SHELF_LABELS = { bottom: "Bottom Level", eye_level: "Eye Level", top_level: "Top Level" }
 const DURATION_LABELS = { quarterly: "Quarterly (3 mo)", half_yearly: "Half-Yearly (6 mo)", yearly: "Yearly (12 mo)" }
@@ -24,6 +26,7 @@ export function BookingsManagement() {
   const [actionType, setActionType] = useState<"approve" | "reject" | null>(null)
   const [adminNotes, setAdminNotes] = useState("")
   const [slotNumber, setSlotNumber] = useState("")
+  const [selectedSlot, setSelectedSlot] = useState<ShelfSlot | null>(null)
   const [saving, setSaving] = useState(false)
 
   const fetchBookings = async () => {
@@ -45,6 +48,7 @@ export function BookingsManagement() {
     setActionType(type)
     setAdminNotes("")
     setSlotNumber("")
+    setSelectedSlot(null)
   }
 
   const handleAction = async () => {
@@ -207,7 +211,7 @@ export function BookingsManagement() {
 
       {/* Action Dialog */}
       <Dialog open={!!actionBooking} onOpenChange={(open) => !open && setActionBooking(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className={actionType === "approve" ? "text-green-700" : "text-red-700"}>
               {actionType === "approve" ? "Approve Booking" : "Reject Booking"}
@@ -222,18 +226,34 @@ export function BookingsManagement() {
               </div>
 
               {actionType === "approve" && (
-                <div>
-                  <Label>Assign Slot Number *</Label>
-                  <input
-                    type="number"
-                    value={slotNumber}
-                    onChange={(e) => setSlotNumber(e.target.value)}
-                    placeholder={
-                      actionBooking.shelf_type === "bottom" ? "1–36" :
-                      actionBooking.shelf_type === "eye_level" ? "37–72" : "73–108"
-                    }
-                    className="w-full mt-1 border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#FE7F2D]"
-                  />
+                <div className="space-y-4">
+                  <div>
+                    <Label className="flex items-center gap-2 mb-2 font-black text-gray-900 uppercase tracking-tighter text-sm">
+                      <MapPin className="w-4 h-4 text-[#FE7F2D]" />
+                      Select Shelf Slot *
+                    </Label>
+                    <div className="bg-white border rounded-xl p-4 shadow-sm">
+                      <ShelfGridPicker
+                        shelfTypeLimit={actionBooking.shelf_type}
+                        onSelect={(slot) => {
+                          setSelectedSlot(slot)
+                          setSlotNumber(slot.slot_number.toString())
+                        }}
+                        selectedSlotId={selectedSlot?.id}
+                      />
+                    </div>
+                  </div>
+                  {selectedSlot && (
+                    <div className="bg-[#FE7F2D]/5 border border-[#FE7F2D]/20 rounded-lg p-3 flex justify-between items-center text-xs animate-in slide-in-from-top-2">
+                       <div className="flex flex-col gap-0.5">
+                          <span className="font-black text-[#FE7F2D] uppercase tracking-widest text-[10px]">Active Selection</span>
+                          <span className="font-bold text-gray-900">{selectedSlot.section} — {selectedSlot.shelf_name}</span>
+                       </div>
+                       <div className="text-xl font-black text-[#FE7F2D]">
+                          #{selectedSlot.slot_number}
+                       </div>
+                    </div>
+                  )}
                 </div>
               )}
 

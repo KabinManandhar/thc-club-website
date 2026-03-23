@@ -89,7 +89,6 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
     setFormError(null)
 
     const payload = {
-      brand_id: brandId,
       name: form.name,
       sku: form.sku || null,
       description: form.description || null,
@@ -99,28 +98,25 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
       low_stock_threshold: parseInt(form.low_stock_threshold) || 5,
     }
 
-    let error
-    if (editingProduct) {
-      ;({ error } = await supabase.from("brand_products").update(payload).eq("id", editingProduct.id))
-    } else {
-      ;({ error } = await supabase.from("brand_products").insert(payload))
-    }
+    try {
+      const { error } = await supabase.from("brand_change_requests").insert({
+        brand_id: brandId,
+        request_type: editingProduct ? "product_update" : "product_add",
+        target_id: editingProduct?.id,
+        new_data: payload,
+        status: "pending"
+      })
 
-    if (error) {
-      setFormError(error.message)
-    } else {
+      if (error) throw error
+      
       setIsFormOpen(false)
       fetchProducts()
+      alert("Changes submitted to admin for approval.")
+    } catch (error: any) {
+      setFormError(error.message)
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
-  }
-
-  const handleDelete = async () => {
-    if (!deletingId) return
-    await supabase.from("brand_products").update({ is_active: false }).eq("id", deletingId)
-    setIsDeleteOpen(false)
-    setDeletingId(null)
-    fetchProducts()
   }
 
   const filtered = products.filter(
@@ -142,15 +138,26 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold">Inventory Management</h2>
-          <p className="text-gray-600">Manage your products and shelf stock.</p>
+          <p className="text-gray-600">Request product additions or updates. Admin approval required for all changes.</p>
         </div>
         <Button onClick={openAdd} className="bg-[#010307] text-white hover:bg-[#010307]/90">
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Product
+          <PlusCircle className="mr-2 h-4 w-4" /> Request New Product
         </Button>
       </div>
 
       <Card className="border-[#FE7F2D]/20">
         <CardHeader className="pb-2">
+           <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100/50 mb-4">
+              <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-blue-600" />
+                 </div>
+                 <div>
+                    <p className="text-sm font-bold text-blue-900">Admin Approval Required</p>
+                    <p className="text-xs text-blue-700">All product additions, edits, and deletions are managed by the admin team.</p>
+                 </div>
+              </div>
+           </div>
           <div className="relative">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
             <Input
@@ -182,7 +189,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-10">
                       <Package className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                      <p className="text-gray-500 text-sm">No products yet. Add your first product!</p>
+                      <p className="text-gray-500 text-sm">No products yet. Request your first product!</p>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -206,12 +213,14 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => openEdit(p)}>
                           <Edit2 className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost" size="icon" className="h-8 w-8 text-red-600"
-                          onClick={() => { setDeletingId(p.id); setIsDeleteOpen(true) }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="inline-block" title="Only Admin can delete products">
+                           <Button
+                             variant="ghost" size="icon" className="h-8 w-8 text-gray-300 cursor-not-allowed"
+                             disabled
+                           >
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -226,7 +235,8 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+            <DialogTitle>{editingProduct ? "Request Product Edit" : "Request New Product"}</DialogTitle>
+            <p className="text-xs text-[#FE7F2D] font-bold">Admin will verify and approve these changes.</p>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="grid grid-cols-2 gap-4">
@@ -247,7 +257,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                 <Input type="number" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} placeholder="1200" />
               </div>
               <div>
-                <Label>Stock Quantity</Label>
+                <Label>Desired Stock Level</Label>
                 <Input type="number" value={form.stock_quantity} onChange={(e) => setForm(f => ({ ...f, stock_quantity: e.target.value }))} placeholder="20" />
               </div>
               <div>
@@ -264,27 +274,11 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
             <Button onClick={handleSave} disabled={saving} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white">
-              {saving ? "Saving..." : editingProduct ? "Save Changes" : "Add Product"}
+              {saving ? "Sending..." : editingProduct ? "Request Change" : "Submit Product"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Confirm */}
-      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Product?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This product will be deactivated. Existing invoice data will be preserved.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Remove</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }

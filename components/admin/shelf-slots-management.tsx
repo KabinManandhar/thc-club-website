@@ -69,10 +69,6 @@ export function ShelfSlotsManagement() {
   }
 
   const calculateStats = () => {
-    const bottomSlots = slots.filter((slot) => slot.shelf_type === "bottom")
-    const eyeLevelSlots = slots.filter((slot) => slot.shelf_type === "eye_level")
-    const topLevelSlots = slots.filter((slot) => slot.shelf_type === "top_level")
-
     const calculateSlotStats = (slotArray: ShelfSlot[]): SlotStats => ({
       total: slotArray.length,
       available: slotArray.filter((s) => s.status === "available").length,
@@ -81,9 +77,9 @@ export function ShelfSlotsManagement() {
     })
 
     setStats({
-      bottom: calculateSlotStats(bottomSlots),
-      eye_level: calculateSlotStats(eyeLevelSlots),
-      top_level: calculateSlotStats(topLevelSlots),
+      bottom: calculateSlotStats(slots.filter(s => s.shelf_type === "bottom")),
+      eye_level: calculateSlotStats(slots.filter(s => s.shelf_type === "eye_level")),
+      top_level: calculateSlotStats(slots.filter(s => s.shelf_type === "top_level")),
       total: calculateSlotStats(slots),
     })
   }
@@ -100,7 +96,6 @@ export function ShelfSlotsManagement() {
 
       if (error) throw error
 
-      // Refresh the list
       fetchSlots()
       setSelectedSlot(null)
       setUpdateData({
@@ -127,58 +122,7 @@ export function ShelfSlotsManagement() {
     return matchesSearch && matchesShelfType && matchesStatus
   })
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "available":
-        return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            Available
-          </Badge>
-        )
-      case "occupied":
-        return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-            Occupied
-          </Badge>
-        )
-      case "maintenance":
-        return (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-            Maintenance
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">Unknown</Badge>
-    }
-  }
-
-  const getShelfTypeBadge = (shelfType: string) => {
-    switch (shelfType) {
-      case "bottom":
-        return <Badge className="bg-blue-100 text-blue-800">Bottom Shelf</Badge>
-      case "eye_level":
-        return <Badge className="bg-orange-100 text-orange-800">Eye Level</Badge>
-      case "top_level":
-        return <Badge className="bg-purple-100 text-purple-800">Top Level</Badge>
-      default:
-        return <Badge>Unknown</Badge>
-    }
-  }
-
-  const isExpiringSoon = (expiryDate: string | null) => {
-    if (!expiryDate) return false
-    const expiry = new Date(expiryDate)
-    const today = new Date()
-    const daysUntilExpiry = Math.ceil((expiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
-    return daysUntilExpiry <= 30 && daysUntilExpiry > 0
-  }
-
-  const isExpired = (expiryDate: string | null) => {
-    if (!expiryDate) return false
-    const expiry = new Date(expiryDate)
-    const today = new Date()
-    return expiry < today
-  }
+  const SECTIONS = ["Cafe Section", "Room One", "Room Two", "Corridor Wall"]
 
   if (loading) {
     return (
@@ -238,21 +182,17 @@ export function ShelfSlotsManagement() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Bottom Shelf (1-36)</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Bottom Shelf</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-green-600">
                 <span>Available:</span>
-                <span className="font-bold text-green-600">{stats.bottom.available}</span>
+                <span className="font-bold">{stats.bottom.available}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-red-600">
                 <span>Occupied:</span>
-                <span className="font-bold text-red-600">{stats.bottom.occupied}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Maintenance:</span>
-                <span className="font-bold text-yellow-600">{stats.bottom.maintenance}</span>
+                <span className="font-bold">{stats.bottom.occupied}</span>
               </div>
             </div>
           </CardContent>
@@ -260,21 +200,17 @@ export function ShelfSlotsManagement() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Eye Level (37-72)</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Eye Level</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-green-600">
                 <span>Available:</span>
-                <span className="font-bold text-green-600">{stats.eye_level.available}</span>
+                <span className="font-bold">{stats.eye_level.available}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-red-600">
                 <span>Occupied:</span>
-                <span className="font-bold text-red-600">{stats.eye_level.occupied}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Maintenance:</span>
-                <span className="font-bold text-yellow-600">{stats.eye_level.maintenance}</span>
+                <span className="font-bold">{stats.eye_level.occupied}</span>
               </div>
             </div>
           </CardContent>
@@ -282,21 +218,17 @@ export function ShelfSlotsManagement() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Top Level (73-108)</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Top Level</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-green-600">
                 <span>Available:</span>
-                <span className="font-bold text-green-600">{stats.top_level.available}</span>
+                <span className="font-bold">{stats.top_level.available}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm text-red-600">
                 <span>Occupied:</span>
-                <span className="font-bold text-red-600">{stats.top_level.occupied}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Maintenance:</span>
-                <span className="font-bold text-yellow-600">{stats.top_level.maintenance}</span>
+                <span className="font-bold">{stats.top_level.occupied}</span>
               </div>
             </div>
           </CardContent>
@@ -304,22 +236,14 @@ export function ShelfSlotsManagement() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Total (108 slots)</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Total ({stats.total.total} slots)</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Available:</span>
-                <span className="font-bold text-green-600">{stats.total.available}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Occupied:</span>
-                <span className="font-bold text-red-600">{stats.total.occupied}</span>
-              </div>
               <div className="flex justify-between text-sm">
                 <span>Occupancy:</span>
                 <span className="font-bold text-[#FE7F2D]">
-                  {((stats.total.occupied / stats.total.total) * 100).toFixed(1)}%
+                  {stats.total.total > 0 ? ((stats.total.occupied / stats.total.total) * 100).toFixed(1) : 0}%
                 </span>
               </div>
             </div>
@@ -327,88 +251,65 @@ export function ShelfSlotsManagement() {
         </Card>
       </div>
 
-      {/* Visual Grid Layout */}
-      <div className="space-y-12">
-        {/* Top Level Shelf */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Badge className="bg-purple-100 text-purple-800">Top Level Shelf (Premium)</Badge>
-            <span className="text-sm text-gray-500 font-medium">Slots 73 - 108</span>
-          </div>
-          <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-2 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
-            {slots.filter(s => s.shelf_type === "top_level").map(slot => (
-              <SlotSquare 
-                key={slot.id} 
-                slot={slot} 
-                onSelect={() => {
-                  setSelectedSlot(slot)
-                  setUpdateData({
-                    status: slot.status,
-                    occupied_by: slot.occupied_by || "",
-                    rent_amount: slot.rent_amount?.toString() || "",
-                    occupied_from: slot.occupied_from || "",
-                    occupied_until: slot.occupied_until || "",
-                    notes: "",
-                  })
-                }} 
-              />
-            ))}
-          </div>
-        </section>
+      {/* Visual Grid Layout by Section */}
+      <div className="space-y-16">
+        {SECTIONS.map(sectionName => {
+          const sectionSlots = filteredSlots.filter(s => s.section === sectionName)
+          if (sectionSlots.length === 0 && searchTerm === "" && shelfTypeFilter === "all" && statusFilter === "all") return null
+          
+          // Group by shelf_name within section
+          const shelves = Array.from(new Set(sectionSlots.map(s => s.shelf_name))).sort((a, b) => {
+            return (a || "").localeCompare(b || "", undefined, { numeric: true, sensitivity: 'base' })
+          })
 
-        {/* Eye Level Shelf */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Badge className="bg-orange-100 text-orange-800">Eye Level Shelf (Best Visibility)</Badge>
-            <span className="text-sm text-gray-500 font-medium">Slots 37 - 72</span>
-          </div>
-          <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-2 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
-            {slots.filter(s => s.shelf_type === "eye_level").map(slot => (
-              <SlotSquare 
-                key={slot.id} 
-                slot={slot} 
-                onSelect={() => {
-                  setSelectedSlot(slot)
-                  setUpdateData({
-                    status: slot.status,
-                    occupied_by: slot.occupied_by || "",
-                    rent_amount: slot.rent_amount?.toString() || "",
-                    occupied_from: slot.occupied_from || "",
-                    occupied_until: slot.occupied_until || "",
-                    notes: "",
-                  })
-                }} 
-              />
-            ))}
-          </div>
-        </section>
+          return (
+            <section key={sectionName} className="space-y-6">
+              <div className="flex items-center gap-4 border-b-2 border-[#FE7F2D]/20 pb-2">
+                <h2 className="text-2xl font-black text-[#010307]">{sectionName}</h2>
+                <Badge variant="outline" className="bg-[#FE7F2D]/5 text-[#FE7F2D] border-[#FE7F2D]/20">
+                  {sectionSlots.length} Slots
+                </Badge>
+              </div>
 
-        {/* Bottom Shelf */}
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <Badge className="bg-blue-100 text-blue-800">Bottom Shelf (Standard)</Badge>
-            <span className="text-sm text-gray-500 font-medium">Slots 1 - 36</span>
-          </div>
-          <div className="grid grid-cols-6 sm:grid-cols-9 md:grid-cols-12 gap-2 bg-gray-50 p-4 rounded-xl border border-gray-200 shadow-inner">
-            {slots.filter(s => s.shelf_type === "bottom").map(slot => (
-              <SlotSquare 
-                key={slot.id} 
-                slot={slot} 
-                onSelect={() => {
-                  setSelectedSlot(slot)
-                  setUpdateData({
-                    status: slot.status,
-                    occupied_by: slot.occupied_by || "",
-                    rent_amount: slot.rent_amount?.toString() || "",
-                    occupied_from: slot.occupied_from || "",
-                    occupied_until: slot.occupied_until || "",
-                    notes: "",
-                  })
-                }} 
-              />
-            ))}
-          </div>
-        </section>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {shelves.map(shelfName => (
+                  <Card key={shelfName as string} className="border-gray-200 shadow-sm overflow-hidden">
+                    <CardHeader className="bg-gray-50/50 py-3 border-b">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <Package className="w-4 h-4 text-[#FE7F2D]" />
+                        {(shelfName as string) || "Unassigned Shelf"}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <div className="grid grid-cols-6 gap-2">
+                        {sectionSlots
+                          .filter(s => s.shelf_name === shelfName)
+                          .sort((a, b) => a.slot_number - b.slot_number)
+                          .map(slot => (
+                            <SlotSquare 
+                              key={slot.id} 
+                              slot={slot} 
+                              onSelect={() => {
+                                setSelectedSlot(slot)
+                                setUpdateData({
+                                  status: slot.status,
+                                  occupied_by: slot.occupied_by || "",
+                                  rent_amount: slot.rent_amount?.toString() || "",
+                                  occupied_from: slot.occupied_from || "",
+                                  occupied_until: slot.occupied_until || "",
+                                  notes: "",
+                                })
+                              }} 
+                            />
+                          ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )
+        })}
       </div>
 
       {/* Management Dialog */}
@@ -420,10 +321,12 @@ export function ShelfSlotsManagement() {
           {selectedSlot && (
             <div className="space-y-6">
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-2">Slot Information</h4>
-                <div className="text-sm text-gray-600 space-y-1">
+                <h4 className="font-semibold mb-2 text-[#FE7F2D]">Slot Information</h4>
+                <div className="grid grid-cols-2 gap-y-2 text-sm text-gray-600">
+                  <p><strong>Section:</strong> {selectedSlot.section || "N/A"}</p>
+                  <p><strong>Shelf:</strong> {selectedSlot.shelf_name || "N/A"}</p>
                   <p><strong>Slot Number:</strong> #{selectedSlot.slot_number}</p>
-                  <p><strong>Shelf Type:</strong> {selectedSlot.shelf_type.replace("_", " ")}</p>
+                  <p><strong>Tier:</strong> {selectedSlot.shelf_type.replace("_", " ")}</p>
                   <p><strong>Current Status:</strong> {selectedSlot.status}</p>
                 </div>
               </div>

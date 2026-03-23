@@ -4,13 +4,9 @@ import { useState, useEffect } from "react"
 import { AdminLayout } from "@/components/admin/admin-layout"
 import { LoginForm } from "@/components/admin/login-form"
 import { DashboardOverview } from "@/components/admin/dashboard-overview"
-import { WaitlistManagement } from "@/components/admin/waitlist-management"
 import { adminAuth } from "@/lib/auth"
-import { EnquiriesManagement } from "@/components/admin/enquiries-management"
-import { VisitRequestsManagement } from "@/components/admin/visit-requests-management"
 import { ShelfSlotsManagement } from "@/components/admin/shelf-slots-management"
 import { BrandManagement } from "@/components/admin/brand-management"
-import { SalesInput } from "@/components/admin/sales-input"
 import { InvoiceGenerator } from "@/components/admin/invoice-generator"
 import { BookingsManagement } from "@/components/admin/bookings-management"
 import { useSearchParams } from "next/navigation"
@@ -53,21 +49,14 @@ function AdminDashboardContent() {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <DashboardOverview />
-      case "waitlist":
-        return <WaitlistManagement />
-      case "enquiries":
-        return <EnquiriesManagement />
-      case "visits":
-        return <VisitRequestsManagement />
+        return <DashboardOverview onTabChange={setActiveTab} />
+
       case "brands":
         return <BrandManagement />
       case "bookings":
         return <BookingsManagement />
       case "invoices":
         return <InvoiceGenerator />
-      case "sales":
-        return <SalesInput />
       case "slots":
         return <ShelfSlotsManagement />
       case "settings":
@@ -78,7 +67,7 @@ function AdminDashboardContent() {
           </div>
         )
       default:
-        return <DashboardOverview />
+        return <DashboardOverview onTabChange={setActiveTab} />
     }
   }
 

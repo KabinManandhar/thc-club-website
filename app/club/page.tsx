@@ -55,6 +55,7 @@ function ClubPageContent() {
   const [brand, setBrand] = useState<Brand | null>(null)
   const [activeBooking, setActiveBooking] = useState<ShelfBooking | null>(null)
   const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState("overview")
 
   useEffect(() => {
     if (searchParams.get("test_mode") === "true") {
@@ -231,7 +232,6 @@ longer terms = better pricing.`,
   if (!isAuthenticated) {
     return null
   }
-
   const handleLogout = async () => {
     await userAuth.logout()
     window.location.href = "/"
@@ -242,7 +242,23 @@ longer terms = better pricing.`,
   const needsOnboarding = !brand || (brand.onboarding_status === "pending" && !activeBooking)
 
   return (
-    <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk">
+    <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk relative">
+      {/* Floating Onboarding Button */}
+      <div className="fixed bottom-8 right-8 z-[60]">
+        <Button 
+          onClick={() => setActiveTab("onboarding")}
+          className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white shadow-2xl rounded-full px-6 py-6 h-auto flex items-center gap-3 border-4 border-white group transition-all hover:scale-105 active:scale-95"
+        >
+          <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center group-hover:rotate-12 transition-transform">
+            <Zap className="w-6 h-6 text-white animate-pulse" />
+          </div>
+          <div className="text-left leading-none">
+            <p className="text-[10px] uppercase font-black tracking-widest opacity-80">member action</p>
+            <p className="text-lg font-black tracking-tight">Onboarding</p>
+          </div>
+        </Button>
+      </div>
+
       {/* Marquee */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-3 overflow-hidden border-b border-[#FE7F2D]/20">
         <div className="marquee whitespace-nowrap">
@@ -279,44 +295,43 @@ longer terms = better pricing.`,
 
       {/* Main Content */}
       <div className="container mx-auto px-4 sm:px-6 py-8">
-        {/* Onboarding Wizard — shown only if no booking has been made */}
-        {needsOnboarding && brand ? (
-          <OnboardingWizard
-            brandId={brand.id}
-            businessName={brand.business_name}
-            onComplete={() => loadBrandData(brand.email)}
-          />
-        ) : isPending && !isActive ? (
-          /* Pending Approval Screen */
-          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
-            <div className="w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center">
-              <Clock className="w-12 h-12 text-yellow-600" />
+        {/* Active Dashboard Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="w-full justify-start border-b border-[#FE7F2D]/20 rounded-none h-auto p-0 bg-transparent mb-8 overflow-x-auto hide-scrollbar">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">Club Overview</TabsTrigger>
+            <TabsTrigger value="pricing" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">Member Pricing</TabsTrigger>
+            <TabsTrigger value="onboarding" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">Onboarding</TabsTrigger>
+            {isActive && (
+              <>
+                <TabsTrigger value="inventory" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">My Products</TabsTrigger>
+                <TabsTrigger value="sales" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">Sales Tracker</TabsTrigger>
+              </>
+            )}
+          </TabsList>
+        
+        <TabsContent value="overview">
+          {needsOnboarding && brand && (
+            <div className="bg-orange-50 border-2 border-[#FE7F2D]/20 rounded-2xl p-8 mb-12 text-center space-y-4">
+              <Zap className="w-12 h-12 text-[#FE7F2D] mx-auto" />
+              <h2 className="text-2xl font-black">Complete Your Onboarding</h2>
+              <p className="text-gray-600 max-w-md mx-auto">You haven't selected a shelf slot yet. Complete the onboarding process to start building your brand at THC Club.</p>
+              <Button onClick={() => setActiveTab("onboarding")} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white">
+                Start Onboarding Now
+              </Button>
             </div>
-            <h2 className="text-3xl font-black">Booking Under Review</h2>
-            <p className="text-gray-600 max-w-md">
-              Your shelf booking request has been submitted. The THC Club team will review and assign your slot within <strong>3–5 business days</strong>.
-            </p>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 max-w-md text-left space-y-2">
-              <p className="font-semibold text-amber-800">Booking Summary</p>
-              {activeBooking && (
-                <>
-                  <p className="text-sm">Shelf: <strong>{activeBooking.shelf_type?.replace("_", " ")}</strong></p>
-                  <p className="text-sm">Duration: <strong>{activeBooking.duration?.replace("_", " ")}</strong></p>
-                  <p className="text-sm">Monthly: <strong>NPR {activeBooking.monthly_rent?.toLocaleString()}</strong></p>
-                </>
-              )}
+          )}
+
+          {isPending && !isActive && (
+             <div className="flex flex-col items-center justify-center min-h-[40vh] text-center space-y-6 mb-12">
+              <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center">
+                <Clock className="w-10 h-10 text-yellow-600" />
+              </div>
+              <h2 className="text-2xl font-black">Booking Under Review</h2>
+              <p className="text-gray-600 max-w-md">
+                Your shelf booking request has been submitted. The THC Club team will review and assign your slot within <strong>3–5 business days</strong>.
+              </p>
             </div>
-          </div>
-        ) : (
-          /* Active Dashboard Tabs */
-          <Tabs defaultValue="overview" className="w-full">
-            <TabsList className="w-full justify-start border-b border-[#FE7F2D]/20 rounded-none h-auto p-0 bg-transparent mb-8 overflow-x-auto hide-scrollbar">
-              <TabsTrigger value="overview" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">Club Overview</TabsTrigger>
-              <TabsTrigger value="inventory" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">My Products</TabsTrigger>
-              <TabsTrigger value="sales" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] rounded-none py-4 px-6 text-base">Sales Tracker</TabsTrigger>
-            </TabsList>
-          
-          <TabsContent value="overview">
+          )}
             {/* Hero Section */}
       <section className="container mx-auto px-6 py-20 lg:py-32">
         <div className="max-w-6xl mx-auto">
@@ -585,353 +600,127 @@ longer terms = better pricing.`,
           </div>
         </div>
       </section>
+        </TabsContent>
 
-      {/* Pricing */}
-      <section className="py-20 lg:py-32 bg-[#FFFCEB] section-divider">
-        <div className="container mx-auto px-6">
-          <div className="max-w-6xl mx-auto">
+        <TabsContent value="pricing" className="space-y-12 py-8">
+          {/* Pricing Section */}
+          <section className="bg-white rounded-3xl p-8 sm:p-12 border-2 border-[#FE7F2D]/10 shadow-xl">
             <div className="text-center mb-16 space-y-6">
-              <h2 className="text-4xl lg:text-5xl font-black">shelf slot pricing</h2>
-              <p className="text-xl text-[#010307]/70">transparent pricing — choose your duration</p>
+              <h2 className="text-4xl lg:text-5xl font-black">Member Pricing Schedule</h2>
+              <p className="text-xl text-[#010307]/70">Exclusive rates for the collective — choose your duration</p>
             </div>
 
-            {/* Main Pricing Table */}
             <div className="overflow-x-auto mb-12">
               <table className="w-full bg-white rounded-2xl shadow-lg border border-[#FE7F2D]/20 overflow-hidden">
                 <thead className="bg-[#FE7F2D] text-white">
                   <tr>
-                    <th className="px-6 py-4 text-left font-bold">duration</th>
-                    <th className="px-6 py-4 text-center font-bold">bottom shelf slot</th>
-                    <th className="px-6 py-4 text-center font-bold">eye level shelf slot</th>
-                    <th className="px-6 py-4 text-center font-bold">top level shelf slot</th>
+                    <th className="px-6 py-4 text-left font-bold">Duration</th>
+                    <th className="px-6 py-4 text-center font-bold">Bottom Shelf</th>
+                    <th className="px-6 py-4 text-center font-bold">Eye Level</th>
+                    <th className="px-6 py-4 text-center font-bold">Top Level</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#FE7F2D]/10">
                   <tr className="hover:bg-[#FE7F2D]/5 transition-colors">
-                    <td className="px-6 py-4 font-semibold">quarterly</td>
-                    <td className="px-6 py-4 text-center">
-                      <div>NPR 1,000/month</div>
-                      <div className="text-sm text-[#010307]/60">(NPR 3,000 total)</div>
-                      <Button size="sm" className="mt-2 bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white text-xs">
-                        apply for this slot
-                      </Button>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div>NPR 1,500/month</div>
-                      <div className="text-sm text-[#010307]/60">(NPR 4,500 total)</div>
-                      <Button size="sm" className="mt-2 bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white text-xs">
-                        apply for this slot
-                      </Button>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div>NPR 1,250/month</div>
-                      <div className="text-sm text-[#010307]/60">(NPR 3,750 total)</div>
-                      <Button size="sm" className="mt-2 bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white text-xs">
-                        apply for this slot
-                      </Button>
-                    </td>
+                    <td className="px-6 py-4 font-semibold">Quarterly</td>
+                    <td className="px-6 py-4 text-center font-mono">NPR 1,000/mo</td>
+                    <td className="px-6 py-4 text-center font-mono">NPR 1,500/mo</td>
+                    <td className="px-6 py-4 text-center font-mono">NPR 1,250/mo</td>
                   </tr>
                   <tr className="hover:bg-[#FE7F2D]/5 transition-colors">
-                    <td className="px-6 py-4 font-semibold">half-yearly</td>
-                    <td className="px-6 py-4 text-center">
-                      <div>NPR 850/month</div>
-                      <div className="text-sm text-[#010307]/60">(NPR 5,100 total)</div>
-                      <Button size="sm" className="mt-2 bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white text-xs">
-                        apply for this slot
-                      </Button>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div>NPR 1,250/month</div>
-                      <div className="text-sm text-[#010307]/60">(NPR 7,500 total)</div>
-                      <Button size="sm" className="mt-2 bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white text-xs">
-                        apply for this slot
-                      </Button>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div>NPR 1,050/month</div>
-                      <div className="text-sm text-[#010307]/60">(NPR 6,300 total)</div>
-                      <Button size="sm" className="mt-2 bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white text-xs">
-                        apply for this slot
-                      </Button>
-                    </td>
+                    <td className="px-6 py-4 font-semibold">Half-Yearly</td>
+                    <td className="px-6 py-4 text-center font-mono">NPR 850/mo</td>
+                    <td className="px-6 py-4 text-center font-mono">NPR 1,250/mo</td>
+                    <td className="px-6 py-4 text-center font-mono">NPR 1,050/mo</td>
                   </tr>
                   <tr className="hover:bg-[#FE7F2D]/5 bg-[#FE7F2D]/5 transition-colors">
                     <td className="px-6 py-4 font-semibold">
-                      yearly
-                      <Badge className="ml-2 bg-[#FE7F2D] text-white text-xs">best value</Badge>
+                      Yearly
+                      <Badge className="ml-2 bg-[#FE7F2D] text-white text-xs">Best Value</Badge>
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="font-bold">NPR 800/month</div>
-                      <div className="text-sm text-[#010307]/60">(NPR 9,600 total)</div>
-                      <Button size="sm" className="mt-2 bg-[#010307] hover:bg-[#010307]/90 text-white text-xs">
-                        apply for this slot
-                      </Button>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="font-bold">NPR 1,000/month</div>
-                      <div className="text-sm text-[#010307]/60">(NPR 12,000 total)</div>
-                      <Button size="sm" className="mt-2 bg-[#010307] hover:bg-[#010307]/90 text-white text-xs">
-                        apply for this slot
-                      </Button>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="font-bold">NPR 1,200/month</div>
-                      <div className="text-sm text-[#010307]/60">(NPR 14,400 total)</div>
-                      <Button size="sm" className="mt-2 bg-[#010307] hover:bg-[#010307]/90 text-white text-xs">
-                        apply for this slot
-                      </Button>
-                    </td>
+                    <td className="px-6 py-4 text-center font-black">NPR 800/mo</td>
+                    <td className="px-6 py-4 text-center font-black">NPR 1,000/mo</td>
+                    <td className="px-6 py-4 text-center font-black">NPR 1,200/mo</td>
                   </tr>
                 </tbody>
               </table>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Bundle Deals */}
-      <section className="py-20 lg:py-32 bg-white section-divider">
-        <div className="container mx-auto px-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16 space-y-6">
-              <h2 className="text-4xl lg:text-5xl font-black">bundle deals</h2>
-              <p className="text-xl text-[#010307]/70">want to go all in? save with our bundles</p>
+            <div className="bg-[#FE7F2D]/5 rounded-2xl p-6 border border-[#FE7F2D]/20 mt-8">
+              <p className="text-sm font-medium text-[#010307]/70">
+                * All rates are inclusive of maintenance, promotion, and space management. No hidden costs.
+              </p>
             </div>
+          </section>
 
-            <div className="grid lg:grid-cols-2 gap-8">
-              <Card className="border-2 border-[#FE7F2D] bg-orange-50 relative overflow-hidden hover-lift">
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-[#FE7F2D] text-white">🧃 full shelf</Badge>
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-2xl font-black">full shelf bundle</CardTitle>
-                  <p className="text-[#010307]/60">6 slots (2 per tier)</p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="text-3xl font-black">NPR 6,000/month</div>
-                    <div className="text-lg">
-                      yearly: NPR 72,000 → <span className="text-[#FE7F2D] font-bold">NPR 64,800</span>
-                    </div>
-                    <div className="text-sm text-[#010307]/60">effective: NPR 5,400/month (10% off)</div>
-                  </div>
-                  <Button className="w-full bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white">apply for bundle</Button>
-                </CardContent>
-              </Card>
-
-              <Card className="border-2 border-[#FE7F2D] bg-orange-50 relative overflow-hidden hover-lift">
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-[#FE7F2D] text-white">🍬 sampler</Badge>
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-2xl font-black">starter bundle</CardTitle>
-                  <p className="text-[#010307]/60">3 slots (1 bottom + 1 eye + 1 top)</p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="text-3xl font-black">NPR 3,000/month</div>
-                    <div className="text-lg">
-                      yearly: NPR 36,000 → <span className="text-[#FE7F2D] font-bold">NPR 32,400</span>
-                    </div>
-                    <div className="text-sm text-[#010307]/60">effective: NPR 2,700/month (10% off)</div>
-                  </div>
-                  <Button className="w-full bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white">apply for bundle</Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Service Fee Structure */}
-      <section className="py-20 lg:py-32 bg-[#FFFCEB] section-divider">
-        <div className="container mx-auto px-6">
-          <div className="max-w-5xl mx-auto">
+          {/* Service Fee Structure */}
+          <section className="bg-[#010307] text-white rounded-3xl p-8 sm:p-12">
             <div className="text-center mb-16 space-y-6">
-              <h2 className="text-4xl lg:text-5xl font-black">service fee + growth benefit</h2>
-              <p className="text-xl text-[#010307]/70">if we're handling your sales (via qr, pos, site, etc.)</p>
+              <h2 className="text-4xl lg:text-5xl font-black text-[#FE7F2D]">Service Fee & Rent Benefits</h2>
+              <p className="text-xl text-white/70">Scale your revenue, lower your rent</p>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full bg-white rounded-2xl shadow-lg border border-[#FE7F2D]/20 overflow-hidden">
-                <thead className="bg-[#010307] text-white">
-                  <tr>
-                    <th className="px-6 py-4 text-left font-bold">monthly sales volume</th>
-                    <th className="px-6 py-4 text-center font-bold">service fee %</th>
-                    <th className="px-6 py-4 text-center font-bold">rent benefit</th>
+              <table className="w-full bg-white/5 rounded-2xl border border-white/10 overflow-hidden">
+                <thead>
+                  <tr className="bg-white/10 text-[#FE7F2D]">
+                    <th className="px-6 py-4 text-left font-bold">Monthly Sales Volume</th>
+                    <th className="px-6 py-4 text-center font-bold">Service Fee %</th>
+                    <th className="px-6 py-4 text-center font-bold">Rent Benefit</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#FE7F2D]/10">
-                  <tr className="hover:bg-[#FE7F2D]/5 transition-colors">
-                    <td className="px-6 py-4">below NPR 10,000</td>
-                    <td className="px-6 py-4 text-center font-bold text-[#FE7F2D]">3%</td>
-                    <td className="px-6 py-4 text-center">full rent applies</td>
+                <tbody className="divide-y divide-white/10 text-white/80">
+                  <tr>
+                    <td className="px-6 py-4 italic">Baseline: Up to NPR 10,000 Sales</td>
+                    <td className="px-6 py-4 text-center">3% Service Fee</td>
+                    <td className="px-6 py-4 text-center">Pay Full Rent</td>
                   </tr>
-                  <tr className="hover:bg-[#FE7F2D]/5 transition-colors">
+                  <tr className="bg-[#FE7F2D]/5">
                     <td className="px-6 py-4">NPR 10,000 – NPR 50,000</td>
-                    <td className="px-6 py-4 text-center font-bold text-[#FE7F2D]">5%</td>
-                    <td className="px-6 py-4 text-center">full rent applies</td>
+                    <td className="px-6 py-4 text-center">5% Service Fee</td>
+                    <td className="px-6 py-4 text-center">Pay Full Rent</td>
                   </tr>
-                  <tr className="hover:bg-[#FE7F2D]/5 transition-colors">
-                    <td className="px-6 py-4">NPR 50,000 – NPR 1,00,000</td>
-                    <td className="px-6 py-4 text-center font-bold text-[#FE7F2D]">10%</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="font-bold text-green-600">25% rent waived ✅</span>
-                    </td>
+                  <tr className="bg-[#FE7F2D]/10">
+                    <td className="px-6 py-4 font-bold">NPR 50,000 – NPR 1,00,000</td>
+                    <td className="px-6 py-4 text-center font-bold">7% Service Fee</td>
+                    <td className="px-6 py-4 text-center text-green-600 font-bold">50% Rent Waived</td>
                   </tr>
-                  <tr className="hover:bg-[#FE7F2D]/5 bg-green-50 transition-colors">
-                    <td className="px-6 py-4 font-bold">above NPR 1,00,000</td>
-                    <td className="px-6 py-4 text-center font-bold text-[#FE7F2D]">10%</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="font-bold text-green-600">50% rent waived ✅</span>
-                    </td>
+                  <tr className="bg-[#FE7F2D]/20">
+                    <td className="px-6 py-4 font-black">Above NPR 1,00,000</td>
+                    <td className="px-6 py-4 text-center font-bold">10% Service Fee</td>
+                    <td className="px-6 py-4 text-center text-green-700 font-bold">100% Rent Waived</td>
                   </tr>
                 </tbody>
               </table>
             </div>
+          </section>
+        </TabsContent>
 
-            <div className="mt-8 bg-white rounded-lg p-6 border border-[#FE7F2D]/20">
-              <ul className="space-y-2 text-sm text-[#010307]/70">
-                <li>• service fee covers processing, reconciliation, legal/admin costs</li>
-                <li>• rent is prepaid (monthly/quarterly/half-yearly/yearly)</li>
-                <li>• service fee is invoiced monthly, based on reported sales + receipts</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+        <TabsContent value="onboarding" className="py-6">
+          {brand && (
+            <OnboardingWizard
+              brandId={brand.id}
+              businessName={brand.business_name}
+              onComplete={() => {
+                loadBrandData(brand.email)
+                setActiveTab("overview")
+              }}
+            />
+          )}
+        </TabsContent>
 
-      {/* Who It's For */}
-      <section className="py-20 lg:py-32 bg-white section-divider">
-        <div className="container mx-auto px-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16 space-y-6">
-              <h2 className="text-4xl lg:text-5xl font-black">who should apply?</h2>
-              <p className="text-xl text-[#010307]/70">
-                We're built for creators and brands who are doing things with intention — whether you're just starting
-                or scaling up. If your story, values, and product align with the vibe, you're in.
-              </p>
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[
-                { title: "local product makers", desc: "handcrafted in nepal", emoji: "🏠" },
-                { title: "handmade + custom brands", desc: "one-of-a-kind creations", emoji: "✋" },
-                { title: "ethical fashion, food, home", desc: "conscious commerce", emoji: "🌱" },
-                { title: "niche or experimental", desc: "testing bold ideas", emoji: "🧪" },
-              ].map((item, index) => (
-                <Card
-                  key={index}
-                  className="text-center border-none shadow-lg hover:shadow-xl transition-all duration-300 hover-lift"
-                >
-                  <CardContent className="pt-8 pb-8 space-y-4">
-                    <div className="text-4xl mb-4">{item.emoji}</div>
-                    <h3 className="font-bold text-lg">{item.title}</h3>
-                    <p className="text-sm text-[#010307]/60">{item.desc}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            <div className="text-center mt-12">
-              <p className="text-xl font-bold text-[#FE7F2D]">you bring the hustle. we'll bring the shelf.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+        {isActive && (
+          <>
+            <TabsContent value="inventory" className="py-6">
+              {brand && <InventoryManagement brandId={brand.id} />}
+            </TabsContent>
 
-      {/* What You Get */}
-      <section className="py-20 lg:py-32 bg-[#FFFCEB] section-divider">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-16 space-y-6">
-              <h2 className="text-4xl lg:text-5xl font-black">what you get</h2>
-              <p className="text-xl text-[#010307]/70">when you join the collective</p>
-            </div>
-            <div className="grid md:grid-cols-2 gap-8">
-              {[
-                { title: "premium shelf space", desc: "prime retail location in kathmandu", icon: "📦" },
-                { title: "community marketing", desc: "featured in our campaigns and socials", icon: "📱" },
-                { title: "creator network", desc: "connect with other real makers", icon: "🤝" },
-                { title: "collaboration opportunities", desc: "events, boxes, digital campaigns", icon: "🎯" },
-              ].map((item, index) => (
-                <Card
-                  key={index}
-                  className="border-none shadow-lg hover:shadow-xl transition-all duration-300 hover-lift"
-                >
-                  <CardContent className="pt-6 pb-6">
-                    <div className="flex items-center gap-4">
-                      <div className="text-3xl">{item.icon}</div>
-                      <div>
-                        <h3 className="font-bold text-lg">{item.title}</h3>
-                        <p className="text-[#010307]/60">{item.desc}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section className="py-20 lg:py-32 bg-white section-divider">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto">
-            <div className="text-center mb-16 space-y-6">
-              <h2 className="text-4xl lg:text-5xl font-black">frequently asked questions</h2>
-              <p className="text-xl text-[#010307]/70">everything you need to know</p>
-            </div>
-            <div className="space-y-4">
-              {faqData.map((faq, index) => (
-                <FAQItem key={index} question={faq.question} answer={faq.answer} emoji={faq.emoji} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-20 lg:py-32 bg-[#010307] text-white">
-        <div className="container mx-auto px-6 text-center">
-          <div className="max-w-4xl mx-auto space-y-8">
-            <h2 className="text-5xl lg:text-6xl font-black leading-tight">
-              ready to <span className="gradient-text">apply</span>?
-            </h2>
-            <div className="space-y-4">
-              <p className="text-2xl font-bold">108 shelf slots. curated community. transparent process.</p>
-              <p className="text-xl text-white/80">you're here because you're real. let's make it happen.</p>
-              <p className="text-3xl font-black text-[#FE7F2D]">🖤 welcome to thc club.</p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                size="lg"
-                className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-12 py-6 text-lg group hover-lift"
-              >
-                start your application
-                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-white/20 text-[#010307] bg-white hover:bg-white/90 font-semibold px-12 py-6 text-lg hover-lift"
-              >
-                <Eye className="mr-2 h-4 w-4" />
-                see pricing details
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-          </TabsContent>
-          <TabsContent value="inventory" className="py-6">
-            {brand && <InventoryManagement brandId={brand.id} />}
-          </TabsContent>
-          <TabsContent value="sales" className="py-6">
-            {brand && <SalesTracker brandId={brand.id} />}
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="sales" className="py-6">
+              {brand && <SalesTracker brandId={brand.id} />}
+            </TabsContent>
+          </>
         )}
+        </Tabs>
       </div>
 
       {/* Footer */}

@@ -273,5 +273,55 @@ CREATE POLICY "allow_all" ON invoice_line_items FOR ALL USING (true);
 CREATE POLICY "allow_all" ON brand_sales FOR ALL USING (true);
 
 -- ============================================================
+-- Table: stock_update_requests
+-- Admin approval flow for physical stock updates
+-- ============================================================
+CREATE TABLE IF NOT EXISTS stock_update_requests (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  brand_id UUID REFERENCES brands(id) ON DELETE CASCADE,
+  product_id UUID REFERENCES brand_products(id) ON DELETE CASCADE,
+  current_stock INTEGER NOT NULL,
+  requested_stock INTEGER NOT NULL,
+  change_amount INTEGER NOT NULL,
+  reason TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE stock_update_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON stock_update_requests FOR ALL USING (true);
+
+-- Attach updated_at trigger
+DROP TRIGGER IF EXISTS trg_updated_at ON stock_update_requests;
+CREATE TRIGGER trg_updated_at BEFORE UPDATE ON stock_update_requests 
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ============================================================
+-- Table: brand_change_requests
+-- Admin approval for any generic brand/product changes
+-- ============================================================
+CREATE TABLE IF NOT EXISTS brand_change_requests (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  brand_id UUID REFERENCES brands(id) ON DELETE CASCADE,
+  request_type TEXT NOT NULL CHECK (request_type IN ('product_add', 'product_update', 'brand_update')),
+  target_id UUID,
+  new_data JSONB NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE brand_change_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "allow_all" ON brand_change_requests FOR ALL USING (true);
+
+-- Attach updated_at trigger
+DROP TRIGGER IF EXISTS trg_updated_at ON brand_change_requests;
+CREATE TRIGGER trg_updated_at BEFORE UPDATE ON brand_change_requests 
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ============================================================
 -- DONE
 -- ============================================================

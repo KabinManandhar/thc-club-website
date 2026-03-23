@@ -5,7 +5,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Heart, Users, CheckCircle, Lock, LogIn } from "lucide-react"
+import { ArrowRight, Heart, Users, CheckCircle, Lock, LogIn, Zap, Eye } from "lucide-react"
 import { WaitlistModal } from "@/components/waitlist-modal"
 import { UserLoginForm } from "@/components/user-login-form"
 import { userAuth } from "@/lib/user-auth"
@@ -24,11 +24,10 @@ export default function WaitlistPage() {
     try {
       const isValid = await userAuth.verifySession()
       if (isValid) {
-        // Redirect to club page if already authenticated
-        window.location.href = "/club"
-        return
+        setIsAuthenticated(true)
+      } else {
+        setIsAuthenticated(false)
       }
-      setIsAuthenticated(false)
     } catch (error) {
       console.error("Auth check error:", error)
       setIsAuthenticated(false)
@@ -113,20 +112,22 @@ export default function WaitlistPage() {
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="border-[#010307]/20 hover:bg-[#010307]/5 font-medium"
-                  onClick={() => setShowLogin(true)}
-                >
-                  <LogIn className="w-4 h-4 mr-2" />
-                  member login
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-medium"
+                  className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-medium shadow-lg hover-lift"
                   onClick={() => setIsWaitlistOpen(true)}
                 >
-                  join waitlist
+                  become a member
                 </Button>
+                {!isAuthenticated && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-[#010307]/20 hover:bg-[#010307]/5 font-medium"
+                    onClick={() => setShowLogin(true)}
+                  >
+                    <LogIn className="w-4 h-4 mr-2" />
+                    member login
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -170,20 +171,23 @@ export default function WaitlistPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
                   size="lg"
-                  className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-8 py-6 text-lg group hover-lift"
+                  className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-8 py-6 text-lg group hover-lift shadow-xl"
                   onClick={() => setIsWaitlistOpen(true)}
                 >
-                  join waitlist
-                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                  become a member
+                  <Zap className="ml-2 h-5 w-5 animate-pulse" />
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
                   className="border-[#010307]/20 hover:bg-[#010307]/5 font-semibold px-8 py-6 text-lg hover-lift"
-                  onClick={() => setShowLogin(true)}
+                  onClick={() => {
+                    if (isAuthenticated) window.location.href = "/club"
+                    else setShowLogin(true)
+                  }}
                 >
-                  <Lock className="mr-2 h-4 w-4" />
-                  member access
+                  <Eye className="mr-2 h-4 w-4" />
+                  {isAuthenticated ? "go to club" : "view pricing"}
                 </Button>
               </div>
             </div>
@@ -214,7 +218,7 @@ export default function WaitlistPage() {
                     <p className="text-sm text-[#010307]/60">built by an indiepreneur, for the community</p>
                     <div className="flex items-center justify-center gap-2 text-xs text-green-600">
                       <CheckCircle className="w-3 h-3" />
-                      <span>waitlist open • early access available</span>
+                      <span>applications open • secure your slot today</span>
                     </div>
                   </div>
                 </div>
@@ -242,7 +246,7 @@ export default function WaitlistPage() {
               {[
                 { icon: Heart, title: "community first", desc: "real creators, real stories" },
                 { icon: Users, title: "curated collective", desc: "quality over quantity" },
-                { icon: Lock, title: "exclusive access", desc: "join the waitlist to learn more" },
+                { icon: Lock, title: "exclusive access", desc: "apply now to view pricing & details" },
               ].map((item, index) => (
                 <div key={index} className="text-center space-y-4 hover-lift">
                   <div className="w-16 h-16 bg-[#FE7F2D]/10 rounded-2xl flex items-center justify-center mx-auto">
@@ -267,21 +271,20 @@ export default function WaitlistPage() {
               <Lock className="w-6 h-6 text-[#FE7F2D]" />
             </div>
             <p className="text-lg text-white/80 max-w-2xl mx-auto">
-              join our waitlist to get full access to pricing, application details, and everything you need to know
-              about joining thc club.
+              Register your account to get full access to pricing, shelf availability, and membership applications.
             </p>
             <div className="grid md:grid-cols-3 gap-6 mt-8">
               <div className="text-center space-y-2">
                 <div className="text-3xl font-black text-[#FE7F2D]">step 1</div>
-                <div className="text-sm text-white/70">join waitlist</div>
+                <div className="text-sm text-white/70">register account</div>
               </div>
               <div className="text-center space-y-2">
                 <div className="text-3xl font-black text-[#FE7F2D]">step 2</div>
-                <div className="text-sm text-white/70">get approved</div>
+                <div className="text-sm text-white/70">book a shelf</div>
               </div>
               <div className="text-center space-y-2">
                 <div className="text-3xl font-black text-[#FE7F2D]">step 3</div>
-                <div className="text-sm text-white/70">full access</div>
+                <div className="text-sm text-white/70">get approved & live</div>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
@@ -290,18 +293,20 @@ export default function WaitlistPage() {
                 className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-8 py-4 group"
                 onClick={() => setIsWaitlistOpen(true)}
               >
-                join waitlist
+                apply for membership
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white/20 text-[#010307] bg-white hover:bg-white/90 font-semibold px-8 py-4"
-                onClick={() => setShowLogin(true)}
-              >
-                <LogIn className="mr-2 h-4 w-4" />
-                already approved?
-              </Button>
+              {!isAuthenticated && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="border-white/20 text-[#010307] bg-white hover:bg-white/90 font-semibold px-8 py-4"
+                  onClick={() => setShowLogin(true)}
+                >
+                  <LogIn className="mr-2 h-4 w-4" />
+                  already approved?
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -312,7 +317,7 @@ export default function WaitlistPage() {
         <div className="container mx-auto px-6">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16 space-y-6">
-              <h2 className="text-4xl lg:text-5xl font-black">who should join the waitlist?</h2>
+              <h2 className="text-4xl lg:text-5xl font-black">is this for you?</h2>
               <p className="text-xl text-[#010307]/70">
                 We're built for creators and brands who are doing things with intention — whether you're just starting
                 or scaling up.
@@ -359,21 +364,23 @@ export default function WaitlistPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 size="lg"
-                className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-12 py-6 text-lg group hover-lift"
+                className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-12 py-6 text-lg group hover-lift shadow-xl"
                 onClick={() => setIsWaitlistOpen(true)}
               >
-                join waitlist
-                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                become a member
+                <Zap className="ml-2 h-5 w-5 animate-pulse" />
               </Button>
-              <Button
-                variant="outline"
-                size="lg"
-                className="border-white/20 text-[#010307] bg-white hover:bg-white/90 font-semibold px-12 py-6 text-lg hover-lift"
-                onClick={() => setShowLogin(true)}
-              >
-                <Lock className="mr-2 h-4 w-4" />
-                member access
-              </Button>
+              {!isAuthenticated && (
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="border-white/20 text-[#010307] bg-white hover:bg-white/90 font-semibold px-12 py-6 text-lg hover-lift"
+                  onClick={() => setShowLogin(true)}
+                >
+                  <Lock className="mr-2 h-4 w-4" />
+                  member access
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -408,16 +415,16 @@ export default function WaitlistPage() {
               </blockquote>
 
               <div className="bg-white/10 rounded-lg p-6 max-w-3xl mx-auto">
-                <h3 className="font-bold text-lg mb-4 text-[#FE7F2D]">waitlist process</h3>
+                <h3 className="font-bold text-lg mb-4 text-[#FE7F2D]">Membership Process</h3>
                 <div className="grid md:grid-cols-2 gap-4 text-sm text-white/80">
                   <div>
-                    <p>• waitlist applications reviewed within 7-14 days</p>
-                    <p>• transparent criteria and process</p>
-                    <p>• personal response to every application</p>
+                    <p>• create account for instant pricing access</p>
+                    <p>• select and book your preferred shelf slot</p>
+                    <p>• curation team reviews all applications</p>
                   </div>
                   <div>
-                    <p>• login details sent upon approval</p>
-                    <p>• full access to pricing and details</p>
+                    <p>• slots confirmed upon payment & approval</p>
+                    <p>• dedicated dashboard for sales & stock</p>
                     <p>• legal jurisdiction: kathmandu, nepal</p>
                   </div>
                 </div>
@@ -434,7 +441,14 @@ export default function WaitlistPage() {
       </footer>
 
       {/* Waitlist Modal */}
-      <WaitlistModal isOpen={isWaitlistOpen} onClose={() => setIsWaitlistOpen(false)} />
+      <WaitlistModal 
+        isOpen={isWaitlistOpen} 
+        onClose={() => setIsWaitlistOpen(false)} 
+        onLoginClick={() => {
+          setIsWaitlistOpen(false)
+          setShowLogin(true)
+        }}
+      />
     </div>
   )
 }
