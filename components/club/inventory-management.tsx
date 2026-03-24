@@ -17,7 +17,9 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { PlusCircle, Search, Edit2, Trash2, AlertTriangle, Package } from "lucide-react"
+import { PlusCircle, Search, Edit2, Trash2, AlertTriangle, Package, Image as ImageIcon, Shield, AlertCircle } from "lucide-react"
+import { FileUpload } from "@/components/ui/file-upload"
+import { toast } from "sonner"
 
 interface InventoryManagementProps {
   brandId: string
@@ -25,12 +27,12 @@ interface InventoryManagementProps {
 
 const EMPTY_FORM = {
   name: "",
-  sku: "",
   description: "",
   category: "",
   price: "",
   stock_quantity: "",
   low_stock_threshold: "5",
+  image_url: "",
 }
 
 export function InventoryManagement({ brandId }: InventoryManagementProps) {
@@ -38,9 +40,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<BrandProduct | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
@@ -69,12 +69,12 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
     setEditingProduct(product)
     setForm({
       name: product.name,
-      sku: product.sku || "",
       description: product.description || "",
       category: product.category || "",
       price: product.price.toString(),
       stock_quantity: product.stock_quantity.toString(),
       low_stock_threshold: product.low_stock_threshold.toString(),
+      image_url: product.image_url || "",
     })
     setFormError(null)
     setIsFormOpen(true)
@@ -90,12 +90,12 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
 
     const payload = {
       name: form.name,
-      sku: form.sku || null,
       description: form.description || null,
       category: form.category || null,
       price: parseFloat(form.price),
       stock_quantity: parseInt(form.stock_quantity) || 0,
       low_stock_threshold: parseInt(form.low_stock_threshold) || 5,
+      image_url: form.image_url || null,
     }
 
     try {
@@ -111,7 +111,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
       
       setIsFormOpen(false)
       fetchProducts()
-      alert("Changes submitted to admin for approval.")
+      toast.success("Request submitted to community admin for verification.")
     } catch (error: any) {
       setFormError(error.message)
     } finally {
@@ -120,163 +120,216 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
   }
 
   const filtered = products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.sku || "").toLowerCase().includes(searchTerm.toLowerCase())
+    (p) => p.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const getStockBadge = (p: BrandProduct) => {
     if (p.stock_quantity === 0)
-      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Out of Stock</Badge>
+      return <Badge className="bg-red-50 text-red-700 border-none font-black uppercase tracking-widest text-[8px] px-2 py-0.5">Empty</Badge>
     if (p.stock_quantity <= p.low_stock_threshold)
-      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Low Stock ({p.stock_quantity})</Badge>
-    return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">In Stock ({p.stock_quantity})</Badge>
+      return <Badge className="bg-orange-50 text-orange-700 border-none font-black uppercase tracking-widest text-[8px] px-2 py-0.5">Low ({p.stock_quantity})</Badge>
+    return <Badge className="bg-green-50 text-green-700 border-none font-black uppercase tracking-widest text-[8px] px-2 py-0.5">{p.stock_quantity} Units</Badge>
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Inventory Management</h2>
-          <p className="text-gray-600">Request product additions or updates. Admin approval required for all changes.</p>
+          <h2 className="text-3xl font-black flex items-center gap-3 tracking-tighter lowercase italic">
+            <Package className="w-8 h-8 text-[#FE7F2D]" />
+            product catalog
+          </h2>
+          <p className="text-[#010307]/40 font-medium text-sm italic lowercase">access your synchronized inventory.</p>
         </div>
-        <Button onClick={openAdd} className="bg-[#010307] text-white hover:bg-[#010307]/90">
-          <PlusCircle className="mr-2 h-4 w-4" /> Request New Product
+        <Button onClick={openAdd} className="bg-[#FE7F2D] text-white hover:bg-[#FE7F2D]/90 px-8 py-3 rounded-2xl font-bold lowercase text-[11px] tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all h-12">
+          <PlusCircle className="mr-2 h-4 w-4" /> add new product
         </Button>
       </div>
 
-      <Card className="border-[#FE7F2D]/20">
-        <CardHeader className="pb-2">
-           <div className="flex justify-between items-center bg-blue-50/50 p-4 rounded-xl border border-blue-100/50 mb-4">
-              <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                    <AlertTriangle className="w-5 h-5 text-blue-600" />
-                 </div>
-                 <div>
-                    <p className="text-sm font-bold text-blue-900">Admin Approval Required</p>
-                    <p className="text-xs text-blue-700">All product additions, edits, and deletions are managed by the admin team.</p>
-                 </div>
-              </div>
-           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+      <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden">
+        <CardHeader className="p-8 pb-4">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-[#010307]/20" />
             <Input
-              placeholder="Search by name or SKU..."
+              placeholder="search catalog..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 max-w-sm"
+              className="pl-12 rounded-2xl h-12 border-[#010307]/5 bg-[#010307]/5 font-bold lowercase"
             />
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-gray-50">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-[#010307]/5">
+              <TableRow className="border-none">
+                <TableHead className="px-8 font-bold text-[10px] lowercase tracking-widest text-[#010307]/40">product & identity</TableHead>
+                <TableHead className="font-bold text-[10px] lowercase tracking-widest text-[#010307]/40">category</TableHead>
+                <TableHead className="font-bold text-[10px] lowercase tracking-widest text-[#010307]/40">unit price</TableHead>
+                <TableHead className="font-bold text-[10px] lowercase tracking-widest text-[#010307]/40 text-center">in-store stock</TableHead>
+                <TableHead className="px-8 font-bold text-[10px] lowercase tracking-widest text-[#010307]/40 text-right">actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
                 <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Stock</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableCell colSpan={5} className="text-center py-20 animate-pulse text-[#010307]/20 font-bold lowercase italic">opening catalog...</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10 text-gray-400">Loading...</TableCell>
-                  </TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-10">
-                      <Package className="h-8 w-8 mx-auto mb-2 text-gray-300" />
-                      <p className="text-gray-500 text-sm">No products yet. Request your first product!</p>
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-24">
+                    <Package className="h-12 w-12 mx-auto mb-4 text-[#010307]/10" />
+                    <p className="text-[#010307]/20 font-bold lowercase text-[10px] tracking-widest italic">no matching products found in your catalog.</p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((p) => (
+                  <TableRow key={p.id} className="hover:bg-gray-50/50 border-gray-50 transition-colors">
+                    <TableCell className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                         {p.image_url ? (
+                            <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded-2xl object-cover bg-gray-50 border shadow-sm" />
+                         ) : (
+                            <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                               <ImageIcon className="w-6 h-6 text-gray-300" />
+                            </div>
+                         )}
+                         <div className="flex flex-col">
+                           <div className="font-bold text-[#010307] tracking-tight lowercase">{p.name}</div>
+                           <div className="text-[10px] font-bold text-[#010307]/20 font-mono tracking-tighter lowercase">{p.id.slice(0, 8)} | active</div>
+                         </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                       <Badge variant="outline" className="rounded-xl border-gray-100 text-gray-500 font-bold px-3 py-1 capitalize">{p.category || "General"}</Badge>
+                    </TableCell>
+                    <TableCell className="font-black text-gray-900">NPR {p.price.toLocaleString()}</TableCell>
+                    <TableCell className="text-center">
+                       {getStockBadge(p)}
+                    </TableCell>
+                    <TableCell className="px-8 text-right space-x-1">
+                      <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-400 hover:text-black hover:bg-black/5 rounded-xl border border-transparent hover:border-black/5 transition-all" onClick={() => openEdit(p)}>
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
+                      <div className="inline-block" title="Admin access required for deletion">
+                         <Button
+                           variant="ghost" size="icon" className="h-10 w-10 text-gray-100 cursor-not-allowed"
+                           disabled
+                         >
+                           <Trash2 className="h-4 w-4" />
+                         </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
-                ) : (
-                  filtered.map((p) => (
-                    <TableRow key={p.id} className="hover:bg-gray-50/50">
-                      <TableCell>
-                        <div className="font-medium">{p.name}</div>
-                        {p.sku && <div className="text-xs text-gray-500">SKU: {p.sku}</div>}
-                      </TableCell>
-                      <TableCell className="text-gray-600">{p.category || "—"}</TableCell>
-                      <TableCell className="font-medium">NPR {p.price.toLocaleString()}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getStockBadge(p)}
-                          {p.stock_quantity <= p.low_stock_threshold && p.stock_quantity > 0 && (
-                            <AlertTriangle className="w-4 h-4 text-yellow-500" />
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => openEdit(p)}>
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <div className="inline-block" title="Only Admin can delete products">
-                           <Button
-                             variant="ghost" size="icon" className="h-8 w-8 text-gray-300 cursor-not-allowed"
-                             disabled
-                           >
-                             <Trash2 className="h-4 w-4" />
-                           </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
       {/* Add/Edit Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingProduct ? "Request Product Edit" : "Request New Product"}</DialogTitle>
-            <p className="text-xs text-[#FE7F2D] font-bold">Admin will verify and approve these changes.</p>
-          </DialogHeader>
-          <div className="space-y-4 mt-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <Label>Product Name *</Label>
-                <Input value={form.name} onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Handcrafted Mug" />
-              </div>
-              <div>
-                <Label>SKU</Label>
-                <Input value={form.sku} onChange={(e) => setForm(f => ({ ...f, sku: e.target.value }))} placeholder="MUG-001" />
-              </div>
-              <div>
-                <Label>Category</Label>
-                <Input value={form.category} onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))} placeholder="Pottery" />
-              </div>
-              <div>
-                <Label>Price (NPR) *</Label>
-                <Input type="number" value={form.price} onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} placeholder="1200" />
-              </div>
-              <div>
-                <Label>Desired Stock Level</Label>
-                <Input type="number" value={form.stock_quantity} onChange={(e) => setForm(f => ({ ...f, stock_quantity: e.target.value }))} placeholder="20" />
-              </div>
-              <div>
-                <Label>Low Stock Alert At</Label>
-                <Input type="number" value={form.low_stock_threshold} onChange={(e) => setForm(f => ({ ...f, low_stock_threshold: e.target.value }))} placeholder="5" />
-              </div>
-              <div className="col-span-2">
-                <Label>Description</Label>
-                <Textarea value={form.description} onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Brief product description" rows={2} />
-              </div>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden border-none shadow-2xl rounded-[2rem]">
+          <div className="bg-white p-10 space-y-8">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black tracking-tighter uppercase italic">{editingProduct ? "Edit Entry" : "New Catalog Entry"}</DialogTitle>
+              <p className="text-[10px] text-black/30 font-black uppercase tracking-widest flex items-center gap-2">
+                 <Shield className="w-3.5 h-3.5" /> Community Admin Approval Required
+              </p>
+            </DialogHeader>
+            
+            <div className="space-y-6">
+               <div className="grid sm:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                     <div>
+                        <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Official Item Name *</Label>
+                        <Input 
+                           value={form.name} 
+                           onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))} 
+                           placeholder="e.g. Classic Clay Pot" 
+                           className="rounded-2xl h-14 border-gray-100 font-bold"
+                        />
+                     </div>
+                     <div>
+                        <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Market Category</Label>
+                        <Input 
+                           value={form.category} 
+                           onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))} 
+                           placeholder="Pottery" 
+                           className="rounded-2xl h-14 border-gray-100 font-bold"
+                        />
+                     </div>
+                  </div>
+                  <div>
+                    <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Visual Identity (Image)</Label>
+                    <FileUpload 
+                      bucket="media" 
+                      folder={`brand_${brandId}/products`}
+                      value={form.image_url} 
+                      onChange={(url) => setForm(f => ({ ...f, image_url: url }))} 
+                    />
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-3 gap-6">
+                  <div>
+                    <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Price (NPR) *</Label>
+                    <Input 
+                       type="number" 
+                       value={form.price} 
+                       onChange={(e) => setForm(f => ({ ...f, price: e.target.value }))} 
+                       className="rounded-2xl h-14 border-gray-100 font-black text-lg"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Opening Stock</Label>
+                    <Input 
+                       type="number" 
+                       value={form.stock_quantity} 
+                       onChange={(e) => setForm(f => ({ ...f, stock_quantity: e.target.value }))} 
+                       className="rounded-2xl h-14 border-gray-100 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Low Alert At</Label>
+                    <Input 
+                       type="number" 
+                       value={form.low_stock_threshold} 
+                       onChange={(e) => setForm(f => ({ ...f, low_stock_threshold: e.target.value }))} 
+                       className="rounded-2xl h-14 border-gray-100 font-bold"
+                    />
+                  </div>
+               </div>
+
+               <div>
+                 <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Product Manifest / Description</Label>
+                 <Textarea 
+                    value={form.description} 
+                    onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))} 
+                    placeholder="Brief details for the community" 
+                    rows={3} 
+                    className="rounded-3xl border-gray-100 bg-white/50 p-6 resize-none font-medium"
+                 />
+               </div>
+
+               {formError && (
+                  <div className="p-4 bg-red-50 text-red-700 text-xs font-bold rounded-2xl flex items-center gap-2">
+                     <AlertCircle className="w-4 h-4" /> {formError}
+                  </div>
+               )}
             </div>
-            {formError && <p className="text-sm text-red-600 bg-red-50 p-2 rounded">{formError}</p>}
+
+            <DialogFooter className="pt-4 gap-4 sm:justify-between border-t border-gray-100 mt-8">
+              <Button variant="ghost" onClick={() => setIsFormOpen(false)} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[10px]">Cancel</Button>
+              <Button 
+                 onClick={handleSave} 
+                 disabled={saving} 
+                 className="bg-black hover:bg-black/90 text-white rounded-2xl h-14 px-12 font-black uppercase tracking-widest text-[10px] shadow-2xl active:scale-95 transition-all"
+              >
+                {saving ? "Transmitting..." : editingProduct ? "Commit Edits" : "Launch Product"}
+              </Button>
+            </DialogFooter>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={saving} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white">
-              {saving ? "Sending..." : editingProduct ? "Request Change" : "Submit Product"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

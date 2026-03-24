@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Package, Search, Filter, Calendar, User, AlertCircle, Settings } from "lucide-react"
-import { supabase, type ShelfSlot } from "@/lib/supabase"
+import { Plus, MoveDown, Columns, Component } from "lucide-react"
+import { supabase, type ShelfSlot, type Shelf } from "@/lib/supabase"
 
 interface SlotStats {
   total: number
@@ -21,11 +22,31 @@ interface SlotStats {
 
 export function ShelfSlotsManagement() {
   const [slots, setSlots] = useState<ShelfSlot[]>([])
+  const [shelves, setShelves] = useState<Shelf[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [shelfTypeFilter, setShelfTypeFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [selectedSlot, setSelectedSlot] = useState<ShelfSlot | null>(null)
+  
+  // Shelf Creation State
+  const [isCreateShelfOpen, setIsCreateShelfOpen] = useState(false)
+  const [newShelf, setNewShelf] = useState<{
+    name: string
+    section: string
+    is_movable: boolean
+    size: "small" | "medium" | "large"
+    shelf_type: "bottom" | "eye_level" | "top_level" | "mixed"
+    total_slots: number
+  }>({
+    name: "",
+    section: "Cafe Section",
+    is_movable: false,
+    size: "medium",
+    shelf_type: "mixed",
+    total_slots: 4,
+  })
+
   const [updateData, setUpdateData] = useState({
     status: "",
     occupied_by: "",
@@ -57,14 +78,58 @@ export function ShelfSlotsManagement() {
 
   const fetchSlots = async () => {
     try {
-      const { data, error } = await supabase.from("shelf_slots").select("*").order("slot_number", { ascending: true })
+      const [slotsRes, shelvesRes] = await Promise.all([
+        supabase.from("shelf_slots").select("*").order("slot_number", { ascending: true }),
+        supabase.from("shelves").select("*").order("name")
+      ])
 
-      if (error) throw error
-      setSlots(data || [])
+      if (slotsRes.error) throw slotsRes.error
+      if (shelvesRes.error && shelvesRes.error.code !== "42P01") throw shelvesRes.error // ignore undefined table if migration not run
+
+      setSlots(slotsRes.data || [])
+      setShelves(shelvesRes.data || [])
     } catch (error) {
-      console.error("Error fetching shelf slots:", error)
+      console.error("Error fetching shelf data:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleCreateShelf = async () => {
+    try {
+      const { data: shelf, error: shelfError } = await supabase
+        .from("shelves")
+        .insert({
+          name: newShelf.name,
+          section: newShelf.section,
+          is_movable: newShelf.is_movable,
+          size: newShelf.size,
+          shelf_type: newShelf.shelf_type,
+          total_slots: newShelf.total_slots
+        })
+        .select()
+        .single()
+
+      if (shelfError) throw shelfError
+
+      // Generate slots
+      const slotsToCreate = Array.from({ length: shelf.total_slots }).map((_, i) => ({
+        shelf_id: shelf.id,
+        shelf_name: shelf.name,
+        section: shelf.section,
+        shelf_type: shelf.shelf_type === 'mixed' ? 'eye_level' : shelf.shelf_type, // fallback if mixed
+        slot_number: i + 1,
+        status: 'available'
+      }))
+
+      const { error: slotsError } = await supabase.from("shelf_slots").insert(slotsToCreate)
+      if (slotsError) throw slotsError
+      
+      setIsCreateShelfOpen(false)
+      fetchSlots()
+    } catch (error) {
+      console.error("Error creating shelf:", error)
+      alert("Error creating shelf. Make sure migrations are run!")
     }
   }
 
@@ -143,6 +208,10 @@ export function ShelfSlotsManagement() {
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <h1 className="text-3xl font-black">Shelf Slots Management</h1>
         <div className="flex gap-2">
+          <Button onClick={() => setIsCreateShelfOpen(true)} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold mr-4">
+            <Plus className="w-4 h-4 mr-2" />
+            Add New Shelf
+          </Button>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
@@ -258,7 +327,7 @@ export function ShelfSlotsManagement() {
           if (sectionSlots.length === 0 && searchTerm === "" && shelfTypeFilter === "all" && statusFilter === "all") return null
           
           // Group by shelf_name within section
-          const shelves = Array.from(new Set(sectionSlots.map(s => s.shelf_name))).sort((a, b) => {
+          const uniqueShelfNames = Array.from(new Set(sectionSlots.map(s => s.shelf_name))).sort((a, b) => {
             return (a || "").localeCompare(b || "", undefined, { numeric: true, sensitivity: 'base' })
           })
 
@@ -272,13 +341,21 @@ export function ShelfSlotsManagement() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {shelves.map(shelfName => (
-                  <Card key={shelfName as string} className="border-gray-200 shadow-sm overflow-hidden">
-                    <CardHeader className="bg-gray-50/50 py-3 border-b">
+                {uniqueShelfNames.map(shelfName => {
+                  const physicalShelfInfo = shelves.find(s => s.name === shelfName)
+                  return (
+                  <Card key={shelfName as string} className={`border-gray-200 shadow-sm overflow-hidden transition-all ${physicalShelfInfo?.is_movable ? 'border-dashed border-2 border-orange-200' : ''}`}>
+                    <CardHeader className="bg-gray-50/50 py-3 border-b flex flex-row items-center justify-between">
                       <CardTitle className="text-sm font-bold flex items-center gap-2">
                         <Package className="w-4 h-4 text-[#FE7F2D]" />
                         {(shelfName as string) || "Unassigned Shelf"}
                       </CardTitle>
+                      {physicalShelfInfo && (
+                        <div className="flex gap-2">
+                           <Badge variant="outline" className="text-xs">{physicalShelfInfo.size}</Badge>
+                           {physicalShelfInfo.is_movable && <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs">Movable</Badge>}
+                        </div>
+                      )}
                     </CardHeader>
                     <CardContent className="p-4">
                       <div className="grid grid-cols-6 gap-2">
@@ -305,7 +382,8 @@ export function ShelfSlotsManagement() {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                  )
+                })}
               </div>
             </section>
           )
@@ -386,6 +464,78 @@ export function ShelfSlotsManagement() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Shelf Dialog */}
+      <Dialog open={isCreateShelfOpen} onOpenChange={setIsCreateShelfOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Physical Shelf</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Shelf Name (e.g. Rack A1)</Label>
+              <Input value={newShelf.name} onChange={e => setNewShelf({...newShelf, name: e.target.value})} placeholder="Shelf Name" />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Section</Label>
+                <Select value={newShelf.section} onValueChange={(v) => setNewShelf({...newShelf, section: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {SECTIONS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label>Size Profile</Label>
+                <Select value={newShelf.size} onValueChange={(v: any) => setNewShelf({...newShelf, size: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">Small</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="large">Large</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Total Slots</Label>
+                <Input type="number" min={1} value={newShelf.total_slots} onChange={e => setNewShelf({...newShelf, total_slots: parseInt(e.target.value) || 1 })} />
+              </div>
+              <div>
+                <Label>Primary Slot Type</Label>
+                <Select value={newShelf.shelf_type} onValueChange={(v: any) => setNewShelf({...newShelf, shelf_type: v})}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mixed">Mixed Tier</SelectItem>
+                    <SelectItem value="bottom">All Bottom</SelectItem>
+                    <SelectItem value="eye_level">All Eye Level</SelectItem>
+                    <SelectItem value="top_level">All Top Level</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 border p-3 rounded-md bg-gray-50">
+              <input 
+                type="checkbox" 
+                id="is_movable" 
+                checked={newShelf.is_movable} 
+                onChange={(e) => setNewShelf({...newShelf, is_movable: e.target.checked})}
+                className="w-4 h-4 accent-[#FE7F2D]"
+              />
+              <Label htmlFor="is_movable" className="cursor-pointer font-semibold flex-1">Is this shelf movable?</Label>
+              <Badge variant="outline" className="text-xs">Physical Flag</Badge>
+            </div>
+
+            <Button onClick={handleCreateShelf} className="w-full bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white">Create Shelf</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

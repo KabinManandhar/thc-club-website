@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS shelf_bookings (
   end_date DATE,
   status TEXT NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'approved', 'rejected', 'active', 'expired')),
+  payment_method TEXT CHECK (payment_method IN ('bank_transfer', 'qr_payment', 'cash', 'card', 'fonepay', 'khalti')),
   admin_notes TEXT,
   brand_agreement_accepted BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -265,11 +266,17 @@ ALTER TABLE invoice_line_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE brand_sales ENABLE ROW LEVEL SECURITY;
 
 -- Allow all for authenticated (service role bypasses RLS automatically)
+DROP POLICY IF EXISTS "allow_all" ON brands;
 CREATE POLICY "allow_all" ON brands FOR ALL USING (true);
+DROP POLICY IF EXISTS "allow_all" ON shelf_bookings;
 CREATE POLICY "allow_all" ON shelf_bookings FOR ALL USING (true);
+DROP POLICY IF EXISTS "allow_all" ON brand_products;
 CREATE POLICY "allow_all" ON brand_products FOR ALL USING (true);
+DROP POLICY IF EXISTS "allow_all" ON invoices;
 CREATE POLICY "allow_all" ON invoices FOR ALL USING (true);
+DROP POLICY IF EXISTS "allow_all" ON invoice_line_items;
 CREATE POLICY "allow_all" ON invoice_line_items FOR ALL USING (true);
+DROP POLICY IF EXISTS "allow_all" ON brand_sales;
 CREATE POLICY "allow_all" ON brand_sales FOR ALL USING (true);
 
 -- ============================================================
@@ -291,6 +298,7 @@ CREATE TABLE IF NOT EXISTS stock_update_requests (
 );
 
 ALTER TABLE stock_update_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all" ON stock_update_requests;
 CREATE POLICY "allow_all" ON stock_update_requests FOR ALL USING (true);
 
 -- Attach updated_at trigger
@@ -315,12 +323,145 @@ CREATE TABLE IF NOT EXISTS brand_change_requests (
 );
 
 ALTER TABLE brand_change_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all" ON brand_change_requests;
 CREATE POLICY "allow_all" ON brand_change_requests FOR ALL USING (true);
 
 -- Attach updated_at trigger
 DROP TRIGGER IF EXISTS trg_updated_at ON brand_change_requests;
 CREATE TRIGGER trg_updated_at BEFORE UPDATE ON brand_change_requests 
 FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ============================================================
+-- Table: shelves (Physical Shelf Units)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS shelves (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  section TEXT,
+  is_movable BOOLEAN NOT NULL DEFAULT false,
+  size TEXT CHECK (size IN ('small', 'medium', 'large')),
+  shelf_type TEXT CHECK (shelf_type IN ('bottom', 'eye_level', 'top_level', 'mixed')),
+  total_slots INTEGER NOT NULL DEFAULT 1,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE shelves ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all" ON shelves;
+CREATE POLICY "allow_all" ON shelves FOR ALL USING (true);
+
+DROP TRIGGER IF EXISTS trg_updated_at ON shelves;
+CREATE TRIGGER trg_updated_at BEFORE UPDATE ON shelves FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Note: In Supabase, you'll want to run this altering script to link existing slots
+-- ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS shelf_id UUID REFERENCES shelves(id) ON DELETE CASCADE;
+
+-- ============================================================
+-- CRM Enhancements (Task 5)
+-- ============================================================
+ALTER TABLE brands 
+  ADD COLUMN IF NOT EXISTS admin_notes TEXT,
+  ADD COLUMN IF NOT EXISTS last_interaction_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS bank_account_details JSONB;
+
+-- ============================================================
+-- Table: payouts (Task 7)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS payouts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  brand_id UUID REFERENCES brands(id),
+  month INTEGER,
+  year INTEGER,
+  gross_sales NUMERIC(10,2),
+  platform_fees NUMERIC(10,2),
+  net_payout NUMERIC(10,2),
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid')),
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE payouts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all" ON payouts;
+CREATE POLICY "allow_all" ON payouts FOR ALL USING (true);
+DROP TRIGGER IF EXISTS trg_updated_at ON payouts;
+CREATE TRIGGER trg_updated_at BEFORE UPDATE ON payouts FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ============================================================
+-- Table: brand_contracts (Task 8)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS brand_contracts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  brand_id UUID REFERENCES brands(id),
+  file_url TEXT NOT NULL,
+  valid_from DATE,
+  valid_to DATE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE brand_contracts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all" ON brand_contracts;
+CREATE POLICY "allow_all" ON brand_contracts FOR ALL USING (true);
+DROP TRIGGER IF EXISTS trg_updated_at ON brand_contracts;
+CREATE TRIGGER trg_updated_at BEFORE UPDATE ON brand_contracts FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ============================================================
+-- Missing System Tables (Task 4)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS enquiries (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  brand_id UUID REFERENCES brands(id) ON DELETE CASCADE,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'resolved', 'new', 'in_progress', 'rejected')),
+  admin_reply TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE enquiries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all" ON enquiries;
+CREATE POLICY "allow_all" ON enquiries FOR ALL USING (true);
+DROP TRIGGER IF EXISTS trg_updated_at ON enquiries;
+CREATE TRIGGER trg_updated_at BEFORE UPDATE ON enquiries FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- ============================================================
+-- Optimizations (Task 10)
+-- ============================================================
+CREATE INDEX IF NOT EXISTS idx_brand_products_brand_id ON brand_products(brand_id);
+CREATE INDEX IF NOT EXISTS idx_shelf_bookings_status ON shelf_bookings(status);
+
+-- ============================================================
+-- Payout Aggregator Procedure (Task 7)
+-- ============================================================
+CREATE OR REPLACE FUNCTION generate_monthly_payouts(p_month INTEGER, p_year INTEGER)
+RETURNS VOID AS $$
+BEGIN
+  INSERT INTO payouts (brand_id, month, year, gross_sales, platform_fees, net_payout, status)
+  SELECT 
+    brand_id, 
+    p_month, 
+    p_year, 
+    SUM(gross_sales) as gross_sales,
+    SUM(commission_amount) as platform_fees,
+    SUM(gross_sales - COALESCE(commission_amount, 0)) as net_payout,
+    'pending'
+  FROM brand_sales
+  WHERE month = p_month AND year = p_year
+  GROUP BY brand_id
+  ON CONFLICT (brand_id, month, year) DO UPDATE SET
+    gross_sales = EXCLUDED.gross_sales,
+    platform_fees = EXCLUDED.platform_fees,
+    net_payout = EXCLUDED.net_payout,
+    updated_at = NOW()
+  WHERE payouts.status = 'pending'; -- Only update if not paid
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Add a unique constraint for the upsert logic if not already exists
+ALTER TABLE payouts DROP CONSTRAINT IF EXISTS u_brand_period;
+ALTER TABLE payouts ADD CONSTRAINT u_brand_period UNIQUE (brand_id, month, year);
 
 -- ============================================================
 -- DONE

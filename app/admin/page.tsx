@@ -5,9 +5,12 @@ import { BookingsManagement } from "@/components/admin/bookings-management";
 import { BrandManagement } from "@/components/admin/brand-management";
 import { DashboardOverview } from "@/components/admin/dashboard-overview";
 import { InvoiceGenerator } from "@/components/admin/invoice-generator";
-import { Leaderboards } from "@/components/admin/leaderboards";
+import { InvoiceList } from "@/components/admin/invoice-list";
+
 import { LoginForm } from "@/components/admin/login-form";
 import { ShelfSlotsManagement } from "@/components/admin/shelf-slots-management";
+import { InboxManagement } from "@/components/admin/inbox-management";
+import { PayoutsTracker } from "@/components/admin/payouts-tracker";
 import { adminAuth } from "@/lib/auth";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -50,15 +53,19 @@ function AdminDashboardContent() {
     switch (activeTab) {
       case "dashboard":
         return <DashboardOverview onTabChange={setActiveTab} />;
-
+      case "inbox":
+        return <InboxManagement />;
       case "brands":
         return <BrandManagement />;
       case "bookings":
         return <BookingsManagement />;
       case "invoices":
         return <InvoiceGenerator />;
-      case "leaderboards":
-        return <Leaderboards />;
+      case "invoice-list":
+        return <InvoiceList />;
+      case "payouts":
+        return <PayoutsTracker />;
+
       case "slots":
         return <ShelfSlotsManagement />;
       case "settings":

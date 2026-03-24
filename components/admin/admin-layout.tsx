@@ -11,12 +11,15 @@ import {
   BookOpen,
   LogOut,
   Menu,
+  MessageSquare,
   Package,
   Receipt,
   Settings,
   User,
   Users,
   X,
+  DollarSign,
+  FileText,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -52,16 +55,19 @@ export function AdminLayout({
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
+    { id: "inbox", label: "Inbox & Requests", icon: MessageSquare },
     { id: "brands", label: "Brand Management", icon: Users },
     { id: "bookings", label: "Shelf Bookings", icon: BookOpen },
     { id: "invoices", label: "Create Invoice", icon: Receipt },
-    { id: "leaderboards", label: "Leaderboards", icon: Award },
+    { id: "invoice-list", label: "Sales History", icon: FileText },
+    { id: "payouts", label: "Payouts Tracker", icon: DollarSign },
+
     { id: "slots", label: "Visual Shelf Grid", icon: Package },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (
-    <div className="min-h-screen bg-[#FFFCEB] font-space-grotesk">
+    <div className="min-h-screen bg-[#FFFCEB] font-space-grotesk text-[#010307]">
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
@@ -80,31 +86,26 @@ export function AdminLayout({
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#010307] text-white transform transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#FFFCEB] border-r border-[#FE7F2D]/10 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full bg-[#FFFCEB] shadow-sm">
           {/* Header */}
-          <div className="p-6 border-b border-[#FE7F2D]/20">
+          {/* Header */}
+          <div className="p-8 border-b border-[#010307]/5">
             <div className="flex items-center gap-3">
-              <Image
-                src="/logo.png"
-                alt="THC Club"
-                width={80}
-                height={40}
-                className="h-6 w-auto"
-              />
-              <Badge className="bg-[#FE7F2D] text-white text-xs">admin</Badge>
+              <Image src="/logo.png" alt="THC Club" width={100} height={50} className="h-8 w-auto" />
+              <Badge className="bg-[#FE7F2D] text-white text-[8px] font-black uppercase tracking-widest px-2 py-0 border-none">admin</Badge>
             </div>
             {currentUser && (
-              <div className="mt-3 text-xs text-white/70">
-                <div className="flex items-center gap-2">
-                  <User className="w-3 h-3" />
-                  <span>{currentUser.name}</span>
-                </div>
-                <div className="text-white/50">
-                  {currentUser.role.replace("_", " ")}
-                </div>
-              </div>
+               <div className="mt-6 space-y-1">
+                  <p className="text-[11px] font-bold lowercase tracking-wide text-black flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                     {currentUser.name.toLowerCase()}
+                  </p>
+                  <p className="text-[10px] font-medium text-[#010307]/40 lowercase tracking-tighter ml-3.5 italic">
+                     {currentUser.role.replace("_", " ").toLowerCase()}
+                  </p>
+               </div>
             )}
           </div>
 
@@ -116,19 +117,19 @@ export function AdminLayout({
                 return (
                   <li key={item.id}>
                     <Button
-                      variant={activeTab === item.id ? "secondary" : "ghost"}
-                      className={`w-full justify-start text-left ${
+                      variant="ghost"
+                      className={`w-full justify-start text-left rounded-xl transition-all h-12 px-4 group ${
                         activeTab === item.id
-                          ? "bg-[#FE7F2D] text-white hover:bg-[#FE7F2D]/90"
-                          : "text-white/80 hover:text-white hover:bg-white/10"
+                          ? "bg-[#FE7F2D] text-white shadow-lg shadow-orange-500/20"
+                          : "text-[#010307]/50 hover:text-[#FE7F2D] hover:bg-[#FE7F2D]/5"
                       }`}
                       onClick={() => {
                         onTabChange(item.id);
                         setSidebarOpen(false);
                       }}
                     >
-                      <Icon className="w-4 h-4 mr-3" />
-                      {item.label}
+                      <Icon className={`w-4 h-4 mr-3 transition-colors ${activeTab === item.id ? "text-white" : "text-[#010307]/30 group-hover:text-[#FE7F2D]"}`} />
+                      <span className="font-bold text-[12px] lowercase tracking-wide">{item.label.toLowerCase()}</span>
                     </Button>
                   </li>
                 );
@@ -137,14 +138,14 @@ export function AdminLayout({
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t border-[#FE7F2D]/20">
+          <div className="p-6 border-t border-[#010307]/5">
             <Button
               variant="ghost"
-              className="w-full justify-start text-white/80 hover:text-white hover:bg-white/10"
+              className="w-full justify-start text-[#010307]/40 hover:text-[#FE7F2D] hover:bg-[#FE7F2D]/5 rounded-xl transition-all h-12 px-4 group"
               onClick={handleLogout}
             >
-              <LogOut className="w-4 h-4 mr-3" />
-              Logout
+              <LogOut className="w-4 h-4 mr-3 text-[#010307]/20 group-hover:text-[#FE7F2D]" />
+              <span className="font-bold text-[12px] lowercase tracking-wide">logout</span>
             </Button>
           </div>
         </div>

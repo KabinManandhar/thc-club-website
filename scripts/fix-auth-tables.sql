@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS approved_users (
   is_active BOOLEAN DEFAULT TRUE,
   first_login TIMESTAMPTZ,
   last_login TIMESTAMPTZ,
-  waitlist_id UUID REFERENCES waitlist_entries(id) ON DELETE SET NULL,
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

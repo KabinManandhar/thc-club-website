@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, MessageSquare, Calendar, Package, TrendingUp, AlertCircle, Shield, Plus, FileText, ArrowUpRight, Check, X as CloseX, LayoutGrid, Zap } from "lucide-react"
+import { Users, MessageSquare, Calendar, Package, TrendingUp, AlertCircle, Shield, Plus, FileText, ArrowUpRight, Check, X as CloseX, LayoutGrid, Zap, AlertTriangle, DollarSign, Receipt } from "lucide-react"
 import { supabase, type StockUpdateRequest, type BrandChangeRequest } from "@/lib/supabase"
 import { adminAuth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
@@ -45,6 +45,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
   })
   const [pendingStock, setPendingStock] = useState<StockUpdateRequest[]>([])
   const [pendingChanges, setPendingChanges] = useState<BrandChangeRequest[]>([])
+  const [criticalStock, setCriticalStock] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
   const [currentUser, setCurrentUser] = useState<any>(null)
@@ -62,31 +63,34 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
   const fetchStats = async () => {
     try {
-      const [brandsRes, enquiriesRes, visitsRes, bookingsRes, slotsRes, stockRes, changesRes] = await Promise.all([
+      const [brandsRes, enquiriesRes, bookingsRes, slotsRes, stockRes, changesRes, financeRes] = await Promise.all([
         supabase.from("brands").select("onboarding_status"),
         supabase.from("enquiries").select("status"),
-        supabase.from("visit_requests").select("status"),
         supabase.from("shelf_bookings").select("status"),
         supabase.from("shelf_slots").select("status"),
         supabase.from("stock_update_requests").select("status").eq("status", "pending"),
-        supabase.from("brand_change_requests").select("status").eq("status", "pending")
+        supabase.from("brand_change_requests").select("status").eq("status", "pending"),
+        supabase.from("invoices").select("total_amount, commission_amount").eq("status", "paid")
       ])
 
       const brandsData = brandsRes.data || []
       const enquiriesData = enquiriesRes.data || []
-      const visitsData = visitsRes.data || []
       const bookingsData = bookingsRes.data || []
       const slotsData = slotsRes.data || []
       const stockData = stockRes.data || []
       const changesData = changesRes.data || []
+      const financeData = financeRes.data || []
+
+      const totalSales = financeData.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0)
+      const totalFees = financeData.reduce((sum, inv) => sum + Number(inv.commission_amount || 0), 0)
 
       setStats({
         brandsCount: brandsData.length,
         pendingBrands: brandsData.filter((b) => b.onboarding_status === "pending").length,
         enquiriesCount: enquiriesData.length,
         newEnquiries: enquiriesData.filter((e) => e.status === "new").length,
-        visitRequestsCount: visitsData.length,
-        pendingVisits: visitsData.filter((v) => v.status === "pending").length,
+        visitRequestsCount: totalSales, // Hijacking this for total sales display in local state
+        pendingVisits: totalFees, // Hijacking this for total fees display in local state
         bookingRequestsCount: bookingsData.length,
         pendingBookings: bookingsData.filter((b) => b.status === "pending").length,
         availableSlots: slotsData.filter((s) => s.status === "available").length,
@@ -103,7 +107,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
   const fetchRequests = async () => {
     try {
-      const [stockRes, changesRes] = await Promise.all([
+      const [stockRes, changesRes, lowStockRes] = await Promise.all([
         supabase
           .from("stock_update_requests")
           .select("*, brands(business_name), brand_products(name, sku)")
@@ -113,11 +117,18 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
           .from("brand_change_requests")
           .select("*, brands(business_name)")
           .eq("status", "pending")
-          .order("created_at", { ascending: false })
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("brand_products")
+          .select("id, name, stock_quantity, brands(business_name)")
+          .lte("stock_quantity", 5)
+          .order("stock_quantity", { ascending: true })
+          .limit(5)
       ])
 
       setPendingStock(stockRes.data || [])
       setPendingChanges(changesRes.data || [])
+      setCriticalStock(lowStockRes.data || [])
     } catch (error) {
       console.error("Error fetching requests:", error)
     }
@@ -197,51 +208,50 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
   const statCards = [
     {
-      title: "Total Brands",
-      value: stats.brandsCount,
-      pending: stats.pendingBrands,
-      icon: Users,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
-    },
-    {
-      title: "Enquiries",
-      value: stats.enquiriesCount,
-      pending: stats.newEnquiries,
-      icon: MessageSquare,
+      title: "Active Sales (Total)",
+      value: `NPR ${stats.visitRequestsCount.toLocaleString()}`,
+      pending: 0,
+      icon: DollarSign,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
-      title: "Stock Requests",
-      value: pendingStock.length,
-      pending: pendingStock.length,
+      title: "Commission Earned",
+      value: `NPR ${stats.pendingVisits.toLocaleString()}`,
+      pending: 0,
       icon: TrendingUp,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+    },
+    {
+      title: "Managed Brands",
+      value: stats.brandsCount,
+      pending: stats.pendingBrands,
+      icon: Users,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
     },
     {
-      title: "Change Requests",
-      value: pendingChanges.length,
-      pending: pendingChanges.length,
-      icon: AlertCircle,
+      title: "System Inbox",
+      value: stats.enquiriesCount,
+      pending: stats.newEnquiries,
+      icon: MessageSquare,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
     },
   ]
 
+  const quickActions = [
+    { title: "Generate Bill", icon: Receipt, action: () => onTabChange("invoices"), color: "bg-[#010307]" },
+    { title: "Manage Shelf", icon: LayoutGrid, action: () => onTabChange("slots"), color: "bg-[#FE7F2D]" },
+    { title: "Review Inbox", icon: MessageSquare, action: () => onTabChange("inbox"), color: "bg-blue-600" },
+    { title: "Manage Brands", icon: Users, action: () => onTabChange("brands"), color: "bg-purple-600" },
+  ]
+
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-20 bg-gray-200 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="flex items-center justify-center p-32">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D]"></div>
       </div>
     )
   }
@@ -249,28 +259,28 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
   return (
     <div className="space-y-6 pb-20">
       {/* Welcome Header */}
-      <div className="bg-[#010307] text-white rounded-2xl p-8 border border-[#FE7F2D]/30 relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#FE7F2D]/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+      {/* Welcome Header */}
+      <div className="bg-white text-black rounded-2xl p-10 border border-black/5 relative overflow-hidden shadow-sm group">
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="space-y-2">
-            <h1 className="text-4xl font-black tracking-tighter">Welcome back, {currentUser?.name?.split(' ')[0] || "Admin"}!</h1>
-            <p className="text-gray-400 font-medium">Here's what's happening at the Hidden Collective Club today.</p>
+            <h1 className="text-3xl font-black tracking-tighter uppercase italic px-1">Control Center</h1>
+            <p className="text-gray-400 font-medium text-sm">Welcome back, {currentUser?.name?.split(' ')[0] || "Admin"}. System synchronized.</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-4">
             <Button
               onClick={() => onTabChange("invoices")}
-              className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-black uppercase text-xs tracking-widest px-6 h-12 rounded-xl shadow-lg shadow-orange-500/20"
+              className="bg-black hover:bg-black/90 text-white font-black uppercase text-[10px] tracking-widest px-8 h-12 rounded-xl shadow-sm transition-all active:scale-95"
             >
-              <Plus className="w-4 h-4 mr-2" />
+              <Plus className="w-3.5 h-3.5 mr-2" />
               New Invoice
             </Button>
             <Button
               variant="outline"
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 font-black uppercase text-xs tracking-widest px-6 h-12 rounded-xl"
+              className="bg-white border-black/5 text-black hover:bg-gray-50 font-black uppercase text-[10px] tracking-widest px-8 h-12 rounded-xl transition-all shadow-sm"
               onClick={() => onTabChange("slots")}
             >
-              <LayoutGrid className="w-4 h-4 mr-2" />
-              View Slots
+              <LayoutGrid className="w-3.5 h-3.5 mr-2" />
+              Shelf Inventory
             </Button>
           </div>
         </div>
@@ -281,21 +291,21 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         {statCards.map((stat) => {
           const Icon = stat.icon
           return (
-            <Card key={stat.title} className="group border-gray-100 hover:border-[#FE7F2D]/30 shadow-sm hover:shadow-xl transition-all duration-500 rounded-2xl">
-              <CardContent className="p-6">
+            <Card key={stat.title} className="group border-black/5 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white overflow-hidden">
+              <CardContent className="p-8">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.title}</p>
-                    <p className="text-4xl font-black text-gray-900 tracking-tighter">{stat.value}</p>
+                    <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{stat.title}</p>
+                    <p className="text-3xl font-black text-black tracking-tighter">{stat.value}</p>
                     {stat.pending > 0 && (
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 rounded-full w-fit animate-pulse border border-red-100">
-                        <AlertCircle className="w-3 h-3" />
-                        <span className="text-[10px] font-black uppercase tracking-tighter">{stat.pending} pending</span>
+                      <div className="mt-2 flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 text-black rounded-full w-fit border border-black/5">
+                        <AlertCircle className="w-3 h-3 text-red-500" />
+                        <span className="text-[9px] font-black uppercase tracking-tighter">{stat.pending} pending</span>
                       </div>
                     )}
                   </div>
-                  <div className={`w-14 h-14 rounded-2xl ${stat.bgColor} flex items-center justify-center transition-transform group-hover:scale-110 duration-500`}>
-                    <Icon className={`w-7 h-7 ${stat.color}`} />
+                  <div className={`w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-black group-hover:text-white text-gray-400`}>
+                    <Icon className={`w-6 h-6 transition-colors`} />
                   </div>
                 </div>
               </CardContent>
@@ -306,13 +316,13 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Pending Action Queue */}
-        <Card className="lg:col-span-2 border-gray-100 shadow-xl rounded-2xl overflow-hidden bg-white">
-          <CardHeader className="bg-gray-50/50 border-b border-gray-100 py-4 px-6 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-              <Shield className="w-4 h-4 text-[#FE7F2D]" />
-              Admin Approval Terminal
+        <Card className="lg:col-span-2 border-black/5 shadow-sm rounded-2xl overflow-hidden bg-white">
+          <CardHeader className="bg-gray-50/50 border-b border-black/5 py-4 px-8 flex flex-row items-center justify-between">
+            <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+              <Shield className="w-4 h-4 text-black" />
+              Administrative Verification Queue
             </CardTitle>
-            <Badge className="bg-[#FE7F2D] text-white font-black">{pendingStock.length + pendingChanges.length} Requests</Badge>
+            <Badge className="bg-black text-white font-black text-[9px] rounded-full px-4">{pendingStock.length + pendingChanges.length} Pending</Badge>
           </CardHeader>
           <CardContent className="p-0">
             <div className="max-h-[500px] overflow-y-auto">
@@ -456,6 +466,34 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
                 </div>
               </div>
             </CardContent>
+          </Card>
+
+          <Card className="border-red-100 shadow-sm bg-white rounded-2xl overflow-hidden">
+             <CardHeader className="py-4 bg-red-50/50 border-b border-red-50">
+               <CardTitle className="text-sm font-black text-red-800 uppercase tracking-widest flex items-center gap-2">
+                 <AlertTriangle className="w-4 h-4" /> Global Critical Stock
+               </CardTitle>
+             </CardHeader>
+             <CardContent className="p-0">
+               {criticalStock.length > 0 ? (
+                 <div className="divide-y divide-gray-50">
+                   {criticalStock.map((p: any) => (
+                     <div key={p.id} className="p-4 flex items-center justify-between hover:bg-red-50/20 transition-colors">
+                       <div>
+                         <p className="font-bold text-sm text-gray-900">{p.name}</p>
+                         <p className="text-[10px] text-gray-500 font-bold uppercase">{p.brands?.business_name || "Unknown"}</p>
+                       </div>
+                       <div className="text-right">
+                         <p className="font-black text-red-600 text-lg leading-none">{p.stock_quantity}</p>
+                         <p className="text-[10px] text-gray-400 font-bold uppercase">remaining</p>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               ) : (
+                 <div className="p-6 text-center text-gray-500 font-medium text-xs">No critical stock warnings.</div>
+               )}
+             </CardContent>
           </Card>
 
           <Card className="border-gray-100 shadow-lg rounded-2xl overflow-hidden bg-[#FE7F2D] text-white">

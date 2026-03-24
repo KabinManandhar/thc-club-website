@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight, Heart, Users, CheckCircle, Lock, LogIn, Zap, Eye } from "lucide-react"
-import { WaitlistModal } from "@/components/waitlist-modal"
+
 import { UserLoginForm } from "@/components/user-login-form"
+import { UserSignupForm } from "@/components/user-signup-form"
 import { userAuth } from "@/lib/user-auth"
 
-export default function WaitlistPage() {
-  const [isWaitlistOpen, setIsWaitlistOpen] = useState(false)
-  const [showLogin, setShowLogin] = useState(false)
+export default function LandingPage() {
+
+  const [authView, setAuthView] = useState<"none" | "login" | "signup">("none")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -36,7 +37,7 @@ export default function WaitlistPage() {
     }
   }
 
-  const handleLoginSuccess = () => {
+  const handleAuthSuccess = () => {
     setIsAuthenticated(true)
     window.location.href = "/club"
   }
@@ -46,45 +47,45 @@ export default function WaitlistPage() {
       <div className="min-h-screen bg-[#FFFCEB] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-[#010307]/60 font-medium lowercase tracking-wide text-sm">opening the club...</p>
         </div>
       </div>
     )
   }
 
-  if (showLogin) {
-    return <UserLoginForm onLoginSuccess={handleLoginSuccess} onBack={() => setShowLogin(false)} />
+  if (authView === "login") {
+    return (
+      <UserLoginForm 
+        onLoginSuccess={handleAuthSuccess} 
+        onBack={() => setAuthView("none")} 
+        onSwitchToSignup={() => setAuthView("signup")}
+      />
+    )
+  }
+
+  if (authView === "signup") {
+    return (
+      <UserSignupForm 
+        onSignupSuccess={handleAuthSuccess} 
+        onBack={() => setAuthView("none")} 
+        onSwitchToLogin={() => setAuthView("login")}
+      />
+    )
   }
 
   return (
     <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk">
       {/* Persistent Marquee */}
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-3 overflow-hidden border-b border-[#FE7F2D]/20">
-        <div className="marquee whitespace-nowrap">
-          <span className="inline-block px-12 text-base font-bold tracking-wide">
-            the first rule of <span className="thc-highlight">THC CLUB</span> is you talk about{" "}
-            <span className="thc-highlight">THC CLUB</span>. the second rule of{" "}
-            <span className="thc-highlight">THC CLUB</span> is YOU TALK ABOUT{" "}
-            <span className="thc-highlight">THC CLUB</span>.
-          </span>
-          <span className="inline-block px-12 text-base font-bold tracking-wide">
-            the first rule of <span className="thc-highlight">THC CLUB</span> is you talk about{" "}
-            <span className="thc-highlight">THC CLUB</span>. the second rule of{" "}
-            <span className="thc-highlight">THC CLUB</span> is YOU TALK ABOUT{" "}
-            <span className="thc-highlight">THC CLUB</span>.
-          </span>
-          <span className="inline-block px-12 text-base font-bold tracking-wide">
-            the first rule of <span className="thc-highlight">THC CLUB</span> is you talk about{" "}
-            <span className="thc-highlight">THC CLUB</span>. the second rule of{" "}
-            <span className="thc-highlight">THC CLUB</span> is YOU TALK ABOUT{" "}
-            <span className="thc-highlight">THC CLUB</span>.
-          </span>
-          <span className="inline-block px-12 text-base font-bold tracking-wide">
-            the first rule of <span className="thc-highlight">THC CLUB</span> is you talk about{" "}
-            <span className="thc-highlight">THC CLUB</span>. the second rule of{" "}
-            <span className="thc-highlight">THC CLUB</span> is YOU TALK ABOUT{" "}
-            <span className="thc-highlight">THC CLUB</span>.
-          </span>
+        <div className="animate-marquee whitespace-nowrap">
+          {[1, 2, 3, 4].map((i) => (
+            <span key={i} className="inline-block px-12 text-sm font-bold tracking-wide lowercase">
+              the first rule of <span className="thc-highlight">THC Club</span> is you talk about{" "}
+              <span className="thc-highlight">THC Club</span>. the second rule of{" "}
+              <span className="thc-highlight">THC Club</span> is you talk about{" "}
+              <span className="thc-highlight">THC Club</span>.
+            </span>
+          ))}
         </div>
       </div>
 
@@ -112,21 +113,21 @@ export default function WaitlistPage() {
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-medium shadow-lg hover-lift"
-                  onClick={() => setIsWaitlistOpen(true)}
+                  className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-medium lowercase tracking-wide shadow-lg rounded-xl h-10 px-6 transition-all active:scale-95"
+                  onClick={() => setAuthView("signup")}
                 >
-                  become a member
+                  join the club
                 </Button>
                 {!isAuthenticated && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-[#010307]/20 hover:bg-[#010307]/5 font-medium"
-                    onClick={() => setShowLogin(true)}
-                  >
-                    <LogIn className="w-4 h-4 mr-2" />
-                    member login
-                  </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-[#010307]/20 hover:bg-[#010307]/5 font-medium lowercase tracking-wide rounded-xl h-10 px-6"
+                      onClick={() => setAuthView("login")}
+                    >
+                      <LogIn className="w-4 h-4 mr-2" />
+                      login
+                    </Button>
                 )}
               </div>
             </div>
@@ -140,8 +141,8 @@ export default function WaitlistPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8 fade-in">
               <div className="space-y-6">
-                <div className="inline-flex items-center gap-2 bg-[#FE7F2D]/10 text-[#FE7F2D] px-4 py-2 rounded-full text-sm font-medium">
-                  <Heart className="w-3 h-3" />
+                <div className="inline-flex items-center gap-2 bg-[#FE7F2D]/10 text-[#FE7F2D] px-4 py-2 rounded-full text-xs font-medium lowercase tracking-wide">
+                  <Heart className="w-3 h-3 fill-[#FE7F2D]" />
                   curated. transparent. real.
                 </div>
 
@@ -171,55 +172,57 @@ export default function WaitlistPage() {
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button
                   size="lg"
-                  className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-8 py-6 text-lg group hover-lift shadow-xl"
-                  onClick={() => setIsWaitlistOpen(true)}
+                  className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold lowercase tracking-wide text-lg px-10 py-8 rounded-2xl group transition-all active:scale-95 shadow-xl shadow-orange-500/20"
+                  onClick={() => setAuthView("signup")}
                 >
-                  become a member
-                  <Zap className="ml-2 h-5 w-5 animate-pulse" />
+                  join the club
+                  <Zap className="ml-3 h-5 w-5 animate-pulse text-white" />
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-[#010307]/20 hover:bg-[#010307]/5 font-semibold px-8 py-6 text-lg hover-lift"
+                  className="border-[#010307]/20 hover:bg-[#010307]/5 font-bold lowercase tracking-wide text-lg px-10 py-8 rounded-2xl transition-all"
                   onClick={() => {
                     if (isAuthenticated) window.location.href = "/club"
-                    else setShowLogin(true)
+                    else setAuthView("login")
                   }}
                 >
-                  <Eye className="mr-2 h-4 w-4" />
+                  <Eye className="mr-3 h-4 w-4" />
                   {isAuthenticated ? "go to club" : "view pricing"}
                 </Button>
               </div>
             </div>
-            <div className="relative fade-in">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#FE7F2D]/20 to-transparent rounded-3xl transform rotate-3"></div>
-              <div className="relative bg-white rounded-3xl p-8 shadow-2xl border border-[#FE7F2D]/10 hover-lift">
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-lg">108 shelf slots</h3>
-                    <Badge className="bg-[#FE7F2D] text-white">curated community</Badge>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    {[1, 2, 3, 4, 5, 6].map((i) => (
-                      <div
-                        key={i}
-                        className="aspect-square bg-[#FE7F2D]/10 rounded-lg flex items-center justify-center hover:bg-[#FE7F2D]/20 transition-colors relative"
-                      >
-                        <div className="w-8 h-8 bg-[#FE7F2D]/30 rounded"></div>
-                        {i <= 3 && (
-                          <div className="absolute -top-1 -right-1">
-                            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-center space-y-2">
-                    <p className="text-sm text-[#010307]/60">built by an indiepreneur, for the community</p>
-                    <div className="flex items-center justify-center gap-2 text-xs text-green-600">
-                      <CheckCircle className="w-3 h-3" />
-                      <span>applications open • secure your slot today</span>
+             <div className="relative fade-in flex justify-center lg:justify-end">
+              <div className="relative w-full max-w-md aspect-square bg-[#FFFCEB] rounded-[3rem] p-10 border border-[#FE7F2D]/10 shadow-2xl overflow-hidden group">
+                {/* Minimal background deco */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#FE7F2D]/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700" />
+                
+                <div className="relative z-10 w-full h-full flex flex-col items-center justify-center space-y-8">
+                  <div className="relative">
+                    <Image 
+                      src="/broski.png" 
+                      alt="THC Club" 
+                      width={320} 
+                      height={320} 
+                      className="w-full h-auto drop-shadow-2xl transition-all duration-500 group-hover:scale-105"
+                      priority
+                    />
+                    <div className="absolute -bottom-4 -right-4 bg-[#FE7F2D] text-white p-4 rounded-2xl shadow-lg border-2 border-white rotate-6 transition-transform group-hover:rotate-0">
+                       <p className="text-xl font-black italic lowercase leading-none">only real.</p>
                     </div>
+                  </div>
+                  
+                  <div className="space-y-4 text-center w-full">
+                    <div className="flex justify-center gap-3">
+                      {[1, 2, 3].map((i) => (
+                        <div key={i} className="w-10 h-10 bg-[#010307]/5 rounded-xl flex items-center justify-center font-bold text-xs lowercase">
+                           {i === 1 ? "01" : i === 2 ? "02" : "03"}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[11px] font-bold lowercase tracking-[0.2em] text-[#010307]/30 italic">
+                       nepal's creative headquarters
+                    </p>
                   </div>
                 </div>
               </div>
@@ -233,12 +236,12 @@ export default function WaitlistPage() {
         <div className="container mx-auto px-6">
           <div className="max-w-4xl mx-auto text-center space-y-12">
             <div className="space-y-6">
-              <h2 className="text-4xl lg:text-5xl font-black">what is thc club?</h2>
-              <p className="text-xl lg:text-2xl text-[#010307]/70 leading-relaxed max-w-3xl mx-auto">
+              <h2 className="text-4xl lg:text-5xl font-black lowercase italic tracking-tighter">what is thc club?</h2>
+              <p className="text-xl lg:text-2xl text-[#010307]/60 font-medium italic leading-relaxed max-w-3xl mx-auto lowercase">
                 nepal's first curated creative collective. we're a community of real creators sharing space, telling
                 their stories, and making the city feel alive.
               </p>
-              <div className="text-2xl font-bold text-[#FE7F2D]">
+              <div className="text-2xl font-black lowercase italic text-[#FE7F2D]">
                 it's a movement. it's a club. it's yours if you're real.
               </div>
             </div>
@@ -290,22 +293,22 @@ export default function WaitlistPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
               <Button
                 size="lg"
-                className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-8 py-4 group"
-                onClick={() => setIsWaitlistOpen(true)}
+                className="bg-[#FE7F2D] text-white hover:bg-[#FE7F2D]/90 font-bold lowercase tracking-wide text-lg px-10 py-5 rounded-xl group transition-all h-14 shadow-lg shadow-orange-500/20"
+                onClick={() => setAuthView("signup")}
               >
                 apply for membership
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="ml-3 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
               {!isAuthenticated && (
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-white/20 text-[#010307] bg-white hover:bg-white/90 font-semibold px-8 py-4"
-                  onClick={() => setShowLogin(true)}
-                >
-                  <LogIn className="mr-2 h-4 w-4" />
-                  already approved?
-                </Button>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-white/20 text-white hover:bg-white/10 font-bold lowercase tracking-wide text-lg px-10 py-5 rounded-xl h-14"
+                    onClick={() => setAuthView("login")}
+                  >
+                    <LogIn className="mr-3 h-4 w-4" />
+                    already approved?
+                  </Button>
               )}
             </div>
           </div>
@@ -313,7 +316,7 @@ export default function WaitlistPage() {
       </section>
 
       {/* Who It's For - Teaser */}
-      <section className="py-20 lg:py-32 bg-[#FFFCEB] section-divider">
+      <section className="py-20 lg:py-32 bg-[#FFFCEB] border-y border-[#FE7F2D]/10">
         <div className="container mx-auto px-6">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16 space-y-6">
@@ -364,20 +367,20 @@ export default function WaitlistPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 size="lg"
-                className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-semibold px-12 py-6 text-lg group hover-lift shadow-xl"
-                onClick={() => setIsWaitlistOpen(true)}
+                className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold lowercase tracking-wide text-xl px-12 py-8 rounded-2xl group transition-all active:scale-95 shadow-2xl shadow-orange-500/40"
+                onClick={() => setAuthView("signup")}
               >
-                become a member
-                <Zap className="ml-2 h-5 w-5 animate-pulse" />
+                join the club
+                <Zap className="ml-3 h-5 w-5 animate-pulse text-white" />
               </Button>
               {!isAuthenticated && (
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-white/20 text-[#010307] bg-white hover:bg-white/90 font-semibold px-12 py-6 text-lg hover-lift"
-                  onClick={() => setShowLogin(true)}
+                  className="border-white/20 text-white hover:bg-white/10 font-bold lowercase tracking-wide text-xl px-12 py-8 rounded-2xl transition-all"
+                  onClick={() => setAuthView("login")}
                 >
-                  <Lock className="mr-2 h-4 w-4" />
+                  <Lock className="mr-3 h-4 w-4" />
                   member access
                 </Button>
               )}
@@ -387,68 +390,66 @@ export default function WaitlistPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#010307] text-white py-16 border-t border-[#FE7F2D]">
+      <footer className="py-32 bg-[#FFFCEB] border-t border-[#FE7F2D]/10">
         <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center space-y-8">
-            <div className="flex items-center justify-center gap-6">
-              <Image
-                src="/logo.png"
-                alt="thc club logo"
-                width={120}
-                height={60}
-                className="h-12 w-auto opacity-80 hover:opacity-100 transition-opacity"
-              />
-              <Image
-                src="/broski.png"
-                alt="broski mascot"
-                width={48}
-                height={48}
-                className="h-12 w-12 transition-transform hover:rotate-12"
-              />
-            </div>
-
-            <div className="space-y-6">
-              <p className="text-xl font-bold">kathmandu, nepal</p>
-
-              <blockquote className="text-lg italic max-w-2xl mx-auto text-white/90 leading-relaxed">
-                "we don't gatekeep money. we gatekeep energy. if you're building something real, this club is yours."
-              </blockquote>
-
-              <div className="bg-white/10 rounded-lg p-6 max-w-3xl mx-auto">
-                <h3 className="font-bold text-lg mb-4 text-[#FE7F2D]">Membership Process</h3>
-                <div className="grid md:grid-cols-2 gap-4 text-sm text-white/80">
-                  <div>
-                    <p>• create account for instant pricing access</p>
-                    <p>• select and book your preferred shelf slot</p>
-                    <p>• curation team reviews all applications</p>
-                  </div>
-                  <div>
-                    <p>• slots confirmed upon payment & approval</p>
-                    <p>• dedicated dashboard for sales & stock</p>
-                    <p>• legal jurisdiction: kathmandu, nepal</p>
-                  </div>
+          <div className="max-w-4xl mx-auto text-center space-y-16">
+            <div className="flex flex-col items-center gap-10">
+              <div className="flex items-center gap-8">
+                <Image
+                  src="/logo.png"
+                  alt="THC Club Logo"
+                  width={140}
+                  height={70}
+                  className="h-14 w-auto drop-shadow-sm"
+                />
+                <div className="w-px h-12 bg-[#FE7F2D]/20 rotate-12" />
+                <Image
+                  src="/broski.png"
+                  alt="THC Club Mascot"
+                  width={64}
+                  height={64}
+                  className="h-16 w-16 drop-shadow-md animate-bounce delay-700"
+                />
+              </div>
+              
+              <div className="space-y-4">
+                <p className="text-2xl font-black lowercase italic tracking-tight">kathmandu, nepal</p>
+                <div className="flex items-center justify-center gap-4">
+                   <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D]/60 lowercase font-bold tracking-widest px-4 py-1 rounded-full">gate 01</Badge>
+                   <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D]/60 lowercase font-bold tracking-widest px-4 py-1 rounded-full">since 2024</Badge>
                 </div>
               </div>
             </div>
 
-            <div className="w-16 h-1 bg-[#FE7F2D] mx-auto"></div>
+            <div className="grid md:grid-cols-2 gap-12 text-left bg-white/40 backdrop-blur-sm p-12 rounded-[3rem] border border-[#FE7F2D]/5">
+              <div className="space-y-6">
+                <h4 className="text-[#FE7F2D] font-black lowercase italic text-xl">membership process</h4>
+                <ul className="space-y-4 text-[#010307]/60 font-medium lowercase italic leading-relaxed">
+                  <li>• create account for instant pricing access</li>
+                  <li>• select and book your preferred shelf slot</li>
+                  <li>• curation team reviews all applications</li>
+                </ul>
+              </div>
+              <div className="space-y-6">
+                <h4 className="text-[#FE7F2D] font-black lowercase italic text-xl">jurisdiction</h4>
+                <ul className="space-y-4 text-[#010307]/60 font-medium lowercase italic leading-relaxed">
+                  <li>• slots confirmed upon payment & approval</li>
+                  <li>• dedicated dashboard for sales & stock</li>
+                  <li>• legal jurisdiction: kathmandu, nepal</li>
+                </ul>
+              </div>
+            </div>
 
-            <p className="text-sm text-white/60">
-              © {new Date().getFullYear()} the hidden collective club. all rights reserved.
-            </p>
+            <div className="space-y-8 pt-8 border-t border-[#FE7F2D]/10">
+              <p className="text-[#010307]/20 font-bold lowercase tracking-[0.3em] text-[10px]">
+                © {new Date().getFullYear()} the hidden collective club • all rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
 
-      {/* Waitlist Modal */}
-      <WaitlistModal 
-        isOpen={isWaitlistOpen} 
-        onClose={() => setIsWaitlistOpen(false)} 
-        onLoginClick={() => {
-          setIsWaitlistOpen(false)
-          setShowLogin(true)
-        }}
-      />
+
     </div>
   )
 }

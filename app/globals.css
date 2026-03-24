@@ -108,62 +108,23 @@
 
 /* Marquee Animation */
 @keyframes marquee {
-  0% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
 }
 
-@keyframes marquee-glow {
-  0%,
-  100% {
-    text-shadow: 0 0 5px rgba(254, 127, 45, 0.3);
-  }
-  50% {
-    text-shadow: 0 0 10px rgba(254, 127, 45, 0.6), 0 0 15px rgba(254, 127, 45, 0.4);
-  }
-}
-
-.marquee {
-  animation: marquee 25s linear infinite;
+.animate-marquee {
   display: flex;
+  width: max-content;
+  animation: marquee 40s linear infinite;
 }
 
-.marquee span {
-  animation: marquee-glow 3s ease-in-out infinite;
-  transition: all 0.3s ease;
-}
-
-.marquee:hover {
+.animate-marquee:hover {
   animation-play-state: paused;
-}
-
-.marquee:hover span {
-  transform: scale(1.02);
-  text-shadow: 0 0 15px rgba(254, 127, 45, 0.8), 0 0 25px rgba(254, 127, 45, 0.5);
 }
 
 /* THC CLUB highlighting in marquee */
 .thc-highlight {
-  background: linear-gradient(135deg, #fe7f2d 0%, #ff8533 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
   font-weight: 900;
-  text-shadow: none !important;
+  color: #fe7f2d;
   position: relative;
-}
-
-.thc-highlight::before {
-  content: "";
-  position: absolute;
-  top: -2px;
-  left: -4px;
-  right: -4px;
-  bottom: -2px;
-  background: linear-gradient(135deg, rgba(254, 127, 45, 0.1) 0%, rgba(255, 133, 51, 0.1) 100%);
-  border-radius: 4px;
-  z-index: -1;
 }

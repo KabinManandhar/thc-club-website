@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CheckCircle2, ArrowRight, ArrowLeft, Clock, Package } from "lucide-react"
+import { CheckCircle2, ArrowRight, ArrowLeft, Clock, Package, CreditCard, Banknote, QrCode } from "lucide-react"
 
 interface OnboardingWizardProps {
   brandId: string
@@ -14,39 +14,40 @@ interface OnboardingWizardProps {
   onComplete: () => void
 }
 
-const STEPS = ["Choose Shelf", "Duration & Pricing", "Confirm", "Submitted"]
+const STEPS = ["choose shelf", "duration & pricing", "payment method", "confirm", "submitted"]
 
 const SHELF_INFO = {
   top_level: {
-    label: "Top Level",
-    description: "Maximum visibility — above eye line. Premium placement for standout brands.",
+    label: "top level",
+    description: "maximum visibility — above eye line. premium placement for standout brands.",
     color: "purple",
     slots: "73–108",
   },
   eye_level: {
-    label: "Eye Level",
-    description: "Best conversion — directly in the shopper's line of sight.",
+    label: "eye level",
+    description: "best conversion — directly in the shopper's line of sight.",
     color: "orange",
     slots: "37–72",
   },
   bottom: {
-    label: "Bottom / Low Level",
-    description: "Budget-friendly standard placement. Great for heavy or large items.",
+    label: "bottom / low level",
+    description: "budget-friendly standard placement. great for heavy or large items.",
     color: "blue",
     slots: "1–36",
   },
 }
 
 const DURATION_INFO: Record<Duration, { label: string; months: number }> = {
-  quarterly: { label: "Quarterly", months: 3 },
-  half_yearly: { label: "Half-Yearly", months: 6 },
-  yearly: { label: "Yearly (Best Value)", months: 12 },
+  quarterly: { label: "quarterly", months: 3 },
+  half_yearly: { label: "half-yearly", months: 6 },
+  yearly: { label: "yearly (best value)", months: 12 },
 }
 
 export function OnboardingWizard({ brandId, businessName, onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState(0)
   const [shelfType, setShelfType] = useState<ShelfType | null>(null)
   const [duration, setDuration] = useState<Duration | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
   const [agreed, setAgreed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -69,6 +70,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
         total_amount: totalAmount,
         brand_agreement_accepted: true,
         status: "pending",
+        payment_method: paymentMethod as any,
       })
 
       if (bookingError) throw bookingError
@@ -78,7 +80,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
         .update({ onboarding_status: "slot_selected" })
         .eq("id", brandId)
 
-      setStep(3)
+      setStep(4)
     } catch (err: any) {
       setError(err.message || "Failed to submit booking")
     } finally {
@@ -111,38 +113,38 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
           ))}
         </div>
         <div className="text-center">
-          <p className="text-sm text-gray-500">Step {step + 1} of {STEPS.length}: <strong>{STEPS[step]}</strong></p>
+          <p className="text-sm text-[#010307]/40 font-bold lowercase tracking-wide">step {step + 1} of {STEPS.length}: <strong className="text-[#FE7F2D]">{STEPS[step]}</strong></p>
         </div>
       </div>
 
       {/* --- Step 0: Choose Shelf --- */}
       {step === 0 && (
         <div className="w-full max-w-3xl space-y-4">
-          <h2 className="text-3xl font-black text-center mb-8">Select Your Shelf Tier</h2>
+          <h2 className="text-3xl font-black text-center mb-8 lowercase italic">select your shelf tier</h2>
           {(["top_level", "eye_level", "bottom"] as ShelfType[]).map((type) => {
             const info = SHELF_INFO[type]
             return (
               <div
                 key={type}
                 onClick={() => setShelfType(type)}
-                className={`border-2 rounded-xl p-6 cursor-pointer transition-all hover:shadow-md flex items-start gap-4 ${
+                className={`border-2 rounded-2xl p-6 cursor-pointer transition-all hover:shadow-md flex items-start gap-4 ${
                   shelfType === type
-                    ? "border-[#FE7F2D] bg-orange-50/50"
-                    : "border-gray-200 hover:border-[#FE7F2D]/50"
+                    ? "border-[#FE7F2D] bg-[#FE7F2D]/5"
+                    : "border-[#010307]/5 hover:border-[#FE7F2D]/30"
                 }`}
               >
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center bg-${info.color}-100 flex-shrink-0`}>
-                  <Package className={`text-${info.color}-600 w-6 h-6`} />
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-[#FE7F2D]/10 flex-shrink-0`}>
+                   <Package className={`text-[#FE7F2D] w-6 h-6`} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-bold">{info.label}</h3>
-                    <Badge variant="outline" className="text-xs">Slots {info.slots}</Badge>
-                    {type === "eye_level" && <Badge className="bg-[#FE7F2D] text-white text-xs">Most Popular</Badge>}
+                    <h3 className="text-lg font-bold lowercase italic">{info.label}</h3>
+                    <Badge variant="outline" className="text-[10px] lowercase font-bold border-[#010307]/10">slots {info.slots}</Badge>
+                    {type === "eye_level" && <Badge className="bg-[#FE7F2D] text-white text-[10px] lowercase font-bold">most popular</Badge>}
                   </div>
-                  <p className="text-sm text-gray-600">{info.description}</p>
-                  <p className="text-sm font-semibold text-[#FE7F2D] mt-2">
-                    From NPR {SHELF_PRICING.yearly[type].toLocaleString()}/mo (Yearly)
+                  <p className="text-sm text-[#010307]/60 lowercase italic">{info.description}</p>
+                  <p className="text-sm font-bold text-[#FE7F2D] mt-2 lowercase italic">
+                    from npr {SHELF_PRICING.yearly[type].toLocaleString()}/mo (yearly)
                   </p>
                 </div>
                 {shelfType === type && <CheckCircle2 className="text-[#FE7F2D] w-6 h-6 flex-shrink-0" />}
@@ -199,14 +201,54 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
               <ArrowLeft className="mr-2 w-4 h-4" /> Back
             </Button>
             <Button disabled={!duration} onClick={() => setStep(2)} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white px-8">
+              Payment <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* --- Step 2: Payment Method --- */}
+      {step === 2 && (
+        <div className="w-full max-w-3xl space-y-4">
+          <h2 className="text-3xl font-black text-center mb-8">Select Payment Mode</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { id: "bank_transfer", label: "bank transfer", icon: Banknote, desc: "direct transfer to club account" },
+              { id: "qr_payment", label: "qr payment", icon: QrCode, desc: "scan and pay via fonepay/khalti" },
+              { id: "cash", label: "cash at club", icon: Package, desc: "pay in person at kathmandu hq" },
+              { id: "card", label: "debit/credit card", icon: CreditCard, desc: "swipe at the club access point" }
+            ].map((pm) => (
+              <div
+                key={pm.id}
+                onClick={() => setPaymentMethod(pm.id)}
+                className={`border-2 rounded-2xl p-6 cursor-pointer transition-all hover:shadow-md flex items-center gap-4 ${
+                  paymentMethod === pm.id ? "border-[#FE7F2D] bg-orange-50/50" : "border-gray-200 hover:border-[#FE7F2D]/50"
+                }`}
+              >
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
+                  <pm.icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold">{pm.label}</h3>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">{pm.desc}</p>
+                </div>
+                {paymentMethod === pm.id && <CheckCircle2 className="text-[#FE7F2D] w-5 h-5 ml-auto" />}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between pt-4">
+            <Button variant="outline" onClick={() => setStep(1)}>
+              <ArrowLeft className="mr-2 w-4 h-4" /> Back
+            </Button>
+            <Button disabled={!paymentMethod} onClick={() => setStep(3)} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white px-8">
               Review <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* --- Step 2: Confirm Booking --- */}
-      {step === 2 && shelfType && duration && (
+      {/* --- Step 3: Confirm Booking --- */}
+      {step === 3 && shelfType && duration && (
         <div className="w-full max-w-2xl space-y-6">
           <h2 className="text-3xl font-black text-center mb-8">Review & Confirm</h2>
           <Card className="border-[#FE7F2D]">
@@ -222,6 +264,10 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
               <div className="flex justify-between py-2 border-b">
                 <span className="text-gray-600">Duration</span>
                 <span className="font-semibold">{DURATION_INFO[duration].label}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b">
+                <span className="text-gray-600">Payment Mode</span>
+                <span className="font-semibold uppercase text-xs tracking-widest">{paymentMethod?.replace('_', ' ')}</span>
               </div>
               <div className="flex justify-between py-2 border-b">
                 <span className="text-gray-600">Monthly Rate</span>
@@ -262,7 +308,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
           )}
 
           <div className="flex justify-between pt-2">
-            <Button variant="outline" onClick={() => setStep(1)}>
+            <Button variant="outline" onClick={() => setStep(2)}>
               <ArrowLeft className="mr-2 w-4 h-4" /> Back
             </Button>
             <Button
@@ -276,8 +322,8 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
         </div>
       )}
 
-      {/* --- Step 3: Submitted/Pending --- */}
-      {step === 3 && (
+      {/* --- Step 4: Submitted/Pending --- */}
+      {step === 4 && (
         <div className="w-full max-w-lg text-center space-y-6">
           <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-12 h-12 text-green-600" />

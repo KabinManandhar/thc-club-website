@@ -1,20 +1,22 @@
 import { useState, useEffect } from "react"
-import { supabase, type Brand, type BrandProduct, type ShelfBooking, type Invoice, type Enquiry, type VisitRequest, type BrandChangeRequest } from "@/lib/supabase"
+import { supabase, type Brand, type BrandProduct, type ShelfBooking, type Invoice, type Enquiry, type VisitRequest, type BrandChangeRequest, type BrandContract } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Search, Users, Phone, Mail, Instagram, Package, Receipt, Calendar, Info, BarChart3, ChevronRight, LayoutGrid, MessageSquare, MapPin, ArrowLeft, Check, X as CloseX, AlertCircle, Clock, Trash2 } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { Search, Users, Phone, Mail, Instagram, Package, Receipt, Calendar, Info, BarChart3, ChevronRight, LayoutGrid, MessageSquare, MapPin, ArrowLeft, Check, X as CloseX, AlertCircle, Clock, Trash2, Image as ImageIcon, ShieldCheck, FileText, StickyNote, DollarSign, Plus } from "lucide-react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
+import { generateSKU } from "@/lib/utils"
 
 const STATUS_COLORS: Record<string, string> = {
-  active: "bg-green-100 text-green-800",
-  pending: "bg-yellow-100 text-yellow-800",
-  slot_selected: "bg-blue-100 text-blue-800",
-  rejected: "bg-red-100 text-red-800",
+  active: "bg-black text-white",
+  pending: "bg-gray-100 text-gray-500",
+  slot_selected: "bg-gray-50 text-gray-400",
+  rejected: "bg-red-50 text-red-600",
 }
 
 function timeAgo(dateStr: string) {
@@ -41,6 +43,7 @@ export function BrandManagement() {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([])
   const [visitRequests, setVisitRequests] = useState<VisitRequest[]>([])
   const [changeRequests, setChangeRequests] = useState<BrandChangeRequest[]>([])
+  const [contracts, setContracts] = useState<BrandContract[]>([])
   const [loadingDetails, setLoadingDetails] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
 
@@ -63,13 +66,14 @@ export function BrandManagement() {
     setView("detail")
     
     try {
-      const [productsRes, invoicesRes, bookingsRes, enquiriesRes, visitsRes, changesRes] = await Promise.all([
+      const [productsRes, invoicesRes, bookingsRes, enquiriesRes, visitsRes, changesRes, contractsRes] = await Promise.all([
         supabase.from("brand_products").select("*").eq("brand_id", brand.id).order("name", { ascending: true }),
         supabase.from("invoices").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
         supabase.from("shelf_bookings").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
         supabase.from("enquiries").select("*").eq("email", brand.email).order("created_at", { ascending: false }),
         supabase.from("visit_requests").select("*").eq("email", brand.email).order("created_at", { ascending: false }),
-        supabase.from("brand_change_requests").select("*").eq("brand_id", brand.id).eq("status", "pending").order("created_at", { ascending: false })
+        supabase.from("brand_change_requests").select("*").eq("brand_id", brand.id).eq("status", "pending").order("created_at", { ascending: false }),
+        supabase.from("brand_contracts").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false })
       ])
 
       setProducts(productsRes.data || [])
@@ -78,6 +82,7 @@ export function BrandManagement() {
       setEnquiries(enquiriesRes.data || [])
       setVisitRequests(visitsRes.data || [])
       setChangeRequests(changesRes.data || [])
+      setContracts(contractsRes.data || [])
     } catch (err) {
       console.error("Error fetching brand details:", err)
     } finally {
@@ -92,9 +97,16 @@ export function BrandManagement() {
         const data = request.new_data
         
         if (request.request_type === 'product_add') {
+          // Auto Generate SKU if missing
+          let sku = data.sku
+          if (!sku) {
+            sku = generateSKU(selectedBrand?.business_name || "BRD", data.name)
+          }
+
           const { error } = await supabase.from('brand_products').insert({
              brand_id: request.brand_id,
-             ...data
+             ...data,
+             sku // Insert the (possibly auto-generated) SKU
           })
           if (error) throw error
         } else if (request.request_type === 'product_update' && request.target_id) {
@@ -124,6 +136,53 @@ export function BrandManagement() {
     }
   }
 
+  const updateBrandCRM = async (data: Partial<Brand>) => {
+    if (!selectedBrand) return
+    try {
+      const { error } = await supabase.from('brands').update(data).eq('id', selectedBrand.id)
+      if (error) throw error
+      setSelectedBrand({...selectedBrand, ...data})
+      toast.success('CRM Record Updated')
+      fetchBrands()
+    } catch (err: any) {
+      toast.error(err.message)
+    }
+  }
+
+  const uploadContract = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !selectedBrand) return
+    
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `contracts/${selectedBrand.id}/${Date.now()}.${fileExt}`
+      
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(fileName, file)
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('media')
+        .getPublicUrl(fileName)
+
+      const { error: dbError } = await supabase.from('brand_contracts').insert({
+        brand_id: selectedBrand.id,
+        file_url: publicUrl
+      })
+
+      if (dbError) throw dbError
+
+      // Refresh contracts
+      const { data } = await supabase.from('brand_contracts').select('*').eq('brand_id', selectedBrand.id).order('created_at', { ascending: false })
+      setContracts(data || [])
+      toast.success('Contract Uploaded Successfully')
+    } catch (err: any) {
+      toast.error(err.message)
+    }
+  }
+
   const filtered = brands.filter(
     (b) =>
       b.business_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -136,15 +195,15 @@ export function BrandManagement() {
         <Button 
           variant="ghost" 
           onClick={() => { setView("list"); setSelectedBrand(null); }}
-          className="hover:bg-[#FE7F2D]/10 hover:text-[#FE7F2D] -ml-2"
+          className="hover:bg-black/5 hover:text-black -ml-2 rounded-xl transition-all"
         >
           <ArrowLeft className="w-4 h-4 mr-2" /> Back to Brand CRM
         </Button>
 
-        <div className="bg-white rounded-3xl border border-[#FE7F2D]/20 shadow-2xl overflow-hidden flex flex-col">
-          <div className="p-8 bg-gray-50/50 border-b relative">
+        <div className="bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden flex flex-col">
+          <div className="p-8 bg-gray-50/50 border-b border-black/5 relative">
             <div className="flex flex-col md:flex-row md:items-center gap-6">
-              <div className="w-20 h-20 rounded-2xl bg-[#FE7F2D] flex items-center justify-center text-white text-3xl font-black shadow-lg uppercase shrink-0">
+              <div className="w-16 h-16 rounded-xl bg-black flex items-center justify-center text-white text-2xl font-black uppercase shrink-0">
                 {selectedBrand.business_name.substring(0, 2)}
               </div>
               <div className="space-y-2">
@@ -155,19 +214,19 @@ export function BrandManagement() {
                   </Badge>
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
-                    <Mail className="w-4 h-4 text-[#FE7F2D]" />
+                  <div className="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-widest">
+                    <Mail className="w-3.5 h-3.5" />
                     {selectedBrand.email}
                   </div>
                   {selectedBrand.phone && (
-                    <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
-                      <Phone className="w-4 h-4 text-[#FE7F2D]" />
+                    <div className="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-widest">
+                      <Phone className="w-3.5 h-3.5" />
                       {selectedBrand.phone}
                     </div>
                   )}
                   {selectedBrand.instagram_handle && (
-                    <div className="flex items-center gap-2 text-sm text-[#FE7F2D] font-bold">
-                      <Instagram className="w-4 h-4" />
+                    <div className="flex items-center gap-2 text-xs text-black font-black uppercase tracking-widest">
+                      <Instagram className="w-3.5 h-3.5" />
                       {selectedBrand.instagram_handle}
                     </div>
                   )}
@@ -184,21 +243,23 @@ export function BrandManagement() {
           </div>
 
           <Tabs defaultValue="info" className="flex-1 flex flex-col">
-            <div className="px-8 border-b bg-white">
+            <div className="px-8 border-b border-black/5 bg-white">
               <TabsList className="bg-transparent border-none gap-8 h-14 p-0">
                 {[
                   { id: 'info', label: 'Brand Profile' },
                   { id: 'changes', label: `Requests`, count: changeRequests.length },
                   { id: 'products', label: 'Inventory', count: products.length },
                   { id: 'sales', label: 'Sales History', count: invoices.length },
+                  { id: 'contracts', label: 'Legal' },
+                  { id: 'crm', label: 'CRM (Admin)' },
                   { id: 'enquiries', label: 'Enquiries', count: enquiries.length },
                 ].map(tab => (
                   <TabsTrigger 
                     key={tab.id}
                     value={tab.id} 
-                    className="data-[state=active]:border-b-4 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none px-0 font-black uppercase tracking-widest text-[10px] h-full bg-transparent border-transparent transition-all"
+                    className="data-[state=active]:border-b-2 data-[state=active]:border-black data-[state=active]:text-black rounded-none px-0 font-black uppercase tracking-widest text-[9px] h-full bg-transparent border-transparent transition-all"
                   >
-                    {tab.label} {tab.count !== undefined && <span className="ml-1 opacity-50">({tab.count})</span>}
+                    {tab.label} {tab.count !== undefined && <span className="ml-1 opacity-30">({tab.count})</span>}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -263,6 +324,43 @@ export function BrandManagement() {
                             </div>
                          </div>
                       </div>
+                    </div>
+                    <div className="space-y-4">
+                       <h4 className="text-[10px] uppercase font-black text-[#FE7F2D] tracking-[0.2em] flex items-center gap-2">
+                          <LayoutGrid className="w-4 h-4" /> Active Subscriptions & Shelves
+                       </h4>
+                       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {bookings.map(booking => (
+                             <Card key={booking.id} className="border-gray-100 shadow-sm rounded-2xl overflow-hidden group hover:border-[#FE7F2D]/20 transition-all">
+                                <div className="p-5 space-y-3">
+                                   <div className="flex justify-between items-center">
+                                      <Badge className="bg-blue-50 text-blue-700 border-none font-black uppercase text-[8px] tracking-widest px-3 py-1">
+                                         Slot #{booking.slot_number || "TBD"}
+                                      </Badge>
+                                      <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 ${booking.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : ''}`}>
+                                         {booking.status}
+                                      </Badge>
+                                   </div>
+                                   <div>
+                                      <p className="font-bold text-gray-900 capitalize italic">{booking.shelf_type.replace('_', ' ')}</p>
+                                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{booking.duration} Plan</p>
+                                   </div>
+                                   <div className="pt-3 border-t border-gray-50 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                      <span>NPR {booking.monthly_rent.toLocaleString()}/mo</span>
+                                      <div className="flex items-center gap-1">
+                                         <Calendar className="w-3 h-3" />
+                                         <span>Exp {booking.end_date ? new Date(booking.end_date).toLocaleDateString() : '---'}</span>
+                                      </div>
+                                   </div>
+                                </div>
+                             </Card>
+                          ))}
+                          {bookings.length === 0 && (
+                             <div className="col-span-full py-12 text-center bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100 italic text-gray-400 font-medium">
+                                No active shelf bookings found.
+                             </div>
+                          )}
+                       </div>
                     </div>
                   </TabsContent>
 
@@ -330,8 +428,19 @@ export function BrandManagement() {
                         {products.map(p => (
                           <TableRow key={p.id}>
                             <TableCell>
-                              <div className="font-bold text-gray-900">{p.name}</div>
-                              <div className="text-[9px] text-gray-400 font-mono tracking-tighter uppercase">{p.sku || "NO-SKU"}</div>
+                              <div className="flex items-center gap-3">
+                                 {p.image_url ? (
+                                    <img src={p.image_url} alt={p.name} className="w-8 h-8 rounded-lg object-cover bg-gray-100 border shadow-sm" />
+                                 ) : (
+                                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100">
+                                       <ImageIcon className="w-4 h-4 text-gray-300" />
+                                    </div>
+                                 )}
+                                 <div className="flex flex-col">
+                                   <div className="font-bold text-gray-900">{p.name}</div>
+                                   <div className="text-[9px] text-gray-400 font-mono tracking-tighter uppercase">{p.sku || "NO-SKU"}</div>
+                                 </div>
+                              </div>
                             </TableCell>
                             <TableCell className="font-black text-gray-900">NPR {p.price.toLocaleString()}</TableCell>
                             <TableCell>
@@ -372,6 +481,115 @@ export function BrandManagement() {
                         ))}
                       </TableBody>
                     </Table>
+                  </TabsContent>
+
+                  <TabsContent value="contracts" className="mt-0 outline-none space-y-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-black tracking-tight">Active Contracts & Legal</h3>
+                      <div className="relative">
+                        <input 
+                          type="file" 
+                          id="contract-upload" 
+                          className="hidden" 
+                          onChange={uploadContract}
+                          accept=".pdf,.doc,.docx" 
+                        />
+                        <Button 
+                          onClick={() => document.getElementById('contract-upload')?.click()}
+                          className="bg-[#FE7F2D] text-white rounded-xl font-black uppercase text-[10px] tracking-widest px-6"
+                        >
+                          <Plus className="w-4 h-4 mr-2" /> Upload New Version
+                        </Button>
+                      </div>
+                    </div>
+
+                    {contracts.length === 0 ? (
+                      <div className="bg-gray-50 rounded-3xl p-16 text-center border-2 border-dashed border-gray-100 italic font-medium text-gray-400">
+                        No contracts uploaded yet for this brand.
+                      </div>
+                    ) : (
+                      <div className="grid gap-4">
+                        {contracts.map(contract => (
+                          <div key={contract.id} className="bg-white p-6 rounded-2xl border border-gray-100 flex items-center justify-between group hover:border-[#FE7F2D]/30 transition-all shadow-sm">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                                <FileText className="w-6 h-6 text-blue-600" />
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-900">Brand Partnership Agreement</p>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider leading-none">Uploaded {new Date(contract.created_at).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <Button variant="ghost" className="text-[#FE7F2D] font-black uppercase text-[10px] tracking-widest" asChild>
+                              <a href={contract.file_url} target="_blank" rel="noopener noreferrer">View Document</a>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="crm" className="mt-0 outline-none space-y-6">
+                    <div className="grid md:grid-cols-2 gap-8">
+                       <div className="space-y-6">
+                          <div>
+                             <h4 className="text-[10px] uppercase font-black text-[#FE7F2D] mb-4 tracking-[0.2em] flex items-center gap-2">
+                                <StickyNote className="w-4 h-4" /> Internal Admin Notes
+                             </h4>
+                             <Textarea 
+                                className="min-h-[200px] rounded-2xl bg-gray-50/50 border-gray-100 p-6 text-sm font-medium leading-relaxed italic"
+                                placeholder="Add private notes about brand performance, issues, or relationship status..."
+                                value={selectedBrand.admin_notes || ""}
+                                onChange={(e) => setSelectedBrand({...selectedBrand, admin_notes: e.target.value})}
+                             />
+                             <Button 
+                                onClick={() => updateBrandCRM({ admin_notes: selectedBrand.admin_notes })}
+                                className="mt-4 bg-black text-white rounded-xl font-black uppercase text-[10px] tracking-widest px-8"
+                             >
+                                Save CRM Notes
+                             </Button>
+                          </div>
+                       </div>
+
+                       <div className="space-y-6">
+                          <div>
+                             <h4 className="text-[10px] uppercase font-black text-[#FE7F2D] mb-4 tracking-[0.2em] flex items-center gap-2">
+                                <DollarSign className="w-4 h-4" /> Settlement Details
+                             </h4>
+                             <Card className="border-none bg-orange-50/30 rounded-2xl p-6">
+                                <div className="space-y-3">
+                                   <div className="flex justify-between items-center bg-white/50 p-4 rounded-xl">
+                                      <p className="text-[10px] font-black text-gray-400 uppercase">Bank Account</p>
+                                      <p className="font-bold text-gray-900">{selectedBrand.bank_account_details?.account_number || "Not Shared"}</p>
+                                   </div>
+                                   <div className="flex justify-between items-center bg-white/50 p-4 rounded-xl">
+                                      <p className="text-[10px] font-black text-gray-400 uppercase">Bank Name</p>
+                                      <p className="font-bold text-gray-900">{selectedBrand.bank_account_details?.bank_name || "---"}</p>
+                                   </div>
+                                   <div className="flex justify-between items-center bg-white/50 p-4 rounded-xl">
+                                      <p className="text-[10px] font-black text-gray-400 uppercase">Pan No.</p>
+                                      <p className="font-bold text-gray-900">{selectedBrand.bank_account_details?.pan_number || "---"}</p>
+                                   </div>
+                                </div>
+                             </Card>
+                          </div>
+
+                          <div>
+                             <h4 className="text-[10px] uppercase font-black text-gray-400 mb-4 tracking-[0.2em] flex items-center gap-2">
+                                <Clock className="w-4 h-4" /> Lifecycle Tracking
+                             </h4>
+                             <div className="flex items-center gap-4 bg-gray-50 p-6 rounded-2xl">
+                                <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center border border-gray-100">
+                                   <Calendar className="w-6 h-6 text-gray-400" />
+                                </div>
+                                <div>
+                                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Joined Club</p>
+                                   <p className="font-bold text-gray-900">{new Date(selectedBrand.created_at).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</p>
+                                </div>
+                             </div>
+                          </div>
+                       </div>
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="enquiries" className="mt-0 outline-none space-y-4">
@@ -418,15 +636,15 @@ export function BrandManagement() {
         </div>
       </div>
 
-      <Card className="border-[#FE7F2D]/20 shadow-2xl rounded-3xl overflow-hidden">
-        <CardHeader className="bg-white border-b p-6">
+      <Card className="border border-black/5 shadow-sm rounded-2xl overflow-hidden bg-white">
+        <CardHeader className="bg-white border-b border-black/5 p-6">
           <div className="relative max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search by brand name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 h-14 bg-gray-50 border-transparent focus:bg-white focus:border-[#FE7F2D] transition-all rounded-2xl font-bold"
+              className="pl-12 h-14 bg-gray-50 border-transparent focus:bg-white focus:border-black transition-all rounded-xl font-bold"
             />
           </div>
         </CardHeader>

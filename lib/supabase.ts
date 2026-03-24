@@ -9,31 +9,19 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // Existing Types
 // ============================================================
 
-export interface WaitlistEntry {
-  id: string
-  business_name: string
-  email: string
-  phone: string
-  status: "pending" | "approved" | "rejected"
-  notes?: string
-  created_at: string
-  updated_at: string
-  reviewed_by?: string
-  reviewed_at?: string
-}
+
 
 export interface Enquiry {
   id: string
-  name: string
-  email: string
-  phone?: string
+  brand_id?: string
   subject: string
   message: string
-  status: "new" | "in_progress" | "resolved"
-  priority: "low" | "medium" | "high"
-  assigned_to?: string
+  status: "new" | "in_progress" | "resolved" | "pending" | "rejected" | "on_hold"
+  admin_reply?: string
   created_at: string
   updated_at: string
+  // joined
+  brands?: { business_name: string }
 }
 
 export interface VisitRequest {
@@ -53,12 +41,25 @@ export interface VisitRequest {
   updated_at: string
 }
 
+export interface Shelf {
+  id: string
+  name: string
+  section?: string
+  is_movable: boolean
+  size?: "small" | "medium" | "large"
+  shelf_type?: "bottom" | "eye_level" | "top_level" | "mixed"
+  total_slots: number
+  created_at: string
+  updated_at: string
+}
+
 export interface ShelfSlot {
   id: string
   slot_number: number
-  shelf_type: "bottom" | "eye_level" | "top_level"
+  shelf_type: "bottom" | "eye_level" | "top_level" | "mixed"
   section?: string
   shelf_name?: string
+  shelf_id?: string
   status: "available" | "occupied" | "maintenance"
   occupied_by?: string
   booking_id?: string
@@ -67,6 +68,8 @@ export interface ShelfSlot {
   occupied_until?: string
   created_at: string
   updated_at: string
+  // joined
+  shelves?: Shelf
 }
 
 // ============================================================
@@ -84,8 +87,20 @@ export interface Brand {
   logo_url?: string
   instagram_handle?: string
   onboarding_status: "pending" | "slot_selected" | "confirmed" | "active" | "rejected"
+  admin_notes?: string
+  bank_account_details?: any
+  last_interaction_at?: string
   created_at: string
   updated_at: string
+}
+
+export interface BrandContract {
+  id: string
+  brand_id: string
+  file_url: string
+  valid_from?: string
+  valid_to?: string
+  created_at: string
 }
 
 export interface ShelfBooking {
@@ -101,6 +116,7 @@ export interface ShelfBooking {
   status: "pending" | "approved" | "rejected" | "active" | "expired"
   admin_notes?: string
   brand_agreement_accepted: boolean
+  payment_method?: "bank_transfer" | "qr_payment" | "cash" | "card" | "other"
   created_at: string
   updated_at: string
   // joined
@@ -177,7 +193,7 @@ export interface BrandChangeRequest {
   request_type: "product_add" | "product_update" | "brand_update"
   target_id?: string
   new_data: any
-  status: "pending" | "approved" | "rejected"
+  status: "pending" | "approved" | "rejected" | "on_hold"
   admin_notes?: string
   created_at: string
   updated_at: string
