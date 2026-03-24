@@ -1,53 +1,80 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Users, MessageSquare, Calendar, Package, BarChart3, Settings, LogOut, Menu, X, User, Receipt, BookOpen } from "lucide-react"
-import Image from "next/image"
-import { adminAuth, type AdminUser } from "@/lib/auth"
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { adminAuth, type AdminUser } from "@/lib/auth";
+import {
+  Award,
+  BarChart3,
+  BookOpen,
+  LogOut,
+  Menu,
+  Package,
+  Receipt,
+  Settings,
+  User,
+  Users,
+  X,
+} from "lucide-react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
 interface AdminLayoutProps {
-  children: React.ReactNode
-  activeTab: string
-  onTabChange: (tab: string) => void
-  onLogout: () => void
+  children: React.ReactNode;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  onLogout: () => void;
 }
 
-export function AdminLayout({ children, activeTab, onTabChange, onLogout }: AdminLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null)
+export function AdminLayout({
+  children,
+  activeTab,
+  onTabChange,
+  onLogout,
+}: AdminLayoutProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     const loadUser = async () => {
-      const user = await adminAuth.getCurrentUser()
-      setCurrentUser(user)
-    }
-    loadUser()
-  }, [])
+      const user = await adminAuth.getCurrentUser();
+      setCurrentUser(user);
+    };
+    loadUser();
+  }, []);
 
   const handleLogout = async () => {
-    await adminAuth.logout()
-    onLogout()
-  }
+    await adminAuth.logout();
+    onLogout();
+  };
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
     { id: "brands", label: "Brand Management", icon: Users },
     { id: "bookings", label: "Shelf Bookings", icon: BookOpen },
-    { id: "invoices", label: "Invoice Generator", icon: Receipt },
+    { id: "invoices", label: "Create Invoice", icon: Receipt },
+    { id: "leaderboards", label: "Leaderboards", icon: Award },
     { id: "slots", label: "Visual Shelf Grid", icon: Package },
     { id: "settings", label: "Settings", icon: Settings },
-  ]
+  ];
 
   return (
     <div className="min-h-screen bg-[#FFFCEB] font-space-grotesk">
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
-        <Button variant="outline" size="sm" onClick={() => setSidebarOpen(!sidebarOpen)} className="bg-white">
-          {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="bg-white"
+        >
+          {sidebarOpen ? (
+            <X className="w-4 h-4" />
+          ) : (
+            <Menu className="w-4 h-4" />
+          )}
         </Button>
       </div>
 
@@ -59,7 +86,13 @@ export function AdminLayout({ children, activeTab, onTabChange, onLogout }: Admi
           {/* Header */}
           <div className="p-6 border-b border-[#FE7F2D]/20">
             <div className="flex items-center gap-3">
-              <Image src="/logo.png" alt="THC Club" width={80} height={40} className="h-6 w-auto" />
+              <Image
+                src="/logo.png"
+                alt="THC Club"
+                width={80}
+                height={40}
+                className="h-6 w-auto"
+              />
               <Badge className="bg-[#FE7F2D] text-white text-xs">admin</Badge>
             </div>
             {currentUser && (
@@ -68,7 +101,9 @@ export function AdminLayout({ children, activeTab, onTabChange, onLogout }: Admi
                   <User className="w-3 h-3" />
                   <span>{currentUser.name}</span>
                 </div>
-                <div className="text-white/50">{currentUser.role.replace("_", " ")}</div>
+                <div className="text-white/50">
+                  {currentUser.role.replace("_", " ")}
+                </div>
               </div>
             )}
           </div>
@@ -77,7 +112,7 @@ export function AdminLayout({ children, activeTab, onTabChange, onLogout }: Admi
           <nav className="flex-1 p-4">
             <ul className="space-y-2">
               {menuItems.map((item) => {
-                const Icon = item.icon
+                const Icon = item.icon;
                 return (
                   <li key={item.id}>
                     <Button
@@ -88,15 +123,15 @@ export function AdminLayout({ children, activeTab, onTabChange, onLogout }: Admi
                           : "text-white/80 hover:text-white hover:bg-white/10"
                       }`}
                       onClick={() => {
-                        onTabChange(item.id)
-                        setSidebarOpen(false)
+                        onTabChange(item.id);
+                        setSidebarOpen(false);
                       }}
                     >
                       <Icon className="w-4 h-4 mr-3" />
                       {item.label}
                     </Button>
                   </li>
-                )
+                );
               })}
             </ul>
           </nav>
@@ -122,8 +157,11 @@ export function AdminLayout({ children, activeTab, onTabChange, onLogout }: Admi
 
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
     </div>
-  )
+  );
 }
