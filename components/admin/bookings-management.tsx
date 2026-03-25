@@ -75,18 +75,35 @@ export function BookingsManagement() {
       await supabase.from("brands").update({ onboarding_status: "active" }).eq("id", actionBooking.brand_id)
 
       // Update shelf slot occupancy
-      await supabase
-        .from("shelf_slots")
-        .update({
-          status: "occupied",
-          occupied_by: (actionBooking.brands as any)?.business_name || "",
-          booking_id: actionBooking.id,
-          rent_amount: actionBooking.monthly_rent,
-          occupied_from: startDate.toISOString().split("T")[0],
-          occupied_until: endDate.toISOString().split("T")[0],
-        })
-        .eq("slot_number", parseInt(slotNumber))
-        .eq("shelf_type", actionBooking.shelf_type)
+      if (selectedSlot) {
+        await supabase
+          .from("shelf_slots")
+          .update({
+            status: "occupied",
+            brand_id: actionBooking.brand_id,
+            occupied_by: (actionBooking.brands as any)?.business_name || "",
+            booking_id: actionBooking.id,
+            rent_amount: actionBooking.monthly_rent,
+            occupied_from: startDate.toISOString().split("T")[0],
+            occupied_until: endDate.toISOString().split("T")[0],
+          })
+          .eq("id", selectedSlot.id)
+      } else {
+        // Fallback to slot_number if for some reason selectedSlot is null (legacy)
+        await supabase
+          .from("shelf_slots")
+          .update({
+            status: "occupied",
+            brand_id: actionBooking.brand_id,
+            occupied_by: (actionBooking.brands as any)?.business_name || "",
+            booking_id: actionBooking.id,
+            rent_amount: actionBooking.monthly_rent,
+            occupied_from: startDate.toISOString().split("T")[0],
+            occupied_until: endDate.toISOString().split("T")[0],
+          })
+          .eq("slot_number", parseInt(slotNumber))
+          .eq("shelf_type", actionBooking.shelf_type)
+      }
     } else {
       await supabase.from("shelf_bookings").update({
         status: "rejected",

@@ -1,12 +1,15 @@
 "use client"
 
-import { useState } from "react"
-import { supabase, SHELF_PRICING, DURATION_MONTHS, type ShelfType, type Duration } from "@/lib/supabase"
+import { useState, useEffect } from "react"
+import { supabase, DURATION_MONTHS, type ShelfPricingTier, type ShelfType, type Duration, type PromotionalOffer } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CheckCircle2, ArrowRight, ArrowLeft, Clock, Package, CreditCard, Banknote, QrCode } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { CheckCircle2, ArrowRight, ArrowLeft, Clock, Package, CreditCard, Banknote, QrCode, Tag, Ticket } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
 
 interface OnboardingWizardProps {
   brandId: string
@@ -47,14 +50,68 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
   const [step, setStep] = useState(0)
   const [shelfType, setShelfType] = useState<ShelfType | null>(null)
   const [duration, setDuration] = useState<Duration | null>(null)
+  const [pricingTiers, setPricingTiers] = useState<ShelfPricingTier[]>([])
+  const [activeOffer, setActiveOffer] = useState<PromotionalOffer | null>(null)
+  const [promoCode, setPromoCode] = useState("")
+  const [isValidating, setIsValidating] = useState(false)
+
+  // Fetch Pricing Tiers
+  useEffect(() => {
+    supabase.from("shelf_pricing_tiers").select("*").then(({ data }) => setPricingTiers(data || []))
+  }, [])
+
+  const handleValidateCode = async () => {
+    if (!promoCode.trim()) return
+    setIsValidating(true)
+    try {
+      const { data, error } = await supabase
+        .from("promotional_offers")
+        .select("*")
+        .eq("promo_code", promoCode.toUpperCase())
+        .eq("is_active", true)
+        .single()
+      
+      if (error || !data) {
+        toast.error("Invalid or expired promo code.")
+        setActiveOffer(null)
+      } else if (data.target_limit && data.current_uses >= data.target_limit) {
+        toast.error("This offer has reached its limit.")
+        setActiveOffer(null)
+      } else {
+        setActiveOffer(data)
+        toast.success(`Success! Applied ${data.name}`)
+      }
+    } catch (err) {
+      toast.error("Error validating code.")
+    } finally {
+      setIsValidating(false)
+    }
+  }
+
+  const getPrice = (d: Duration, type: ShelfType) => {
+    const tier = pricingTiers.find(t => t.duration === d)
+    if (!tier) return 0
+    return type === "bottom" ? tier.bottom_price : type === "eye_level" ? tier.eye_level_price : tier.top_level_price
+  }
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
   const [agreed, setAgreed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const monthlyRent = shelfType && duration ? SHELF_PRICING[duration][shelfType] : 0
+  const monthlyRent = shelfType && duration ? getPrice(duration, shelfType) : 0
   const months = duration ? DURATION_MONTHS[duration] : 0
-  const totalAmount = monthlyRent * months
+  let baseTotal = monthlyRent * months
+  
+  let discountAmount = 0
+  if (activeOffer) {
+    if (activeOffer.discount_type === "percentage") {
+      discountAmount = baseTotal * (activeOffer.discount_value / 100)
+    } else {
+      discountAmount = activeOffer.discount_value
+    }
+  }
+  
+  const totalAmount = Math.max(0, baseTotal - discountAmount)
 
   const handleSubmitBooking = async () => {
     if (!shelfType || !duration || !agreed) return
@@ -71,9 +128,15 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
         brand_agreement_accepted: true,
         status: "pending",
         payment_method: paymentMethod as any,
+        admin_notes: activeOffer ? `Applied Offer: ${activeOffer.name} (-${discountAmount} NPR)` : undefined
       })
 
       if (bookingError) throw bookingError
+      
+      if (activeOffer) {
+         const { error: rpcErr } = await supabase.rpc('increment_offer_uses', { offer_id: activeOffer.id })
+         if (rpcErr) console.error("Failed to increment offer uses:", rpcErr)
+      }
 
       await supabase
         .from("brands")
@@ -144,7 +207,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
                   </div>
                   <p className="text-sm text-[#010307]/60 lowercase italic">{info.description}</p>
                   <p className="text-sm font-bold text-[#FE7F2D] mt-2 lowercase italic">
-                    from npr {SHELF_PRICING.yearly[type].toLocaleString()}/mo (yearly)
+                    from npr {getPrice('yearly', type).toLocaleString()}/mo (yearly)
                   </p>
                 </div>
                 {shelfType === type && <CheckCircle2 className="text-[#FE7F2D] w-6 h-6 flex-shrink-0" />}
@@ -169,7 +232,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
           <h2 className="text-3xl font-black text-center mb-8">Choose Duration</h2>
           {(["quarterly", "half_yearly", "yearly"] as Duration[]).map((d) => {
             const dInfo = DURATION_INFO[d]
-            const price = SHELF_PRICING[d][shelfType]
+            const price = getPrice(d, shelfType)
             const total = price * dInfo.months
             return (
               <div
@@ -273,6 +336,12 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
                 <span className="text-gray-600">Monthly Rate</span>
                 <span className="font-semibold">NPR {monthlyRent.toLocaleString()}</span>
               </div>
+              {activeOffer && (
+                <div className="flex justify-between py-2 border-b text-green-600">
+                  <span className="font-semibold flex items-center gap-2"><Tag className="w-4 h-4" /> Offer: {activeOffer.name}</span>
+                  <span className="font-semibold">- NPR {discountAmount.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between py-3">
                 <span className="font-bold text-lg">Total Amount</span>
                 <span className="text-2xl font-black text-[#FE7F2D]">NPR {totalAmount.toLocaleString()}</span>
@@ -280,12 +349,54 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
             </CardContent>
           </Card>
 
+          {/* Promo Code Input */}
+          {!activeOffer ? (
+            <div className="flex gap-3 items-center p-6 bg-white border border-[#010307]/5 rounded-3xl shadow-sm">
+              <div className="flex-1 space-y-1">
+                 <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Promotional Offer Code</Label>
+                 <Input 
+                   placeholder="ENTER CODE" 
+                   value={promoCode} 
+                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                   className="h-12 rounded-xl font-black tracking-widest uppercase border-gray-100 placeholder:font-normal placeholder:tracking-normal"
+                 />
+              </div>
+              <Button 
+                onClick={handleValidateCode} 
+                disabled={!promoCode || isValidating}
+                className="mt-5 h-12 bg-[#FE7F2D] text-white hover:bg-black rounded-xl px-6 font-black uppercase text-[10px] tracking-widest transition-all"
+              >
+                {isValidating ? "..." : "Claim Offer"}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between p-6 bg-green-50 border border-green-100 rounded-3xl animate-in slide-in-from-top-2">
+               <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-green-500 text-white rounded-xl flex items-center justify-center">
+                     <Ticket className="w-5 h-5" />
+                  </div>
+                  <div>
+                     <p className="text-[10px] font-black uppercase tracking-widest text-green-700/60">Success! code applied</p>
+                     <p className="font-black italic lowercase tracking-tight">{activeOffer.name}</p>
+                  </div>
+               </div>
+               <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => { setActiveOffer(null); setPromoCode(""); }}
+                  className="text-green-700 hover:bg-green-100 rounded-lg font-black uppercase text-[8px] tracking-widest"
+               >
+                  remove offer
+               </Button>
+            </div>
+          )}
+
           <Card className="bg-gray-50">
             <CardContent className="pt-6 text-sm text-gray-600 space-y-2 leading-relaxed">
               <p className="font-semibold text-[#010307]">Terms & Conditions</p>
               <p>• Your booking is subject to admin approval and slot assignment. You will be notified within 3-5 business days.</p>
               <p>• Payment is due upon booking confirmation. Non-payment will result in slot release.</p>
-              <p>• Monthly sales reporting is required. Commission fees apply as per the published tier schedule.</p>
+              <p>• Monthly sales reporting is required. Payment Processing Fees (PPF) apply as per the published tier schedule.</p>
               <p>• Slot assignments are final and cannot be changed without prior admin approval.</p>
               <p>• Legal jurisdiction: Kathmandu, Nepal.</p>
             </CardContent>

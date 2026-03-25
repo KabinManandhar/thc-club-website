@@ -1,14 +1,14 @@
 "use client"
 
 import { BrandDashboardOverview } from "@/components/club/brand-dashboard-overview"
-import { InventoryManagement } from "@/components/club/inventory-management"
-import { OnboardingWizard } from "@/components/club/onboarding-wizard"
-import { BrandLayout } from "@/components/club/brand-layout"
-import { BrandProfile } from "@/components/club/brand-profile"
 import { BrandInbox } from "@/components/club/brand-inbox"
-import { BrandShelfInfo } from "@/components/club/brand-shelf-info"
+import { BrandLayout } from "@/components/club/brand-layout"
 import { BrandLegal } from "@/components/club/brand-legal"
 import { BrandPayouts } from "@/components/club/brand-payouts"
+import { BrandProfile } from "@/components/club/brand-profile"
+import { BrandShelfInfo } from "@/components/club/brand-shelf-info"
+import { InventoryManagement } from "@/components/club/inventory-management"
+import { OnboardingWizard } from "@/components/club/onboarding-wizard"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -114,58 +114,10 @@ function ClubPageContent() {
 
   if (!isAuthenticated) return null
 
-  if (brand && (brand.onboarding_status === "pending" || brand.onboarding_status === "slot_selected")) {
-    return (
-      <div className="min-h-screen bg-[#FFFCEB] text-[#010307] flex flex-col items-center justify-center p-10">
-        <div className="max-w-2xl w-full space-y-12 text-center">
-          <Image src="/logo.png" alt="THC Club" width={120} height={60} className="mx-auto" />
-          
-          <Card className="border border-[#FE7F2D]/20 shadow-2xl rounded-[3rem] bg-white p-12 space-y-8 relative overflow-hidden">
-             <div className="absolute top-0 right-0 w-32 h-32 bg-[#FE7F2D]/5 rounded-bl-[4rem]"></div>
-             <div className="w-20 h-20 bg-[#FE7F2D]/10 rounded-3xl flex items-center justify-center text-[#FE7F2D] mx-auto animate-pulse">
-                <Clock className="w-10 h-10" />
-             </div>
-             
-             <div className="space-y-4">
-                <h2 className="text-4xl font-black tracking-tighter lowercase italic">identity verification in progress</h2>
-                <p className="text-[#010307]/50 font-medium italic leading-relaxed lowercase">
-                  you've successfully initiated your onboarding. our community administrators are currently verifying your brand profile and slot selection.
-                </p>
-             </div>
+  const isApproved = activeBooking?.status === "active" || brand?.onboarding_status === "active"
+  const isPendingApproval = brand && (brand.onboarding_status === "pending" || brand.onboarding_status === "slot_selected")
 
-             <div className="grid grid-cols-2 gap-4 pt-4">
-                <div className="p-6 bg-[#010307]/5 rounded-2xl border border-transparent">
-                   <p className="text-[10px] font-bold lowercase text-[#010307]/30 tracking-widest mb-1">status</p>
-                   <p className="font-black lowercase italic text-[#FE7F2D]">awaiting approval</p>
-                </div>
-                <div className="p-6 bg-[#010307]/5 rounded-2xl border border-transparent">
-                   <p className="text-[10px] font-bold lowercase text-[#010307]/30 tracking-widest mb-1">eta</p>
-                   <p className="font-black lowercase italic text-[#010307]">24-48 hours</p>
-                </div>
-             </div>
-
-             <div className="pt-6 border-t border-[#010307]/5">
-                <p className="text-[11px] font-bold lowercase text-[#010307]/20 tracking-widest italic">
-                  once verified, you will gain full access to the kathmandu gate 01 terminal.
-                </p>
-             </div>
-          </Card>
-
-          <Button 
-            variant="ghost" 
-            onClick={handleLogout}
-            className="font-bold lowercase text-xs tracking-wide hover:bg-[#FE7F2D] hover:text-white rounded-xl h-12 px-8 transition-all"
-          >
-            <LogOut className="w-4 h-4 mr-2" /> cancel and logout
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  const isActive = activeBooking?.status === "active" || brand?.onboarding_status === "active"
-
-  if (isActive && brand) {
+  if (isApproved && brand) {
     return (
       <BrandLayout
         activeTab={activeTab}
@@ -198,7 +150,16 @@ function ClubPageContent() {
 
   return (
     <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk relative overflow-x-hidden">
-      <div className="fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-4 border-b border-[#FE7F2D]/10 flex items-center justify-center px-10">
+      {isPendingApproval && (
+         <div className="fixed top-0 left-0 right-0 z-[60] bg-[#FE7F2D] text-white py-3 px-10 text-center flex items-center justify-center gap-4">
+            <Clock className="w-4 h-4" />
+            <p className="text-[11px] font-bold lowercase tracking-widest italic">
+               identity verification in progress • limited access until approved
+            </p>
+         </div>
+      )}
+
+      <div className={`fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-4 border-b border-[#FE7F2D]/10 flex items-center justify-center px-10 ${isPendingApproval ? 'mt-11' : ''}`}>
         <p className="text-[11px] font-bold lowercase tracking-widest italic text-[#010307]/40">
            the hidden collective • kathmandu club access
         </p>
@@ -228,6 +189,7 @@ function ClubPageContent() {
           <TabsList className="w-full justify-start border-b border-[#FE7F2D]/10 rounded-none h-auto p-0 bg-transparent mb-16 gap-10">
             <TabsTrigger value="dashboard" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent">the pitch</TabsTrigger>
             <TabsTrigger value="pricing" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent">economics</TabsTrigger>
+            <TabsTrigger value="slots" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent">slot space</TabsTrigger>
             <TabsTrigger value="onboarding" className="text-[#010307]/40 hover:text-[#FE7F2D] rounded-none py-4 px-0 text-xs font-bold lowercase tracking-wide ml-auto transition-all">initiate onboarding</TabsTrigger>
           </TabsList>
         
@@ -285,7 +247,7 @@ function ClubPageContent() {
                       <thead className="bg-[#FE7F2D]/5 border-b border-[#FE7F2D]/10">
                          <tr>
                             <th className="px-12 py-6 font-bold lowercase text-xs tracking-wide text-[#010307]/40">monthly sales tier</th>
-                            <th className="py-6 font-bold lowercase text-xs tracking-wide text-[#010307]/40 text-center">service commission</th>
+                            <th className="py-6 font-bold lowercase text-xs tracking-wide text-[#010307]/40 text-center">payment processing fee</th>
                             <th className="px-12 py-6 font-bold lowercase text-xs tracking-wide text-[#010307]/40 text-right">rent waiver</th>
                          </tr>
                       </thead>
@@ -356,6 +318,57 @@ function ClubPageContent() {
              </div>
           </TabsContent>
 
+          <TabsContent value="slots" className="space-y-12 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+             <div className="max-w-4xl mx-auto space-y-12">
+                <h2 className="text-5xl font-black tracking-tighter lowercase italic text-center text-[#010307]">physical <span className="italic opacity-30">footprint</span></h2>
+                
+                <div className="grid md:grid-cols-2 gap-8">
+                   <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] p-10 bg-white/50 backdrop-blur-sm space-y-6">
+                      <div className="w-12 h-12 bg-[#FE7F2D]/10 text-[#FE7F2D] rounded-2xl flex items-center justify-center font-black italic">01</div>
+                      <h4 className="text-2xl font-black lowercase italic tracking-tight">floor territory</h4>
+                      <p className="text-[#010307]/50 text-sm font-medium italic lowercase leading-relaxed">standard 2ft x 2ft footprint within the high-traffic main hall. optimized for individual brand pedestals or floor-standing racks.</p>
+                      <div className="pt-4 border-t border-[#010307]/5 flex justify-between items-center text-[10px] font-bold lowercase tracking-widest text-[#010307]/30">
+                         <span>available slots: 72</span>
+                         <span className="text-[#FE7F2D]">classic access</span>
+                      </div>
+                   </Card>
+
+                   <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] p-10 bg-white/50 backdrop-blur-sm space-y-6">
+                      <div className="w-12 h-12 bg-[#FE7F2D] text-white rounded-2xl flex items-center justify-center font-black italic">02</div>
+                      <h4 className="text-2xl font-black lowercase italic tracking-tight">prime wall gallery</h4>
+                      <p className="text-[#010307]/50 text-sm font-medium italic lowercase leading-relaxed">curated wall space for lifestyle products and vertical displays. premium lighting and high-eye-level visibility for key collections.</p>
+                      <div className="pt-4 border-t border-[#010307]/5 flex justify-between items-center text-[10px] font-bold lowercase tracking-widest text-[#010307]/30">
+                         <span>available slots: 24</span>
+                         <span className="text-[#FE7F2D]">premium gallery</span>
+                      </div>
+                   </Card>
+
+                   <Card className="md:col-span-2 border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] p-10 bg-[#010307] text-white space-y-8 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#FE7F2D]/10 rounded-full -mr-32 -mt-32"></div>
+                      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+                         <div className="space-y-4">
+                            <h4 className="text-3xl font-black lowercase italic tracking-tighter">island feature hubs</h4>
+                            <p className="text-white/40 text-base font-medium italic lowercase leading-relaxed max-w-md">360-degree visibility at key intersection points. these are extremely limited, high-engagement spots for market leaders.</p>
+                         </div>
+                         <div className="shrink-0 flex items-center gap-6">
+                            <div className="text-center">
+                               <p className="text-4xl font-black italic text-[#FE7F2D]">12</p>
+                               <p className="text-[9px] font-bold lowercase tracking-widest text-white/30 uppercase mt-1">total hubs</p>
+                            </div>
+                            <Button variant="outline" className="border-white/10 text-white hover:bg-white hover:text-[#010307] rounded-xl font-bold lowercase h-12 px-6" onClick={() => setActiveTab("onboarding")}>reserve hub</Button>
+                         </div>
+                      </div>
+                   </Card>
+                </div>
+
+                <div className="p-10 bg-[#FE7F2D]/5 rounded-[3rem] border border-[#FE7F2D]/10 text-center">
+                   <p className="text-sm font-medium italic lowercase text-[#010307]/60">
+                      all 108 slots are managed via real-time grid mapping. once onboarded, you get a dedicated territory to build your brand’s physical presence in kathmandu.
+                   </p>
+                </div>
+             </div>
+          </TabsContent>
+
           <TabsContent value="onboarding" className="py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {brand && (
               <div className="max-w-4xl mx-auto">
@@ -378,7 +391,7 @@ function ClubPageContent() {
          <div className="container mx-auto px-6 text-center space-y-6 relative z-10">
             <div className="flex justify-center flex-col items-center gap-6">
                <Image src="/logo.png" alt="THC Club" width={120} height={60} className="grayscale opacity-20" />
-               <Badge variant="outline" className="border-[#010307]/10 text-[#010307]/20 font-mono text-[9px] lowercase font-bold tracking-widest px-4 py-1.5 rounded-full">kathmandu • nepal • gate 01</Badge>
+               <Badge variant="outline" className="border-[#010307]/10 text-[#010307]/20 font-mono text-[9px] lowercase font-bold tracking-widest px-4 py-1.5 rounded-full">kathmandu • nepal • outlet 01</Badge>
             </div>
             <p className="text-[11px] font-bold text-[#010307]/10 lowercase tracking-[0.2em]">the hidden collective club © 2026</p>
          </div>

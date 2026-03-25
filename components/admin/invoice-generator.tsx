@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { supabase, type Brand, type BrandProduct, type Invoice, calculateCommission } from "@/lib/supabase"
+import { supabase, type Brand, type BrandProduct, type Invoice, type PPFTier } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,7 @@ export function InvoiceGenerator() {
   const [brands, setBrands] = useState<Brand[]>([])
   const [selectedBrandId, setSelectedBrandId] = useState<string>("")
   const [products, setProducts] = useState<BrandProduct[]>([])
+  const [ppfTiers, setPpfTiers] = useState<PPFTier[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
@@ -40,6 +41,8 @@ export function InvoiceGenerator() {
   useEffect(() => {
     supabase.from("brands").select("*").order("business_name")
       .then(({ data }) => setBrands(data || []))
+    supabase.from("ppf_tiers").select("*").order("min_sales_amount", { ascending: false })
+      .then(({ data }) => setPpfTiers(data || []))
   }, [])
 
   const fetchProducts = useCallback(async () => {
@@ -87,7 +90,10 @@ export function InvoiceGenerator() {
   const subtotal = cart.reduce((acc, c) => acc + c.product.price * c.quantity, 0)
   const discountAmt = parseFloat(discount) || 0
   const total = Math.max(subtotal - discountAmt, 0)
-  const commissionInfo = calculateCommission(total)
+  
+  // Calculate PPF based on this invoice's total
+  const applicableTier = ppfTiers.find((t) => total >= t.min_sales_amount) || ppfTiers[ppfTiers.length - 1] || { ppf_rate: 3 }
+  const ppfInfo = { rate: applicableTier.ppf_rate, amount: total * (applicableTier.ppf_rate / 100) }
 
   const handlePrint = () => {
     const printContent = printRef.current;
@@ -140,8 +146,8 @@ export function InvoiceGenerator() {
           subtotal,
           discount_amount: discountAmt,
           total_amount: total,
-          commission_rate: commissionInfo.rate,
-          commission_amount: commissionInfo.amount,
+          ppf_rate: ppfInfo.rate,
+          ppf_amount: ppfInfo.amount,
           payment_method: paymentMethod,
           status: "paid",
         })
@@ -182,8 +188,8 @@ export function InvoiceGenerator() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Invoice Generator (POS)</h2>
-        <p className="text-gray-600">Create a sale invoice — stock and sales data update automatically.</p>
+        <h2 className="text-2xl font-black tracking-tighter lowercase italic">invoice generator (pos)</h2>
+        <p className="text-[#010307]/40 font-medium italic lowercase">create a sale invoice — stock and sales data update automatically.</p>
       </div>
 
       <div className="grid lg:grid-cols-5 gap-6">
@@ -208,10 +214,10 @@ export function InvoiceGenerator() {
 
           {selectedBrandId && (
             <Card className="border-[#FE7F2D]/20">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Product Catalog</CardTitle>
-                <CardDescription>Click to add to invoice</CardDescription>
-              </CardHeader>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-black lowercase italic">product catalog</CardTitle>
+              <CardDescription className="lowercase">click to add to invoice</CardDescription>
+            </CardHeader>
               <CardContent>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {products.length === 0 ? (
@@ -262,36 +268,36 @@ export function InvoiceGenerator() {
 
         <div className="lg:col-span-2 space-y-4">
           <Card className="border-[#010307]/20 shadow-xl rounded-3xl">
-            <CardHeader className="pb-3 border-b border-gray-50">
-              <CardTitle className="text-base flex items-center gap-2 italic uppercase font-black">
-                <ShoppingCart className="w-5 h-5 text-[#FE7F2D]" /> Invoice Cart
+            <CardHeader className="pb-3 border-b border-[#010307]/5">
+              <CardTitle className="text-base flex items-center gap-2 italic lowercase font-black">
+                <ShoppingCart className="w-5 h-5 text-[#FE7F2D]" /> invoice cart
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <ScrollArea className="max-h-64">
                 {cart.length === 0 ? (
-                  <div className="py-10 text-center text-sm text-gray-400 italic">No items added yet.</div>
+                  <div className="py-10 text-center text-sm text-[#010307]/20 italic lowercase">no items added yet.</div>
                 ) : (
                   <div className="space-y-4">
                     {cart.map((c) => (
                       <div key={c.product.id} className="flex items-center gap-4 group">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-black truncate uppercase">{c.product.name}</p>
-                          <p className="text-[10px] text-gray-400 font-mono">NPR {c.product.price.toLocaleString()} unit</p>
+                          <p className="text-sm font-black truncate lowercase italic">{c.product.name}</p>
+                          <p className="text-[10px] text-[#010307]/30 font-bold lowercase">npr {c.product.price.toLocaleString()} unit</p>
                         </div>
-                        <div className="flex items-center gap-2 bg-gray-50 p-1 rounded-xl">
-                          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => updateQty(c.product.id, -1)}>
-                            <Minus className="w-3 h-3" />
+                        <div className="flex items-center gap-2 bg-[#010307]/5 p-1 rounded-xl">
+                          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-white transition-all" onClick={() => updateQty(c.product.id, -1)}>
+                            <Minus className="w-3 h-3 text-[#010307]/40" />
                           </Button>
                           <span className="text-sm w-6 text-center font-black">{c.quantity}</span>
-                          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => updateQty(c.product.id, 1)}>
-                            <Plus className="w-3 h-3" />
+                          <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-white transition-all" onClick={() => updateQty(c.product.id, 1)}>
+                            <Plus className="w-3 h-3 text-[#010307]/40" />
                           </Button>
                         </div>
-                        <span className="text-sm font-black w-24 text-right italic">
+                        <span className="text-sm font-black w-24 text-right italic text-[#010307]">
                           {(c.product.price * c.quantity).toLocaleString()}
                         </span>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-400 hover:text-red-600 rounded-lg" onClick={() => removeFromCart(c.product.id)}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-[#010307]/10 hover:text-red-500 rounded-lg transition-all" onClick={() => removeFromCart(c.product.id)}>
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
@@ -354,10 +360,10 @@ export function InvoiceGenerator() {
               <Button
                 onClick={handleSubmitInvoice}
                 disabled={cart.length === 0 || !selectedBrandId || submitting}
-                className="w-full bg-[#010307] hover:bg-black text-white h-14 rounded-2xl font-black uppercase tracking-widest text-xs"
+                className="w-full bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white h-14 rounded-2xl font-bold lowercase tracking-widest text-[11px] shadow-xl shadow-orange-500/20 active:scale-95 transition-all"
               >
-                {submitting ? "Transmitting..." : (
-                  <><Receipt className="w-4 h-4 mr-2" /> Sync & Create Invoice</>
+                {submitting ? "transmitting..." : (
+                  <><Receipt className="w-4 h-4 mr-2" /> sync & create invoice</>
                 )}
               </Button>
             </CardContent>
@@ -468,14 +474,13 @@ export function InvoiceGenerator() {
             )}
             <div className="flex gap-3 justify-end pt-8">
               <Button 
-                 variant="outline" 
-                 className="rounded-xl font-black text-[10px] uppercase tracking-widest h-12 px-8 flex items-center gap-2"
-                 onClick={handlePrint}
+                onClick={handlePrint} 
+                className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white rounded-xl font-bold text-[11px] lowercase tracking-widest h-12 px-8 flex items-center gap-2 shadow-lg shadow-orange-500/20 active:scale-95 transition-all"
               >
-                <Printer className="w-4 h-4" /> Print POS Bill
+                <Printer className="w-4 h-4" /> print pos bill
               </Button>
-              <Button onClick={() => setShowInvoice(false)} className="bg-[#010307] text-white rounded-xl font-black text-[10px] uppercase tracking-widest h-12 px-8">
-                Dismiss Terminal
+              <Button onClick={() => setShowInvoice(false)} variant="ghost" className="text-[#010307]/40 hover:text-[#010307] rounded-xl font-bold text-[11px] lowercase tracking-widest h-12 px-8">
+                dismiss access
               </Button>
             </div>
           </div>

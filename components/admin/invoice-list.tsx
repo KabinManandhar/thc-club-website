@@ -117,7 +117,7 @@ export function InvoiceList() {
                 <TableCell className="font-medium">{inv.brands?.business_name}</TableCell>
                 <TableCell className="font-black">NPR {inv.total_amount.toLocaleString()}</TableCell>
                 <TableCell className="text-center">
-                  <Badge variant="outline" className="text-blue-600 border-blue-100 bg-blue-50/30">NPR {inv.commission_amount.toLocaleString()}</Badge>
+                  <Badge variant="outline" className="text-blue-600 border-blue-100 bg-blue-50/30">NPR {inv.ppf_amount?.toLocaleString() || '0'}</Badge>
                 </TableCell>
                 <TableCell className="text-right text-gray-500 tabular-nums text-xs">
                   {new Date(inv.created_at).toLocaleDateString()}

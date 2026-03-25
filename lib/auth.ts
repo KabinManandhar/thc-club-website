@@ -1,4 +1,5 @@
 import { supabase } from "./supabase"
+import bcrypt from "bcryptjs"
 
 export interface AdminUser {
   id: string
@@ -13,63 +14,64 @@ export interface AuthState {
   loading: boolean
 }
 
-// Simple password verification (in production, use proper bcrypt)
-const verifyPassword = (password: string, hash: string): boolean => {
-  // For demo purposes, we'll do a simple check
-  // In production, use bcrypt.compare(password, hash)
-  return password === "I@mgod@666"
-}
-
 export const adminAuth = {
   async login(email: string, password: string): Promise<{ user: AdminUser | null; error: string | null }> {
     try {
-      // Check if user exists and password is correct
-      const { data: adminUser, error } = await supabase
-        .from("admin_users")
-        .select("*")
-        .eq("email", email)
-        .eq("is_active", true)
-        .single()
+      // 1. Fetch admin via SECURITY DEFINER RPC (bypasses RLS on admin_users)
+      const { data: admins, error: rpcError } = await supabase
+        .rpc("verify_admin_login", { p_email: email.toLowerCase() })
 
-      if (error || !adminUser) {
+      if (rpcError) {
+        console.error("Admin RPC error:", rpcError)
+        return { user: null, error: "Login failed. Please try again." }
+      }
+
+      if (!admins || admins.length === 0) {
         return { user: null, error: "Invalid credentials" }
       }
 
-      // Verify password (simplified for demo)
-      if (!verifyPassword(password, adminUser.password_hash)) {
+      const adminRow = admins[0]
+
+      // 2. Verify bcrypt hash
+      const isMatch = await bcrypt.compare(password, adminRow.password_hash)
+      if (!isMatch) {
         return { user: null, error: "Invalid credentials" }
       }
 
-      // Create session token
+      // 3. Create session in admin_sessions (publicly accessible via RLS allow_all)
       const sessionToken = crypto.randomUUID()
       const expiresAt = new Date()
       expiresAt.setHours(expiresAt.getHours() + 24) // 24 hour session
 
-      await supabase.from("admin_sessions").insert({
-        admin_id: adminUser.id,
+      const { error: sessionError } = await supabase.from("admin_sessions").insert({
+        admin_id: adminRow.id,
         session_token: sessionToken,
         expires_at: expiresAt.toISOString(),
       })
 
-      // Update last login
-      await supabase.from("admin_users").update({ last_login: new Date().toISOString() }).eq("id", adminUser.id)
-
-      // Store session in localStorage
-      localStorage.setItem("admin_session", sessionToken)
-      localStorage.setItem("admin_user", JSON.stringify(adminUser))
-
-      return {
-        user: {
-          id: adminUser.id,
-          email: adminUser.email,
-          name: adminUser.name,
-          role: adminUser.role,
-          is_active: adminUser.is_active,
-        },
-        error: null,
+      if (sessionError) {
+        console.error("Admin session insert error:", sessionError)
+        // Continue anyway — don't block login over session tracking
       }
-    } catch (error) {
-      console.error("Login error:", error)
+
+      // 4. Update last login via RPC
+      await supabase.rpc("update_admin_login_time", { p_admin_id: adminRow.id })
+
+      // 5. Store session locally
+      const user: AdminUser = {
+        id: adminRow.id,
+        email: adminRow.email,
+        name: adminRow.name,
+        role: adminRow.role,
+        is_active: adminRow.is_active,
+      }
+
+      localStorage.setItem("admin_session", sessionToken)
+      localStorage.setItem("admin_user", JSON.stringify(user))
+
+      return { user, error: null }
+    } catch (err) {
+      console.error("Admin login error:", err)
       return { user: null, error: "Login failed" }
     }
   },
@@ -78,15 +80,12 @@ export const adminAuth = {
     try {
       const sessionToken = localStorage.getItem("admin_session")
       if (sessionToken) {
-        // Remove session from database
         await supabase.from("admin_sessions").delete().eq("session_token", sessionToken)
       }
-
-      // Clear localStorage
       localStorage.removeItem("admin_session")
       localStorage.removeItem("admin_user")
-    } catch (error) {
-      console.error("Logout error:", error)
+    } catch (err) {
+      console.error("Admin logout error:", err)
     }
   },
 
@@ -95,33 +94,29 @@ export const adminAuth = {
       const sessionToken = localStorage.getItem("admin_session")
       const userStr = localStorage.getItem("admin_user")
 
-      if (!sessionToken || !userStr) {
-        return null
-      }
+      if (!sessionToken || !userStr) return null
 
-      // Verify session is still valid
-      const { data: session, error } = await supabase
+      // Validate session against database (admin_sessions is publicly readable)
+      const { data: sessions } = await supabase
         .from("admin_sessions")
-        .select("*, admin_users(*)")
+        .select("id, expires_at")
         .eq("session_token", sessionToken)
         .gt("expires_at", new Date().toISOString())
-        .single()
 
-      if (error || !session) {
-        // Session expired or invalid
-        this.logout()
+      if (!sessions || sessions.length === 0) {
+        await this.logout()
         return null
       }
 
-      return JSON.parse(userStr)
-    } catch (error) {
-      console.error("Get current user error:", error)
+      return JSON.parse(userStr) as AdminUser
+    } catch (err) {
+      console.error("Get current admin error:", err)
       return null
     }
   },
 
   async verifySession(): Promise<boolean> {
-    const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'development' || process.env.NODE_ENV === 'development'
+    const isDev = process.env.NEXT_PUBLIC_APP_ENV === "development" || process.env.NODE_ENV === "development"
     if (typeof window !== "undefined" && isDev && localStorage.getItem("thc_test_mode") === "true") {
       return true
     }

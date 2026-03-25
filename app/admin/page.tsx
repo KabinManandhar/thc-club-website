@@ -11,6 +11,7 @@ import { LoginForm } from "@/components/admin/login-form";
 import { ShelfSlotsManagement } from "@/components/admin/shelf-slots-management";
 import { InboxManagement } from "@/components/admin/inbox-management";
 import { PayoutsTracker } from "@/components/admin/payouts-tracker";
+import { PricingOffersManagement } from "@/components/admin/pricing-offers-management";
 import { adminAuth } from "@/lib/auth";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -65,6 +66,8 @@ function AdminDashboardContent() {
         return <InvoiceList />;
       case "payouts":
         return <PayoutsTracker />;
+      case "pricing-offers":
+        return <PricingOffersManagement />;
 
       case "slots":
         return <ShelfSlotsManagement />;

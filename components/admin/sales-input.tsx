@@ -32,7 +32,7 @@ export function SalesInput() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold">Sales Input</h2>
-          <p className="text-gray-600">Log monthly sales amounts for brands to automatically calculate commissions.</p>
+          <p className="text-gray-600">Log monthly sales amounts for brands to automatically calculate fees (PPF).</p>
         </div>
       </div>
 
@@ -84,7 +84,7 @@ export function SalesInput() {
               <Calculator className="h-5 w-5 mr-2 text-[#FE7F2D]" />
               Real-time Calculation
             </CardTitle>
-            <CardDescription>Commission tier automatically applied.</CardDescription>
+            <CardDescription>Payment processing fee tier automatically applied.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between border-b border-orange-200 pb-2">

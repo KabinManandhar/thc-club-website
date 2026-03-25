@@ -20,6 +20,7 @@ import {
   X,
   DollarSign,
   FileText,
+  BadgeDollarSign,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -61,6 +62,7 @@ export function AdminLayout({
     { id: "invoices", label: "Create Invoice", icon: Receipt },
     { id: "invoice-list", label: "Sales History", icon: FileText },
     { id: "payouts", label: "Payouts Tracker", icon: DollarSign },
+    { id: "pricing-offers", label: "Pricing & Economics", icon: BadgeDollarSign },
 
     { id: "slots", label: "Visual Shelf Grid", icon: Package },
     { id: "settings", label: "Settings", icon: Settings },

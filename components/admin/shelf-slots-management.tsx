@@ -9,9 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Package, Search, Filter, Calendar, User, AlertCircle, Settings } from "lucide-react"
-import { Plus, MoveDown, Columns, Component } from "lucide-react"
+import { Package, Search, Filter, Calendar, User, AlertCircle, Settings, Plus, MoveDown, Columns, Component, Trash2, LayoutGrid, Zap, DollarSign, Activity } from "lucide-react"
 import { supabase, type ShelfSlot, type Shelf } from "@/lib/supabase"
+import { toast } from "sonner"
 
 interface SlotStats {
   total: number
@@ -23,6 +23,7 @@ interface SlotStats {
 export function ShelfSlotsManagement() {
   const [slots, setSlots] = useState<ShelfSlot[]>([])
   const [shelves, setShelves] = useState<Shelf[]>([])
+  const [brands, setBrands] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [shelfTypeFilter, setShelfTypeFilter] = useState<string>("all")
@@ -49,6 +50,7 @@ export function ShelfSlotsManagement() {
 
   const [updateData, setUpdateData] = useState({
     status: "",
+    brand_id: "",
     occupied_by: "",
     rent_amount: "",
     occupied_from: "",
@@ -78,16 +80,19 @@ export function ShelfSlotsManagement() {
 
   const fetchSlots = async () => {
     try {
-      const [slotsRes, shelvesRes] = await Promise.all([
-        supabase.from("shelf_slots").select("*").order("slot_number", { ascending: true }),
-        supabase.from("shelves").select("*").order("name")
+      const [slotsRes, shelvesRes, brandsRes] = await Promise.all([
+        supabase.from("shelf_slots").select("*, brands(business_name)").order("slot_number", { ascending: true }),
+        supabase.from("shelves").select("*").order("name"),
+        supabase.from("brands").select("id, business_name").order("business_name")
       ])
-
+ 
       if (slotsRes.error) throw slotsRes.error
-      if (shelvesRes.error && shelvesRes.error.code !== "42P01") throw shelvesRes.error // ignore undefined table if migration not run
+      if (shelvesRes.error && shelvesRes.error.code !== "42P01") throw shelvesRes.error
+      if (brandsRes.error) throw brandsRes.error
 
       setSlots(slotsRes.data || [])
       setShelves(shelvesRes.data || [])
+      setBrands(brandsRes.data || [])
     } catch (error) {
       console.error("Error fetching shelf data:", error)
     } finally {
@@ -159,27 +164,39 @@ export function ShelfSlotsManagement() {
         })
         .eq("id", id)
 
-      if (error) throw error
+      if (error) {
+         // Fallback if brand_id column is missing from db (SQL not run yet)
+         if (error.code === '42703') {
+             const { brand_id, rent_amount, occupied_from, occupied_until, notes, shelf_name, section, shelf_type, ...fallbackUpdates } = updates as any;
+             const { error: fallbackError } = await supabase
+                .from("shelf_slots")
+                .update({ ...fallbackUpdates, updated_at: new Date().toISOString() })
+                .eq("id", id)
+             
+             if (fallbackError) throw fallbackError;
+             
+             toast.warning(`Slot updated locally, but formal Brand Linking failed. Run the SQL migration in Supabase to sync the schema.`);
+             fetchSlots()
+             setSelectedSlot(null)
+             return;
+         }
+         throw error;
+      }
 
+      toast.success(`Slot #${slots.find(s => s.id === id)?.slot_number} adjusted.`)
       fetchSlots()
       setSelectedSlot(null)
-      setUpdateData({
-        status: "",
-        occupied_by: "",
-        rent_amount: "",
-        occupied_from: "",
-        occupied_until: "",
-        notes: "",
-      })
-    } catch (error) {
-      console.error("Error updating shelf slot:", error)
+    } catch (error: any) {
+      console.error("Error updating shelf slot:", JSON.stringify(error, null, 2))
+      toast.error(error?.message || "terminal rejection: check database connectivity")
     }
   }
 
   const filteredSlots = slots.filter((slot) => {
     const matchesSearch =
       slot.slot_number.toString().includes(searchTerm) ||
-      (slot.occupied_by && slot.occupied_by.toLowerCase().includes(searchTerm.toLowerCase()))
+      (slot.occupied_by && slot.occupied_by.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (slot.brands?.business_name && slot.brands.business_name.toLowerCase().includes(searchTerm.toLowerCase()))
 
     const matchesShelfType = shelfTypeFilter === "all" || slot.shelf_type === shelfTypeFilter
     const matchesStatus = statusFilter === "all" || slot.status === statusFilter
@@ -370,6 +387,7 @@ export function ShelfSlotsManagement() {
                                 setSelectedSlot(slot)
                                 setUpdateData({
                                   status: slot.status,
+                                  brand_id: slot.brand_id || "none",
                                   occupied_by: slot.occupied_by || "",
                                   rent_amount: slot.rent_amount?.toString() || "",
                                   occupied_from: slot.occupied_from || "",
@@ -439,11 +457,42 @@ export function ShelfSlotsManagement() {
               </div>
 
               <div>
-                <Label htmlFor="occupied_by">Occupied By</Label>
+                <Label htmlFor="brand">Assign Brand (Occupied By)</Label>
+                <Select
+                  value={updateData.brand_id}
+                  onValueChange={(value) => {
+                    const brand = brands.find(b => b.id === value)
+                    setUpdateData(prev => ({ 
+                      ...prev, 
+                      brand_id: value,
+                      occupied_by: brand ? brand.business_name : prev.occupied_by
+                    }))
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select Brand" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Unassigned / Freelance</SelectItem>
+                    {brands.map(brand => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.business_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!updateData.brand_id || updateData.brand_id === 'none' ? (
+                   <div className="mt-2 text-[10px] text-gray-400 font-bold italic">No brand linked. Use the field below for manual reference if needed.</div>
+                ) : null}
+              </div>
+
+              <div>
+                <Label htmlFor="occupied_by">Display Label (Manual Override)</Label>
                 <Input
                   id="occupied_by"
                   value={updateData.occupied_by}
                   onChange={(e) => setUpdateData((prev) => ({ ...prev, occupied_by: e.target.value }))}
+                  placeholder="Business Name"
                 />
               </div>
 
@@ -451,9 +500,10 @@ export function ShelfSlotsManagement() {
                 <Button
                   onClick={() =>
                     updateSlot(selectedSlot.id, {
-                      status: updateData.status as "available" | "occupied" | "maintenance",
-                      occupied_by: updateData.occupied_by || undefined,
-                      rent_amount: updateData.rent_amount ? Number.parseFloat(updateData.rent_amount) : undefined,
+                      status: updateData.status as any,
+                      brand_id: (updateData.brand_id && updateData.brand_id !== 'none') ? updateData.brand_id : null,
+                      occupied_by: updateData.occupied_by || null,
+                      rent_amount: updateData.rent_amount ? Number(updateData.rent_amount) : null,
                     })
                   }
                   className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white flex-1"
@@ -561,7 +611,7 @@ function SlotSquare({ slot, onSelect }: { slot: ShelfSlot; onSelect: () => void 
         ${slot.status === "maintenance" ? "bg-yellow-50 border-yellow-200 hover:border-yellow-500 text-yellow-700" : ""}
         ${isExpiring(slot.occupied_until) ? "ring-2 ring-orange-400 ring-offset-1" : ""}
       `}
-      title={`${slot.status}${slot.occupied_by ? ` - ${slot.occupied_by}` : ""}`}
+      title={`${slot.status}${slot.brands?.business_name ? ` - ${slot.brands.business_name}` : (slot.occupied_by ? ` - ${slot.occupied_by}` : "")}`}
     >
       <span className="text-[10px] font-bold opacity-50">#{slot.slot_number}</span>
       {slot.status === "occupied" && <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1" />}

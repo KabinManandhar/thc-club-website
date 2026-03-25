@@ -1,26 +1,76 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { supabase } from "@/lib/supabase"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { PlayCircle, CheckCircle, Clock, RefreshCcw, DollarSign, Wallet, ArrowUpRight, CheckCircle2, AlertCircle } from "lucide-react"
+import {
+  CheckCircle, Clock, RefreshCcw, DollarSign, Wallet, ArrowUpRight,
+  CheckCircle2, AlertCircle, FileText, Printer, X, ChevronRight,
+  Receipt, ShieldCheck, Banknote, TrendingUp, Landmark, Smartphone
+} from "lucide-react"
 import { toast } from "sonner"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface LiveSale {
+  id: string
+  brand_id: string
+  month: number
+  year: number
+  gross_sales: number
+  ppf_amount: number
+  ppf_rate: number
+  brands?: { business_name: string; bank_account_details?: any }
+  
+}
+
+interface Payout {
+  id: string
+  brand_id: string
+  month: number
+  year: number
+  gross_sales: number
+  ppf_amount: number
+  net_payout: number
+  status: "pending" | "paid"
+  paid_at?: string
+  admin_notes?: string
+  brands?: { business_name: string; bank_account_details?: any }
+}
+
+// ─── Step types for the Complete Payout flow ─────────────────────────────────
+type PayoutFlowStep = "report" | "confirm" | "statement"
 
 export function PayoutsTracker() {
-  const [payouts, setPayouts] = useState<any[]>([])
-  const [liveSales, setLiveSales] = useState<any[]>([])
+  const [payouts, setPayouts] = useState<Payout[]>([])
+  const [liveSales, setLiveSales] = useState<LiveSale[]>([])
   const [loading, setLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
-  const [selectedPayout, setSelectedPayout] = useState<any>(null)
-  const [adjustmentAmount, setAdjustmentAmount] = useState("")
-  const [adjustmentReason, setAdjustmentReason] = useState("")
+
+  // Payout flow state
+  const [flowSale, setFlowSale] = useState<LiveSale | null>(null)   // for live sales
+  const [flowPayout, setFlowPayout] = useState<Payout | null>(null) // for pending payouts
+  const [flowStep, setFlowStep] = useState<PayoutFlowStep>("report")
+  const [finalAmount, setFinalAmount] = useState("")
+  const [paymentRef, setPaymentRef] = useState("")
+  const [adminNotes, setAdminNotes] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [completedPayout, setCompletedPayout] = useState<Payout | null>(null)
+
+  // View existing statement
+  const [viewPayout, setViewPayout] = useState<Payout | null>(null)
+
+  const printRef = useRef<HTMLDivElement>(null)
+
+  // ─── Data Fetching ──────────────────────────────────────────────────────────
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -30,22 +80,20 @@ export function PayoutsTracker() {
       const currentMonth = now.getMonth() + 1
       const currentYear = now.getFullYear()
 
-      // 1. Fetch historical payouts
       const { data: payoutData } = await supabase
         .from("payouts")
         .select("*, brands(business_name, bank_account_details)")
         .order("year", { ascending: false })
         .order("month", { ascending: false })
-      
-      // 2. Fetch current month live aggregates from brand_sales
+
       const { data: salesData } = await supabase
         .from("brand_sales")
-        .select("*, brands(business_name)")
+        .select("*, brands(business_name, bank_account_details)")
         .eq("month", currentMonth)
         .eq("year", currentYear)
 
-      setPayouts(payoutData || [])
-      setLiveSales(salesData || [])
+      setPayouts((payoutData || []) as Payout[])
+      setLiveSales((salesData || []) as LiveSale[])
     } catch (err) {
       console.error("Fetch failed", err)
       toast.error("Failed to sync latest financial data.")
@@ -55,22 +103,17 @@ export function PayoutsTracker() {
     }
   }, [])
 
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
+  useEffect(() => { fetchData() }, [fetchData])
+
+  // ─── Handlers ──────────────────────────────────────────────────────────────
 
   const handleGeneratePayouts = async () => {
     setIsGenerating(true)
     try {
       const now = new Date()
-      const month = now.getMonth() === 0 ? 12 : now.getMonth();
-      const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
-
-      const { error } = await supabase.rpc('generate_monthly_payouts', {
-        p_month: month,
-        p_year: year
-      })
-
+      const month = now.getMonth() === 0 ? 12 : now.getMonth()
+      const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
+      const { error } = await supabase.rpc("generate_monthly_payouts", { p_month: month, p_year: year })
       if (error) throw error
       toast.success(`Payout ledger for ${month}/${year} synchronized.`)
       fetchData()
@@ -81,128 +124,410 @@ export function PayoutsTracker() {
     }
   }
 
-  const handleManualSettlement = async () => {
-    if (!selectedPayout) return
+  // Open the payout flow for a live sale
+  const openFlowForSale = (sale: LiveSale) => {
+    setFlowSale(sale)
+    setFlowPayout(null)
+    setFinalAmount((sale.gross_sales - sale.ppf_amount).toString())
+    setPaymentRef("")
+    setAdminNotes("")
+    setFlowStep("report")
+  }
+
+  // Open the payout flow for a pending payout record
+  const openFlowForPayout = (payout: Payout) => {
+    setFlowPayout(payout)
+    setFlowSale(null)
+    setFinalAmount(payout.net_payout.toString())
+    setPaymentRef("")
+    setAdminNotes(payout.admin_notes || "")
+    setFlowStep("report")
+  }
+
+  const closeFlow = () => {
+    setFlowSale(null)
+    setFlowPayout(null)
+    setCompletedPayout(null)
+    setFlowStep("report")
+  }
+
+  // The active record for the flow (either sale or payout)
+  const activeFlowData = flowSale || flowPayout
+  const activeGross = flowSale?.gross_sales ?? flowPayout?.gross_sales ?? 0
+  const activePPF = flowSale?.ppf_amount ?? flowPayout?.ppf_amount ?? 0
+  const activeNet = parseFloat(finalAmount) || (activeGross - activePPF)
+  const activeBrandName = flowSale?.brands?.business_name ?? flowPayout?.brands?.business_name ?? ""
+  const activePeriod = flowSale
+    ? `${flowSale.month}/${flowSale.year}`
+    : flowPayout ? `${flowPayout.month}/${flowPayout.year}` : ""
+
+  const handleCompletePayment = async () => {
+    if (!activeFlowData) return
+    setIsSubmitting(true)
     try {
-      const finalAmount = adjustmentAmount ? parseFloat(adjustmentAmount) : selectedPayout.net_payout
-      
-      const { error } = await supabase
-        .from("payouts")
-        .update({ 
-          status: 'paid', 
-          paid_at: new Date().toISOString(),
-          net_payout: finalAmount,
-          admin_notes: adjustmentReason || null
-        })
-        .eq("id", selectedPayout.id)
-      
-      if (error) throw error
-      toast.success(`Settlement confirmed for ${selectedPayout.brands?.business_name}`)
-      setSelectedPayout(null)
-      setAdjustmentAmount("")
-      setAdjustmentReason("")
-      fetchData()
+      const now = new Date()
+      let finalRecord: Payout | null = null
+
+      if (flowPayout) {
+        // Update existing payout record
+        const { data, error } = await supabase
+          .from("payouts")
+          .update({
+            status: "paid",
+            paid_at: now.toISOString(),
+            net_payout: parseFloat(finalAmount),
+            admin_notes: [adminNotes, paymentRef ? `Ref: ${paymentRef}` : ""].filter(Boolean).join(" | ") || null,
+          })
+          .eq("id", flowPayout.id)
+          .select("*, brands(business_name, bank_account_details)")
+          .single()
+
+        if (error) throw error
+        finalRecord = data as Payout
+      } else if (flowSale) {
+        // Generate payout from live sale, then mark paid
+        const month = flowSale.month
+        const year = flowSale.year
+        await supabase.rpc("generate_monthly_payouts", { p_month: month, p_year: year })
+
+        const { data: newPayout, error: fetchErr } = await supabase
+          .from("payouts")
+          .select("*, brands(business_name, bank_account_details)")
+          .eq("brand_id", flowSale.brand_id)
+          .eq("month", month)
+          .eq("year", year)
+          .single()
+
+        if (fetchErr || !newPayout) throw new Error("Could not locate generated payout record.")
+
+        const { data, error } = await supabase
+          .from("payouts")
+          .update({
+            status: "paid",
+            paid_at: now.toISOString(),
+            net_payout: parseFloat(finalAmount),
+            admin_notes: [adminNotes, paymentRef ? `Ref: ${paymentRef}` : ""].filter(Boolean).join(" | ") || null,
+          })
+          .eq("id", (newPayout as Payout).id)
+          .select("*, brands(business_name, bank_account_details)")
+          .single()
+
+        if (error) throw error
+        finalRecord = data as Payout
+      }
+
+      if (finalRecord) {
+        setCompletedPayout(finalRecord)
+        setFlowStep("statement")
+        toast.success(`Payout completed for ${activeBrandName}`)
+        fetchData()
+      }
     } catch (err: any) {
-      toast.error(err.message || "Settlement transmission failed")
+      toast.error(err.message || "Payment finalization failed")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  const totalLiveGross = liveSales.reduce((sum, s) => sum + (s.gross_sales || 0), 0)
-  const totalLiveDue = liveSales.reduce((sum, s) => sum + (s.gross_sales - (s.commission_amount || 0)), 0)
-
-  if (loading && !isSyncing) {
-    return <div className="p-20 text-center animate-pulse"><RefreshCcw className="w-12 h-12 mx-auto text-gray-200 animate-spin" /><p className="mt-4 text-gray-400 font-black uppercase tracking-widest text-xs">Syncing Ledger...</p></div>
+  const handleUndoSettlement = async (payoutId: string) => {
+    if (!confirm("Reverse this settlement? The status will revert to pending.")) return
+    try {
+      const { error } = await supabase
+        .from("payouts")
+        .update({ status: "pending", paid_at: null })
+        .eq("id", payoutId)
+      if (error) throw error
+      toast.success("Settlement reversed.")
+      fetchData()
+    } catch (err: any) {
+      toast.error(err.message || "Reversal failed")
+    }
   }
 
+  const handleRedoPayout = async (month: number, year: number) => {
+    setIsGenerating(true)
+    try {
+      const { error } = await supabase.rpc("generate_monthly_payouts", { p_month: month, p_year: year })
+      if (error) throw error
+      toast.success(`Ledger for ${month}/${year} recalculated.`)
+      fetchData()
+    } catch (err: any) {
+      toast.error(err.message || "Recalculation failed")
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  const handlePrint = (ref: React.RefObject<HTMLDivElement>) => {
+    const content = ref.current
+    if (!content) return
+    const w = window.open("", "_blank")
+    if (!w) return
+    w.document.write(`<html><head><title>Payout Statement</title><style>
+      body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#010307;padding:40px;line-height:1.6}
+      .logo{font-size:28px;font-weight:900;font-style:italic;letter-spacing:-2px}
+      .label{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#a1a1aa;margin-bottom:3px}
+      .value{font-size:15px;font-weight:700}
+      table{width:100%;border-collapse:collapse;margin:30px 0}
+      th{text-align:left;padding:10px 12px;border-bottom:1px solid #e4e4e7;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:#a1a1aa}
+      td{padding:16px 12px;border-bottom:1px solid #f4f4f5;font-size:13px;font-weight:700}
+      .total td{border-top:2px solid #010307;border-bottom:none;font-size:22px;font-weight:900;font-style:italic}
+      .footer{margin-top:50px;font-size:9px;text-transform:lowercase;color:#d4d4d8;text-align:center}
+      @media print{.no-print{display:none}}
+    </style></head><body>${content.innerHTML}<script>window.onload=()=>{window.print();window.close()}<\/script></body></html>`)
+    w.document.close()
+  }
+
+  // ─── Render Helpers ─────────────────────────────────────────────────────────
+
+  const renderSettlementDetails = (details: any) => {
+    if (!details) return <p className="text-sm font-bold text-gray-400 italic">No settlement details provided</p>
+    
+    const type = details.type || "bank"
+    
+    if (type === "bank") {
+      return (
+        <div className="flex items-center gap-3">
+          <Landmark className="w-5 h-5 text-[#FE7F2D]" />
+          <div>
+            <div className="text-sm font-black italic">{details.bankName}</div>
+            <div className="text-[10px] font-bold text-gray-500 tabular-nums">{details.accountNumber} • {details.accountName}</div>
+          </div>
+        </div>
+      )
+    }
+    
+    if (type === "wallet") {
+      return (
+        <div className="flex items-center gap-3">
+          <Smartphone className="w-5 h-5 text-[#FE7F2D]" />
+          <div>
+            <div className="text-sm font-black italic uppercase italic">{details.walletProvider}</div>
+            <div className="text-[10px] font-bold text-gray-500 tabular-nums">{details.walletNumber} • {details.accountName}</div>
+          </div>
+        </div>
+      )
+    }
+
+    if (type === "cash") {
+      return (
+        <div className="flex items-center gap-3 text-[#FE7F2D]">
+          <Banknote className="w-5 h-5" />
+          <div className="text-sm font-black italic uppercase tracking-tight">Physical Cash Settlement</div>
+        </div>
+      )
+    }
+
+    return null
+  }
+
+  // ─── Derived totals ─────────────────────────────────────────────────────────
+
+  const totalLiveGross = liveSales.reduce((s, x) => s + (x.gross_sales || 0), 0)
+  const totalLiveDue = liveSales.reduce((s, x) => s + ((x.gross_sales || 0) - (x.ppf_amount || 0)), 0)
+
+  const printRef2 = useRef<HTMLDivElement>(null)
+
+  // ─── Flow open state ────────────────────────────────────────────────────────
+  const isFlowOpen = !!(flowSale || flowPayout)
+
+  if (loading && !isSyncing) {
+    return (
+      <div className="p-20 text-center animate-pulse">
+        <RefreshCcw className="w-12 h-12 mx-auto text-gray-200 animate-spin" />
+        <p className="mt-4 text-gray-400 font-black uppercase tracking-widest text-xs">Syncing Ledger...</p>
+      </div>
+    )
+  }
+
+  // ─── Statement panel (for viewing existing settled payouts) ─────────────────
+  const StatementView = ({ payout, printRef }: { payout: Payout; printRef: React.RefObject<HTMLDivElement> }) => (
+    <div ref={printRef} className="space-y-8">
+      <div className="flex justify-between items-end border-b-2 border-[#010307] pb-6">
+        <div>
+          <div className="text-3xl font-black italic tracking-tighter">THC Club</div>
+          <p className="text-[8px] font-black uppercase tracking-widest text-[#010307]/30">Internal Treasury Control</p>
+        </div>
+        <div className="text-right">
+          <div className="text-xs font-black uppercase tracking-widest text-[#FE7F2D]">Payout Statement</div>
+          <p className="text-[10px] font-bold tabular-nums">Ref: #{payout.id.slice(0, 8).toUpperCase()}</p>
+          <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest">
+            {new Date(payout.paid_at || Date.now()).toLocaleDateString("en-NP")}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-10">
+        <div className="space-y-4">
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Beneficiary Brand</div>
+            <div className="text-base font-black italic">{payout.brands?.business_name}</div>
+          </div>
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Cycle Period</div>
+            <div className="text-base font-bold tabular-nums">{payout.month}/{payout.year}</div>
+          </div>
+        </div>
+        <div className="space-y-4">
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Disbursement Profile</div>
+            <div className="text-sm font-medium italic text-gray-600">
+               {payout.brands?.bank_account_details?.type === 'cash' ? (
+                 "Cash Settlement"
+               ) : payout.brands?.bank_account_details?.type === 'wallet' ? (
+                 `${payout.brands.bank_account_details.walletProvider} • ${payout.brands.bank_account_details.walletNumber}`
+               ) : payout.brands?.bank_account_details?.bankName ? (
+                 `${payout.brands.bank_account_details.bankName} • ${payout.brands.bank_account_details.accountNumber}`
+               ) : (
+                 "manual settlement (verify records)"
+               )}
+            </div>
+          </div>
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Settlement Status</div>
+            <div className="text-sm font-black text-green-600 italic">
+              Settled on {new Date(payout.paid_at || Date.now()).toLocaleDateString()}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <table className="w-full">
+        <thead>
+          <tr>
+            <th className="text-left py-3 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Description</th>
+            <th className="text-right py-3 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Amount (NPR)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="py-4 px-3 font-bold text-sm border-b border-gray-50">Aggregated Gross Sales</td>
+            <td className="py-4 px-3 font-bold text-sm text-right border-b border-gray-50">{payout.gross_sales.toLocaleString()}</td>
+          </tr>
+          <tr>
+            <td className="py-4 px-3 font-bold text-sm border-b border-gray-50">Payment Processing Fee (PPF)</td>
+            <td className="py-4 px-3 font-bold text-sm text-right border-b border-gray-50 text-red-400">−{(payout.ppf_amount || 0).toLocaleString()}</td>
+          </tr>
+          {payout.admin_notes && (
+            <tr>
+              <td className="py-4 px-3 text-xs italic text-gray-400 border-b border-gray-50" colSpan={2}>
+                Note: {payout.admin_notes}
+              </td>
+            </tr>
+          )}
+          <tr className="border-t-2 border-[#010307]">
+            <td className="py-5 px-3 font-black text-xl italic">Net Disbursement Amount</td>
+            <td className="py-5 px-3 font-black text-xl italic text-right text-[#FE7F2D]">NPR {payout.net_payout.toLocaleString()}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="text-center text-[9px] font-bold lowercase text-gray-300 pt-6 border-t border-gray-100">
+        this is a computer generated electronic ledger record. no signature required.
+      </div>
+    </div>
+  )
+
   return (
-    <div className="space-y-10 pb-20">
+    <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Header */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
         <div>
-           <h1 className="text-3xl font-black tracking-tighter uppercase italic flex items-center gap-3">
-             <Wallet className="w-8 h-8 text-[#FE7F2D]" />
-             Payouts Terminal
-           </h1>
-           <p className="text-gray-500 font-medium text-sm">Real-time settlement aggregator and financial reconciliation.</p>
+          <h1 className="text-3xl font-black tracking-tighter uppercase italic flex items-center gap-3">
+            <Wallet className="w-8 h-8 text-[#FE7F2D]" /> Payouts Terminal
+          </h1>
+          <p className="text-gray-500 font-medium text-sm">Real-time settlement aggregator and financial reconciliation.</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <Button variant="outline" onClick={fetchData} disabled={isSyncing} className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest border-gray-200 hover:bg-gray-50 transition-all flex items-center gap-2">
-            <RefreshCcw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} /> 
-            Sync Live
+          <Button variant="outline" onClick={fetchData} disabled={isSyncing}
+            className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest border-gray-200 hover:bg-gray-50 flex items-center gap-2">
+            <RefreshCcw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} /> Sync Live
           </Button>
-          <Button onClick={handleGeneratePayouts} disabled={isGenerating} className="bg-black text-white hover:bg-black/90 rounded-2xl h-12 px-8 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 flex-1 md:flex-none">
-             <PlayCircle className="w-4 h-4" />
-             {isGenerating ? "Finalizing..." : "Finalize Last Month"}
+          <Button onClick={handleGeneratePayouts} disabled={isGenerating}
+            className="bg-black text-white hover:bg-black/90 rounded-2xl h-12 px-8 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 flex-1 md:flex-none">
+            <TrendingUp className="w-4 h-4" />
+            {isGenerating ? "Finalizing..." : "Finalize Last Month"}
           </Button>
         </div>
       </div>
 
-      {/* Real-time Current Month Stats */}
+      {/* Stats */}
       <div className="grid md:grid-cols-3 gap-8">
-         <Card className="border-none shadow-xl rounded-[2.5rem] bg-white p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
-            <div className="flex justify-between items-start mb-6">
-               <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-[#FE7F2D]" />
-               </div>
-               <Badge className="bg-orange-100 text-orange-700 border-none font-black uppercase text-[8px] px-3 tracking-widest">Live Flow</Badge>
+        <Card className="border-none shadow-xl rounded-[2.5rem] bg-white p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
+          <div className="flex justify-between items-start mb-6">
+            <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center">
+              <DollarSign className="w-6 h-6 text-[#FE7F2D]" />
             </div>
-            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Current Month Gross</p>
-            <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalLiveGross.toLocaleString()}</h3>
-         </Card>
+            <Badge className="bg-orange-100 text-orange-700 border-none font-black uppercase text-[8px] px-3 tracking-widest">Live Flow</Badge>
+          </div>
+          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Current Month Gross</p>
+          <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalLiveGross.toLocaleString()}</h3>
+        </Card>
 
-         <Card className="border-none shadow-xl rounded-[2.5rem] bg-white p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
-            <div className="flex justify-between items-start mb-6">
-               <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-green-600" />
-               </div>
-               <Badge className="bg-green-100 text-green-700 border-none font-black uppercase text-[8px] px-3 tracking-widest">Estimated Payout</Badge>
+        <Card className="border-none shadow-xl rounded-[2.5rem] bg-white p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
+          <div className="flex justify-between items-start mb-6">
+            <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
+              <CheckCircle2 className="w-6 h-6 text-green-600" />
             </div>
-            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Net Brand Revenue Due</p>
-            <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalLiveDue.toLocaleString()}</h3>
-         </Card>
+            <Badge className="bg-green-100 text-green-700 border-none font-black uppercase text-[8px] px-3 tracking-widest">Estimated Payout</Badge>
+          </div>
+          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Net Brand Revenue Due</p>
+          <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalLiveDue.toLocaleString()}</h3>
+        </Card>
 
-         <Card className="border-none shadow-xl rounded-[2.5rem] bg-black text-white p-8 group hover:scale-[1.02] transition-transform">
-            <div className="flex justify-between items-start mb-6">
-               <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white">
-                  <ArrowUpRight className="w-6 h-6 text-[#FE7F2D]" />
-               </div>
-               <Badge className="bg-[#FE7F2D] text-white border-none font-black uppercase text-[8px] px-3 tracking-widest">Club Profit</Badge>
+        <Card className="border-none shadow-xl rounded-[2.5rem] bg-black text-white p-8 group hover:scale-[1.02] transition-transform">
+          <div className="flex justify-between items-start mb-6">
+            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+              <ArrowUpRight className="w-6 h-6 text-[#FE7F2D]" />
             </div>
-            <p className="text-[10px] font-black uppercase text-white/40 tracking-widest mb-1 font-mono">Commission Stream</p>
-            <h3 className="text-3xl font-black text-white tracking-tighter italic">NPR {(totalLiveGross - totalLiveDue).toLocaleString()}</h3>
-         </Card>
+            <Badge className="bg-[#FE7F2D] text-white border-none font-black uppercase text-[8px] px-3 tracking-widest">Club Profit</Badge>
+          </div>
+          <p className="text-[10px] font-black uppercase text-white/40 tracking-widest mb-1 font-mono">PPF Stream</p>
+          <h3 className="text-3xl font-black text-white tracking-tighter italic">NPR {(totalLiveGross - totalLiveDue).toLocaleString()}</h3>
+        </Card>
       </div>
 
+      {/* ── Pending Settlements (Live) ── */}
       <div className="space-y-6">
         <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-gray-400" />
-          Pending Settlements (Live)
+          <AlertCircle className="w-5 h-5 text-gray-400" /> Pending Settlements (Live)
         </h3>
         <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-gray-50">
           <Table>
             <TableHeader className="bg-gray-50/50">
-               <TableRow className="border-none">
-                 <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Brand Partner</TableHead>
-                 <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Sales Tier</TableHead>
-                 <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Live Gross</TableHead>
-                 <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Commission</TableHead>
-                 <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Net Due (Live)</TableHead>
-                 <TableHead className="px-10 py-6 text-right"></TableHead>
-               </TableRow>
+              <TableRow className="border-none">
+                <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Brand Partner</TableHead>
+                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
+                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Gross Sales</TableHead>
+                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">PPF (Fee)</TableHead>
+                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Net Due</TableHead>
+                <TableHead className="px-10 py-6 text-right" />
+              </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-gray-50">
               {liveSales.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-24 text-gray-300 italic font-medium">No sales recorded for the current cycle.</TableCell>
+                  <TableCell colSpan={6} className="text-center py-24 text-gray-300 italic font-medium">
+                    No sales recorded for the current cycle.
+                  </TableCell>
                 </TableRow>
               ) : liveSales.map(sale => (
                 <TableRow key={sale.id} className="group hover:bg-gray-50/30 transition-colors">
                   <TableCell className="px-10 py-8 font-black text-gray-900 italic uppercase">{sale.brands?.business_name}</TableCell>
-                  <TableCell className="py-8 font-bold text-sm text-gray-600">Tier {sale.commission_rate}%</TableCell>
+                  <TableCell className="py-8 font-bold text-xs text-gray-500 tabular-nums">{sale.month}/{sale.year}</TableCell>
                   <TableCell className="py-8 font-bold text-sm">NPR {sale.gross_sales.toLocaleString()}</TableCell>
-                  <TableCell className="py-8 font-black text-xs text-red-400 opacity-60">NPR {sale.commission_amount.toLocaleString()}</TableCell>
-                  <TableCell className="py-8 font-black text-[#FE7F2D] text-lg italic">NPR {(sale.gross_sales - sale.commission_amount).toLocaleString()}</TableCell>
+                  <TableCell className="py-8 font-black text-xs text-red-400">NPR {(sale.ppf_amount || 0).toLocaleString()}</TableCell>
+                  <TableCell className="py-8 font-black text-[#FE7F2D] text-lg italic">
+                    NPR {(sale.gross_sales - (sale.ppf_amount || 0)).toLocaleString()}
+                  </TableCell>
                   <TableCell className="px-10 py-8 text-right">
-                    <Badge className="bg-blue-50 text-blue-600 border-none font-black text-[8px] tracking-widest uppercase px-3 italic">Live Stream</Badge>
+                    <Button
+                      size="sm"
+                      onClick={() => openFlowForSale(sale)}
+                      className="bg-[#010307] text-white hover:bg-[#FE7F2D] rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"
+                    >
+                      <Banknote className="w-3.5 h-3.5" /> Complete Payout
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -211,26 +536,28 @@ export function PayoutsTracker() {
         </Card>
       </div>
 
+      {/* ── Payout Ledger (Settled/Final) ── */}
       <div className="space-y-6">
         <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
-           <CheckCircle2 className="w-5 h-5 text-gray-400" />
-           Payout Ledger (Settled/Final)
+          <CheckCircle2 className="w-5 h-5 text-gray-400" /> Payout Ledger (Settled / Final)
         </h3>
         <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-gray-50">
           <Table>
             <TableHeader className="bg-gray-50/50">
-               <TableRow className="border-none">
-                 <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Partner</TableHead>
-                 <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
-                 <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Final Payout</TableHead>
-                 <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Status</TableHead>
-                 <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-right">Terminal Action</TableHead>
-               </TableRow>
+              <TableRow className="border-none">
+                <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Partner</TableHead>
+                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
+                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Final Payout</TableHead>
+                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Status</TableHead>
+                <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-right">Action</TableHead>
+              </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-gray-50">
               {payouts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-24 text-gray-300 italic font-medium">No finalized payout ledgers exist yet.</TableCell>
+                  <TableCell colSpan={5} className="text-center py-24 text-gray-300 italic font-medium">
+                    No finalized payout ledgers exist yet.
+                  </TableCell>
                 </TableRow>
               ) : payouts.map(po => (
                 <TableRow key={po.id} className="group hover:bg-gray-50/30 transition-colors">
@@ -238,28 +565,46 @@ export function PayoutsTracker() {
                   <TableCell className="py-8 font-bold text-xs text-gray-500 tabular-nums">{po.month}/{po.year}</TableCell>
                   <TableCell className="py-8 font-black text-green-700 text-lg italic text-center">NPR {po.net_payout.toLocaleString()}</TableCell>
                   <TableCell className="py-8 text-center">
-                    {po.status === 'paid' ? (
-                       <Badge className="bg-green-50 text-green-600 border-none font-black text-[8px] tracking-widest uppercase px-3"><CheckCircle className="w-3 h-3 mr-1" /> Settled</Badge>
+                    {po.status === "paid" ? (
+                      <Badge className="bg-green-50 text-green-600 border-none font-black text-[8px] tracking-widest uppercase px-3">
+                        <CheckCircle className="w-3 h-3 mr-1" /> Settled
+                      </Badge>
                     ) : (
-                       <Badge className="bg-orange-50 text-orange-600 border-none font-black text-[8px] tracking-widest uppercase px-3"><Clock className="w-3 h-3 mr-1" /> Accruing</Badge>
+                      <Badge className="bg-orange-50 text-orange-600 border-none font-black text-[8px] tracking-widest uppercase px-3">
+                        <Clock className="w-3 h-3 mr-1" /> Accruing
+                      </Badge>
                     )}
                   </TableCell>
                   <TableCell className="px-10 py-8 text-right">
-                    {po.status === 'pending' ? (
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="rounded-xl h-10 px-6 font-black text-[10px] uppercase tracking-widest text-[#FE7F2D] border-orange-100 hover:bg-orange-50 transition-all" 
-                        onClick={() => {
-                          setSelectedPayout(po)
-                          setAdjustmentAmount(po.net_payout.toString())
-                        }}
-                      >
-                        Settle Manually
-                      </Button>
-                    ) : (
-                      <span className="text-[8px] font-black uppercase tracking-widest text-gray-300">Closed on {new Date(po.paid_at).toLocaleDateString()}</span>
-                    )}
+                    <div className="flex items-center justify-end gap-2">
+                      {po.status === "pending" ? (
+                        <>
+                          <Button size="sm" variant="outline"
+                            className="rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest text-[#FE7F2D] border-orange-100 hover:bg-orange-50 flex items-center gap-1"
+                            onClick={() => openFlowForPayout(po)}>
+                            <Banknote className="w-3.5 h-3.5" /> Complete Payout
+                          </Button>
+                          <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full hover:bg-gray-100"
+                            onClick={() => handleRedoPayout(po.month, po.year)} title="Recalculate">
+                            <RefreshCcw className="w-4 h-4 text-gray-400" />
+                          </Button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-[8px] font-black uppercase tracking-widest text-gray-300 italic">
+                            Settled {new Date(po.paid_at!).toLocaleDateString()}
+                          </span>
+                          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full"
+                            onClick={() => setViewPayout(po)} title="View Statement">
+                            <Receipt className="w-4 h-4 text-[#010307]/20 hover:text-[#010307]" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full hover:text-red-500"
+                            onClick={() => handleUndoSettlement(po.id)} title="Undo Settlement">
+                            <RefreshCcw className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -268,40 +613,210 @@ export function PayoutsTracker() {
         </Card>
       </div>
 
-      {/* Manual Settlement Dialog */}
-      <Dialog open={!!selectedPayout} onOpenChange={(open) => !open && setSelectedPayout(null)}>
-        <DialogContent className="max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden p-0">
-          <div className="bg-black text-white p-8 space-y-2">
-             <DialogTitle className="text-2xl font-black italic uppercase italic tracking-tight">Manual Settlement</DialogTitle>
-             <DialogDescription className="text-white/50 text-[10px] font-black uppercase tracking-widest">Partner: {selectedPayout?.brands?.business_name}</DialogDescription>
+      {/* ════════════════════════════════════════════════════════
+          COMPLETE PAYOUT FLOW DIALOG (3 steps)
+          ════════════════════════════════════════════════════════ */}
+      <Dialog open={isFlowOpen} onOpenChange={(open) => !open && closeFlow()}>
+        <DialogContent className="max-w-2xl rounded-[2.5rem] border-none shadow-2xl overflow-hidden p-0 focus:outline-none">
+          {/* Step indicator */}
+          <div className="bg-[#010307] px-10 py-8">
+            <div className="flex items-center gap-3 mb-4">
+              {(["report", "confirm", "statement"] as PayoutFlowStep[]).map((step, i) => (
+                <div key={step} className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
+                    flowStep === step
+                      ? "bg-[#FE7F2D] text-white"
+                      : ["statement"].includes(flowStep) && step === "report"
+                        ? "bg-white/20 text-white/60"
+                        : flowStep === "statement" && step === "confirm"
+                          ? "bg-white/20 text-white/60"
+                          : flowStep === "confirm" && step === "report"
+                            ? "bg-white/20 text-white/60"
+                            : "bg-white/10 text-white/30"
+                  }`}>
+                    {flowStep === "statement" || (flowStep === "confirm" && step === "report") ? (
+                      <CheckCircle2 className="w-4 h-4" />
+                    ) : (i + 1)}
+                  </div>
+                  {i < 2 && <ChevronRight className="w-4 h-4 text-white/20" />}
+                </div>
+              ))}
+            </div>
+            <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-white">
+              {flowStep === "report" && "Payout Report"}
+              {flowStep === "confirm" && "Confirm & Release"}
+              {flowStep === "statement" && "Payment Complete"}
+            </DialogTitle>
+            <DialogDescription className="text-white/40 text-[10px] font-black uppercase tracking-widest mt-1">
+              {activeBrandName} · {activePeriod}
+            </DialogDescription>
           </div>
-          <div className="p-8 space-y-6">
-             <div className="space-y-4">
-               <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Final Payout Amount (NPR)</Label>
-                 <Input 
-                   type="number" 
-                   value={adjustmentAmount} 
-                   onChange={(e) => setAdjustmentAmount(e.target.value)} 
-                   className="h-14 rounded-2xl border-gray-100 font-bold text-lg"
-                 />
-                 <p className="text-[9px] text-gray-400 font-medium italic">* Default aggregate calculated based on ledger records.</p>
-               </div>
-               <div className="space-y-2">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Manual Note / Reference</Label>
-                 <Input 
-                   placeholder="e.g. Bank transfer ID, Cash pickup ref..."
-                   value={adjustmentReason}
-                   onChange={(e) => setAdjustmentReason(e.target.value)}
-                   className="h-14 rounded-2xl border-gray-100 italic"
-                 />
-               </div>
-             </div>
 
-             <div className="flex gap-3">
-               <Button variant="outline" onClick={() => setSelectedPayout(null)} className="flex-1 h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest">Cancel</Button>
-               <Button onClick={handleManualSettlement} className="flex-1 h-14 bg-[#FE7F2D] text-white hover:bg-[#FE7F2D]/90 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-orange-500/20">Finalize Payment</Button>
-             </div>
+          {/* ── Step 1: Detailed Report ── */}
+          {flowStep === "report" && (
+            <div className="p-10 space-y-8">
+              <div className="grid grid-cols-3 gap-4">
+                {[
+                  { label: "Gross Sales", value: `NPR ${activeGross.toLocaleString()}`, color: "text-gray-900" },
+                  { label: "PPF Deducted", value: `– NPR ${activePPF.toLocaleString()}`, color: "text-red-400" },
+                  { label: "Net Due", value: `NPR ${(activeGross - activePPF).toLocaleString()}`, color: "text-[#FE7F2D]" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="bg-gray-50 rounded-2xl p-5">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-2">{label}</p>
+                    <p className={`text-xl font-black italic ${color}`}>{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-gray-50 rounded-2xl p-6 space-y-4">
+                <p className="text-[9px] font-black uppercase tracking-widest text-gray-400">Disbursement Profile</p>
+                {renderSettlementDetails((flowSale?.brands || flowPayout?.brands)?.bank_account_details)}
+              </div>
+
+              <div className="bg-amber-50 border border-amber-100 rounded-2xl p-5 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+                <p className="text-xs font-bold text-amber-700">
+                  This will finalize and record the payout. Once confirmed, a statement will be generated and visible to the brand in their dashboard.
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <Button variant="ghost" onClick={closeFlow}
+                  className="flex-1 h-14 rounded-2xl font-black text-[10px] uppercase tracking-widest text-gray-400">
+                  Cancel
+                </Button>
+                <Button onClick={() => setFlowStep("confirm")}
+                  className="flex-1 h-14 bg-[#010307] text-white hover:bg-[#FE7F2D] rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                  Proceed to Confirm <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 2: Confirm & Release ── */}
+          {flowStep === "confirm" && (
+            <div className="p-10 space-y-8">
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Final Payout Amount (NPR)</Label>
+                  <Input
+                    type="number"
+                    value={finalAmount}
+                    onChange={(e) => setFinalAmount(e.target.value)}
+                    className="h-14 rounded-2xl border-gray-100 font-bold text-lg bg-gray-50 focus:bg-white transition-all"
+                  />
+                  <p className="text-[9px] text-gray-400 font-medium italic">
+                    Pre-filled from ledger. Adjust only if agreed otherwise with the brand.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Payment Reference / Tx ID</Label>
+                  <Input
+                    placeholder="e.g. eSewa Tx #8291, Bank Ref, etc."
+                    value={paymentRef}
+                    onChange={(e) => setPaymentRef(e.target.value)}
+                    className="h-14 rounded-2xl border-gray-100 font-bold bg-gray-50 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Admin Notes (optional)</Label>
+                  <Input
+                    placeholder="Internal notes for this settlement"
+                    value={adminNotes}
+                    onChange={(e) => setAdminNotes(e.target.value)}
+                    className="h-14 rounded-2xl border-gray-100 font-bold bg-gray-50 focus:bg-white transition-all italic"
+                  />
+                </div>
+              </div>
+
+              <div className="bg-[#010307] rounded-2xl p-6 flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-white/40">You are about to release</p>
+                  <p className="text-3xl font-black italic text-[#FE7F2D] tracking-tighter">NPR {parseFloat(finalAmount || "0").toLocaleString()}</p>
+                </div>
+                <ShieldCheck className="w-10 h-10 text-white/10" />
+              </div>
+
+              <div className="flex gap-4">
+                <Button variant="ghost" onClick={() => setFlowStep("report")}
+                  className="flex-1 h-14 rounded-2xl font-black text-[10px] uppercase tracking-widest text-gray-400">
+                  Back
+                </Button>
+                <Button
+                  onClick={handleCompletePayment}
+                  disabled={isSubmitting || !finalAmount}
+                  className="flex-1 h-14 bg-[#FE7F2D] text-white hover:bg-black rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                >
+                  {isSubmitting ? (
+                    <RefreshCcw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <><CheckCircle2 className="w-4 h-4" /> Release Payment</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 3: Statement ── */}
+          {flowStep === "statement" && completedPayout && (
+            <div className="p-10">
+              <div className="flex items-center gap-4 mb-8 bg-green-50 rounded-2xl p-5">
+                <div className="w-12 h-12 bg-green-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-green-500/20 shrink-0">
+                  <CheckCircle2 className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black italic lowercase">Payment Released Successfully</h3>
+                  <p className="text-green-700/60 text-[10px] font-black uppercase tracking-widest">
+                    Statement archived. Brand can view this in their dashboard.
+                  </p>
+                </div>
+              </div>
+
+              <StatementView payout={completedPayout} printRef={printRef} />
+
+              <div className="flex gap-4 pt-8 border-t border-gray-100">
+                <Button onClick={() => handlePrint(printRef)}
+                  className="flex-1 h-14 bg-[#FE7F2D] text-white hover:bg-black rounded-2xl font-black lowercase italic tracking-widest shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2 transition-all">
+                  <Printer className="w-5 h-5" /> print statement
+                </Button>
+                <Button variant="ghost" onClick={closeFlow}
+                  className="flex-1 h-14 rounded-2xl font-black lowercase italic tracking-widest text-[#010307]/40">
+                  close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ── View existing statement dialog ── */}
+      <Dialog open={!!viewPayout} onOpenChange={(open) => !open && setViewPayout(null)}>
+        <DialogContent className="max-w-2xl rounded-[2.5rem] border-none shadow-2xl overflow-hidden p-0 focus:outline-none">
+          <div className="bg-[#010307] px-10 py-8 flex items-center justify-between">
+            <div>
+              <DialogTitle className="text-2xl font-black italic uppercase tracking-tighter text-white">Payout Statement</DialogTitle>
+              <DialogDescription className="text-white/40 text-[10px] font-black uppercase tracking-widest mt-1">
+                {viewPayout?.brands?.business_name} · {viewPayout?.month}/{viewPayout?.year}
+              </DialogDescription>
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setViewPayout(null)} className="rounded-full text-white/40 hover:bg-white/10">
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <div className="p-10">
+            {viewPayout && <StatementView payout={viewPayout} printRef={printRef2} />}
+            <div className="flex gap-4 pt-8 border-t border-gray-100">
+              <Button onClick={() => handlePrint(printRef2)}
+                className="flex-1 h-14 bg-[#FE7F2D] text-white hover:bg-black rounded-2xl font-black lowercase italic tracking-widest shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2 transition-all">
+                <Printer className="w-5 h-5" /> print statement
+              </Button>
+              <Button variant="ghost" onClick={() => setViewPayout(null)}
+                className="flex-1 h-14 rounded-2xl font-black lowercase italic tracking-widest text-[#010307]/40">
+                close
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

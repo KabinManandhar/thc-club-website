@@ -60,16 +60,18 @@ export interface ShelfSlot {
   section?: string
   shelf_name?: string
   shelf_id?: string
+  brand_id?: string | null
   status: "available" | "occupied" | "maintenance"
-  occupied_by?: string
-  booking_id?: string
-  rent_amount?: number
-  occupied_from?: string
-  occupied_until?: string
+  occupied_by?: string | null
+  booking_id?: string | null
+  rent_amount?: number | null
+  occupied_from?: string | null
+  occupied_until?: string | null
   created_at: string
   updated_at: string
   // joined
   shelves?: Shelf
+  brands?: Brand
 }
 
 // ============================================================
@@ -149,8 +151,8 @@ export interface Invoice {
   subtotal: number
   discount_amount: number
   total_amount: number
-  commission_rate?: number
-  commission_amount?: number
+  ppf_rate?: number
+  ppf_amount?: number
   payment_method: "cash" | "card" | "qr" | "transfer"
   status: "draft" | "paid" | "refunded"
   notes?: string
@@ -180,8 +182,8 @@ export interface BrandSales {
   year: number
   gross_sales: number
   invoice_count: number
-  commission_rate?: number
-  commission_amount?: number
+  ppf_rate?: number
+  ppf_amount?: number
   rent_waiver_percent?: number
   created_at: string
   updated_at: string
@@ -221,11 +223,34 @@ export interface StockUpdateRequest {
 // ============================================================
 // Pricing Config
 // ============================================================
-export const SHELF_PRICING = {
-  quarterly: { bottom: 1100, eye_level: 1500, top_level: 1350 },
-  half_yearly: { bottom: 1000, eye_level: 1350, top_level: 1100 },
-  yearly: { bottom: 900, eye_level: 1200, top_level: 1000 },
-} as const
+
+export interface ShelfPricingTier {
+  id: string
+  duration: "quarterly" | "half_yearly" | "yearly"
+  bottom_price: number
+  eye_level_price: number
+  top_level_price: number
+}
+
+export interface PPFTier {
+  id: string
+  tier_name: string
+  min_sales_amount: number
+  ppf_rate: number
+  rent_waiver_percent: number
+}
+
+export interface PromotionalOffer {
+  id: string
+  name: string
+  description?: string
+  discount_type: "percentage" | "fixed"
+  discount_value: number
+  target_limit?: number
+  current_uses: number
+  promo_code?: string
+  is_active: boolean
+}
 
 export const DURATION_MONTHS = {
   quarterly: 3,
@@ -235,19 +260,3 @@ export const DURATION_MONTHS = {
 
 export type ShelfType = "bottom" | "eye_level" | "top_level"
 export type Duration = "quarterly" | "half_yearly" | "yearly"
-
-export function calculateCommission(grossSales: number): {
-  rate: number
-  amount: number
-  waiverPercent: number
-  tierName: string
-} {
-  if (grossSales >= 100000) {
-    return { rate: 10, amount: grossSales * 0.10, waiverPercent: 100, tierName: "Platinum" }
-  } else if (grossSales >= 50000) {
-    return { rate: 7, amount: grossSales * 0.07, waiverPercent: 50, tierName: "Gold" }
-  } else if (grossSales >= 10000) {
-    return { rate: 5, amount: grossSales * 0.05, waiverPercent: 0, tierName: "Silver" }
-  }
-  return { rate: 3, amount: grossSales * 0.03, waiverPercent: 0, tierName: "Starter" }
-}

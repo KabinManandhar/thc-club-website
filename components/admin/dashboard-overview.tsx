@@ -70,7 +70,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         supabase.from("shelf_slots").select("status"),
         supabase.from("stock_update_requests").select("status").eq("status", "pending"),
         supabase.from("brand_change_requests").select("status").eq("status", "pending"),
-        supabase.from("invoices").select("total_amount, commission_amount").eq("status", "paid")
+        supabase.from("invoices").select("total_amount, ppf_amount").eq("status", "paid")
       ])
 
       const brandsData = brandsRes.data || []
@@ -82,7 +82,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
       const financeData = financeRes.data || []
 
       const totalSales = financeData.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0)
-      const totalFees = financeData.reduce((sum, inv) => sum + Number(inv.commission_amount || 0), 0)
+      const totalFees = financeData.reduce((sum, inv) => sum + Number(inv.ppf_amount || 0), 0)
 
       setStats({
         brandsCount: brandsData.length,
@@ -216,7 +216,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
       bgColor: "bg-green-50",
     },
     {
-      title: "Commission Earned",
+      title: "Payment Processing Fee Earned",
       value: `NPR ${stats.pendingVisits.toLocaleString()}`,
       pending: 0,
       icon: TrendingUp,

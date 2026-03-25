@@ -1,21 +1,16 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Package, 
-  Clock, 
-  MapPin, 
-  Calendar, 
-  LayoutGrid, 
-  ShieldCheck, 
-  Info,
-  ArrowUpRight,
-  HelpCircle,
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { supabase } from "@/lib/supabase"
+import {
+  Clock,
+  LayoutGrid,
+  Package,
+  Zap
 } from "lucide-react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 interface BrandShelfInfoProps {
@@ -33,13 +28,19 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
 
   const fetchShelfInfo = async () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from("shelf_bookings")
-      .select("*, shelf_slots(*)")
-      .eq("brand_id", brandId)
-      .in("status", ["active", "pending"])
+    const [bookingsRes, slotsRes] = await Promise.all([
+      supabase
+        .from("shelf_bookings")
+        .select("*")
+        .eq("brand_id", brandId)
+        .in("status", ["active", "pending"]),
+      supabase
+        .from("shelf_slots")
+        .select("*, shelves(*)")
+        .eq("brand_id", brandId)
+    ])
     
-    if (data) setShelfData(data)
+    if (slotsRes.data) setShelfData(slotsRes.data)
     setLoading(false)
   }
 
@@ -64,7 +65,7 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
         <div>
           <h2 className="text-3xl font-black tracking-tighter flex items-center gap-4 text-[#010307] lowercase italic">
             <LayoutGrid className="w-8 h-8 text-[#FE7F2D]" />
-            shelf slots
+            shelf space
           </h2>
           <p className="text-[#010307]/40 font-medium italic mt-1 text-sm lowercase">real-time allotment and placement sync.</p>
         </div>
@@ -90,48 +91,60 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
            </Button>
         </Card>
       ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {shelfData.map((booking) => (
-            <Card key={booking.id} className="border border-black/5 shadow-sm rounded-2xl bg-white overflow-hidden transition-all group">
-              <div className="relative h-32 bg-gray-50 p-6 flex flex-col justify-between overflow-hidden">
-                 <div className="relative z-10 flex justify-between items-start">
-                     <div className="w-10 h-10 bg-[#FE7F2D] rounded-xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-                        <MapPin className="w-5 h-5" />
-                     </div>
-                     <Badge className={`${booking.status === 'active' ? 'bg-[#010307] text-white' : 'bg-[#010307]/5 text-[#010307]/40'} border-none font-bold lowercase text-[10px] px-3 tracking-widest rounded-full`}>
-                        {booking.status}
-                     </Badge>
-                  </div>
-                  <div className="relative z-10">
-                     <p className="text-[10px] font-bold lowercase text-[#010307]/30 tracking-widest">floor assignment</p>
-                     <h3 className="text-2xl font-black text-[#010307] tracking-tighter italic lowercase">{booking.shelf_slots?.slot_number || "gate"}</h3>
-                  </div>
-              </div>
-              <CardContent className="p-8 space-y-6">
-                <div className="flex items-center justify-between border-b border-gray-50 pb-4">
-                   <div className="flex items-center gap-3 text-gray-500 font-bold text-xs lowercase tracking-tighter">
-                      <Clock className="w-4 h-4 text-[#FE7F2D]" /> expiration
-                   </div>
-                   <span className="font-black text-gray-900 text-sm">
-                      {new Date(booking.end_date).toLocaleDateString()}
-                   </span>
-                </div>
+        <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
+          {shelfData.map((slot) => (
+             <div key={slot.id} className="p-8 bg-[#010307] rounded-[2.5rem] border border-[#010307] flex flex-col gap-8 group hover:border-[#FE7F2D]/50 transition-all relative overflow-hidden shadow-2xl">
+                {/* Background Glow */}
+                <div className="absolute top-0 right-0 w-48 h-48 bg-[#FE7F2D]/10 blur-[100px] -mr-24 -mt-24 pointer-events-none group-hover:bg-[#FE7F2D]/20 transition-all"></div>
                 
-                <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                   <div className="flex items-center gap-3 text-gray-500 font-bold text-xs uppercase tracking-tighter">
-                      <Calendar className="w-4 h-4 text-blue-500" /> Lease Term
+                <div className="flex justify-between items-start relative z-10">
+                   <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                         <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_12px_rgba(74,222,128,0.6)]"></div>
+                         <p className="text-[10px] font-black text-[#FE7F2D] uppercase tracking-[0.4em]">active floor unit</p>
+                      </div>
+                      <h4 className="font-black text-3xl text-white lowercase italic leading-none truncate max-w-[240px]">{slot.shelf_name || (slot.shelves?.name) || 'Collective Hub'}</h4>
+                      <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">{slot.section || (slot.shelves?.section) || 'Premium Hallway'}</p>
                    </div>
-                   <span className="font-black text-gray-900 text-sm">Monthly Basis</span>
+                   <div className="flex flex-col items-center">
+                      <div className="h-20 w-20 bg-[#FE7F2D] rounded-[1.5rem] flex flex-col items-center justify-center text-[#010307] shadow-3xl shadow-[#FE7F2D]/40 border-2 border-white/10 group-hover:scale-110 transition-transform duration-500">
+                         <p className="text-[11px] font-black opacity-60 uppercase leading-none mb-1">slot</p>
+                         <p className="font-black text-4xl leading-none italic">#{slot.slot_number}</p>
+                      </div>
+                   </div>
                 </div>
 
-                <div className="pt-4 flex items-center gap-4 bg-[#010307]/5 rounded-2xl p-4 border border-transparent italic transition-transform group-hover:-translate-y-1">
-                   <Info className="w-5 h-5 text-[#010307]/10 shrink-0" />
-                   <p className="text-[10px] font-bold text-[#010307]/40 leading-relaxed tracking-tight lowercase">
-                      this slot is synchronized with the club's physical floor plan. any layout changes must be requested via portal.
-                   </p>
+                <div className="grid grid-cols-3 gap-4 relative z-10">
+                   <div className="bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center group-hover:bg-white/10 transition-colors">
+                      <Package className="w-5 h-5 text-white/20 mb-3" />
+                      <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">height</p>
+                      <p className="text-[12px] font-black text-white lowercase italic">{(slot.shelf_type || slot.shelves?.shelf_type || 'standard').replace('_', ' ')}</p>
+                   </div>
+                   <div className="bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center group-hover:bg-white/10 transition-colors">
+                      <LayoutGrid className="w-5 h-5 text-white/20 mb-3" />
+                      <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">footprint</p>
+                      <p className="text-[12px] font-black text-white lowercase italic">{slot.shelves?.size || 'standard'}</p>
+                   </div>
+                   <div className="bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/5 flex flex-col items-center text-center group-hover:bg-white/10 transition-colors">
+                      <Zap className="w-5 h-5 text-white/20 mb-3" />
+                      <p className="text-[8px] font-black text-white/30 uppercase tracking-[0.2em] mb-1">mobility</p>
+                      <p className="text-[12px] font-black text-white lowercase italic">{slot.shelves?.is_movable ? 'movable' : 'fixed'}</p>
+                   </div>
                 </div>
-              </CardContent>
-            </Card>
+
+                <div className="relative z-10 pt-4 mt-2 border-t border-white/5 flex justify-between items-center px-2">
+                   <div className="flex items-center gap-3">
+                      <Clock className="w-4 h-4 text-red-400/60" />
+                      <div>
+                         <p className="text-[8px] font-black text-white/30 uppercase tracking-widest">auto-renewal</p>
+                         <p className="text-xs font-black text-white italic">{slot.occupied_until ? new Date(slot.occupied_until).toLocaleDateString() : 'Active Lease'}</p>
+                      </div>
+                   </div>
+                   <Badge className="bg-white/5 text-white/40 border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5 rounded-full">
+                      synced pos
+                   </Badge>
+                </div>
+             </div>
           ))}
         </div>
       )}

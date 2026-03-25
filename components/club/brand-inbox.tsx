@@ -18,6 +18,7 @@ import {
   Shield,
   Zap,
   HelpCircle,
+  Trash2,
 } from "lucide-react"
 import {
   Dialog,
@@ -91,6 +92,17 @@ export function BrandInbox({ brandId }: BrandInboxProps) {
     }
   }
 
+  const handleDelete = async (id: string, table: "enquiries" | "brand_change_requests") => {
+    try {
+      const { error } = await supabase.from(table).delete().eq("id", id)
+      if (error) throw error
+      toast.success("Record permanently removed from local history.")
+      fetchData()
+    } catch (err: any) {
+      toast.error(err.message)
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -155,7 +167,20 @@ export function BrandInbox({ brandId }: BrandInboxProps) {
                 <Card key={enq.id} className="border border-black/5 shadow-sm rounded-2xl bg-white overflow-hidden group transition-all">
                   <CardContent className="p-8">
                     <div className="flex justify-between items-start mb-4">
-                      {getStatusBadge(enq.status)}
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(enq.status)}
+                        {["resolved", "rejected"].includes(enq.status) && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
+                            onClick={() => handleDelete(enq.id, "enquiries")}
+                            title="Delete record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
                       <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest font-mono">
                         {new Date(enq.created_at).toLocaleDateString()}
                       </span>
@@ -197,7 +222,20 @@ export function BrandInbox({ brandId }: BrandInboxProps) {
                 <Card key={req.id} className="border border-black/5 shadow-sm rounded-2xl bg-white overflow-hidden group transition-all">
                   <CardContent className="p-8">
                     <div className="flex justify-between items-start mb-4">
-                      {getStatusBadge(req.status)}
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(req.status)}
+                        {["approved", "rejected", "resolved"].includes(req.status) && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"
+                            onClick={() => handleDelete(req.id, "brand_change_requests")}
+                            title="Delete record"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
                          <Badge variant="outline" className="rounded-full font-black text-[9px] uppercase px-3 bg-gray-50 border-gray-100">{req.request_type.split('_').join(' ')}</Badge>
                          <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest font-mono">

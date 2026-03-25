@@ -83,8 +83,8 @@ CREATE TABLE IF NOT EXISTS invoices (
   subtotal NUMERIC(10,2) NOT NULL DEFAULT 0,
   discount_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
   total_amount NUMERIC(10,2) NOT NULL DEFAULT 0,
-  commission_rate NUMERIC(5,2),
-  commission_amount NUMERIC(10,2),
+  ppf_rate NUMERIC(5,2),
+  ppf_amount NUMERIC(10,2),
   payment_method TEXT DEFAULT 'cash'
     CHECK (payment_method IN ('cash', 'card', 'qr', 'transfer')),
   status TEXT NOT NULL DEFAULT 'paid'
@@ -122,8 +122,8 @@ CREATE TABLE IF NOT EXISTS brand_sales (
   year INTEGER NOT NULL,
   gross_sales NUMERIC(10,2) NOT NULL DEFAULT 0,
   invoice_count INTEGER NOT NULL DEFAULT 0,
-  commission_rate NUMERIC(5,2),
-  commission_amount NUMERIC(10,2) DEFAULT 0,
+  ppf_rate NUMERIC(5,2),
+  ppf_amount NUMERIC(10,2) DEFAULT 0,
   rent_waiver_percent INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
@@ -174,25 +174,29 @@ BEGIN
     invoice_count = brand_sales.invoice_count + 1,
     updated_at = NOW();
 
-  -- Recalculate commission and waiver
+  -- Recalculate PPF and waiver dynamically
   SELECT gross_sales INTO new_gross
   FROM brand_sales
   WHERE brand_id = NEW.brand_id AND month = sale_month AND year = sale_year;
 
-  IF new_gross >= 100000 THEN
-    commission := 10; waiver := 100;
-  ELSIF new_gross >= 50000 THEN
-    commission := 7; waiver := 50;
-  ELSIF new_gross >= 10000 THEN
-    commission := 5; waiver := 0;
-  ELSE
-    commission := 3; waiver := 0;
-  END IF;
+  -- Default to Starter tier if no tier config exists
+  commission := 3; waiver := 0;
+
+  -- Try to find the matching PPF tier based on sales volume
+  BEGIN
+    SELECT ppf_rate, rent_waiver_percent INTO commission, waiver
+    FROM ppf_tiers
+    WHERE min_sales_amount <= new_gross
+    ORDER BY min_sales_amount DESC
+    LIMIT 1;
+  EXCEPTION WHEN OTHERS THEN
+    -- Fallback safety if the table isn't migrated yet
+  END;
 
   UPDATE brand_sales
   SET
-    commission_rate = commission,
-    commission_amount = ROUND(new_gross * commission / 100, 2),
+    ppf_rate = commission,
+    ppf_amount = ROUND(new_gross * commission / 100, 2),
     rent_waiver_percent = waiver
   WHERE brand_id = NEW.brand_id AND month = sale_month AND year = sale_year;
 
@@ -350,11 +354,48 @@ ALTER TABLE shelves ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "allow_all" ON shelves;
 CREATE POLICY "allow_all" ON shelves FOR ALL USING (true);
 
-DROP TRIGGER IF EXISTS trg_updated_at ON shelves;
-CREATE TRIGGER trg_updated_at BEFORE UPDATE ON shelves FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+-- ============================================================
+-- Table: shelf_slots (Individual Slots within Shelves)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS shelf_slots (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  shelf_id UUID REFERENCES shelves(id) ON DELETE CASCADE,
+  brand_id UUID REFERENCES brands(id) ON DELETE SET NULL,
+  slot_number INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available', 'occupied', 'maintenance')),
+  shelf_type TEXT NOT NULL,
+  shelf_name TEXT,
+  section TEXT,
+  occupied_by TEXT, -- Keep for legacy/manual overrides
+  rent_amount NUMERIC(10,2),
+  occupied_from DATE,
+  occupied_until DATE,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
 
--- Note: In Supabase, you'll want to run this altering script to link existing slots
--- ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS shelf_id UUID REFERENCES shelves(id) ON DELETE CASCADE;
+ALTER TABLE shelf_slots ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "allow_all" ON shelf_slots;
+CREATE POLICY "allow_all" ON shelf_slots FOR ALL USING (true);
+
+DROP TRIGGER IF EXISTS trg_updated_at ON shelf_slots;
+CREATE TRIGGER trg_updated_at BEFORE UPDATE ON shelf_slots FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Ensure columns exist if table was created previously without them
+ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS shelf_id UUID REFERENCES shelves(id) ON DELETE CASCADE;
+ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS brand_id UUID REFERENCES brands(id) ON DELETE SET NULL;
+ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS rent_amount NUMERIC(10,2);
+ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS occupied_from DATE;
+ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS occupied_until DATE;
+ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS notes TEXT;
+ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS shelf_name TEXT;
+ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS section TEXT;
+ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS shelf_type TEXT;
+ALTER TABLE shelf_slots ADD COLUMN IF NOT EXISTS section_id UUID; -- Added to resolve legacy trigger crash in your local instance
+
+CREATE INDEX IF NOT EXISTS idx_shelf_slots_brand_id ON shelf_slots(brand_id);
+CREATE INDEX IF NOT EXISTS idx_shelf_slots_shelf_id ON shelf_slots(shelf_id);
 
 -- ============================================================
 -- CRM Enhancements (Task 5)
@@ -373,7 +414,7 @@ CREATE TABLE IF NOT EXISTS payouts (
   month INTEGER,
   year INTEGER,
   gross_sales NUMERIC(10,2),
-  platform_fees NUMERIC(10,2),
+  ppf_amount NUMERIC(10,2),
   net_payout NUMERIC(10,2),
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'paid')),
   paid_at TIMESTAMPTZ,
@@ -438,21 +479,21 @@ CREATE INDEX IF NOT EXISTS idx_shelf_bookings_status ON shelf_bookings(status);
 CREATE OR REPLACE FUNCTION generate_monthly_payouts(p_month INTEGER, p_year INTEGER)
 RETURNS VOID AS $$
 BEGIN
-  INSERT INTO payouts (brand_id, month, year, gross_sales, platform_fees, net_payout, status)
+  INSERT INTO payouts (brand_id, month, year, gross_sales, ppf_amount, net_payout, status)
   SELECT 
     brand_id, 
     p_month, 
     p_year, 
     SUM(gross_sales) as gross_sales,
-    SUM(commission_amount) as platform_fees,
-    SUM(gross_sales - COALESCE(commission_amount, 0)) as net_payout,
+    SUM(ppf_amount) as ppf_amount,
+    SUM(gross_sales - COALESCE(ppf_amount, 0)) as net_payout,
     'pending'
   FROM brand_sales
   WHERE month = p_month AND year = p_year
   GROUP BY brand_id
   ON CONFLICT (brand_id, month, year) DO UPDATE SET
     gross_sales = EXCLUDED.gross_sales,
-    platform_fees = EXCLUDED.platform_fees,
+    ppf_amount = EXCLUDED.ppf_amount,
     net_payout = EXCLUDED.net_payout,
     updated_at = NOW()
   WHERE payouts.status = 'pending'; -- Only update if not paid
@@ -462,6 +503,308 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- Add a unique constraint for the upsert logic if not already exists
 ALTER TABLE payouts DROP CONSTRAINT IF EXISTS u_brand_period;
 ALTER TABLE payouts ADD CONSTRAINT u_brand_period UNIQUE (brand_id, month, year);
+
+-- ============================================================
+-- Safe Column Migration for Existing Data
+-- ============================================================
+DO $$ 
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoices' AND column_name='commission_rate') THEN
+    ALTER TABLE invoices RENAME COLUMN commission_rate TO ppf_rate;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='invoices' AND column_name='commission_amount') THEN
+    ALTER TABLE invoices RENAME COLUMN commission_amount TO ppf_amount;
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='brand_sales' AND column_name='commission_rate') THEN
+    ALTER TABLE brand_sales RENAME COLUMN commission_rate TO ppf_rate;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='brand_sales' AND column_name='commission_amount') THEN
+    ALTER TABLE brand_sales RENAME COLUMN commission_amount TO ppf_amount;
+  END IF;
+  
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='payouts' AND column_name='platform_fees') THEN
+    ALTER TABLE payouts RENAME COLUMN platform_fees TO ppf_amount;
+  END IF;
+END $$;
+
+-- ============================================================
+-- New Tables: Pricing, PPF Tiers, Offers
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS shelf_pricing_tiers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  duration TEXT NOT NULL UNIQUE CHECK (duration IN ('quarterly', 'half_yearly', 'yearly')),
+  bottom_price NUMERIC(10,2) NOT NULL,
+  eye_level_price NUMERIC(10,2) NOT NULL,
+  top_level_price NUMERIC(10,2) NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seed defaults
+INSERT INTO shelf_pricing_tiers (duration, bottom_price, eye_level_price, top_level_price)
+VALUES 
+  ('quarterly', 1100, 1500, 1350),
+  ('half_yearly', 1000, 1350, 1100),
+  ('yearly', 900, 1200, 1000)
+ON CONFLICT (duration) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS ppf_tiers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tier_name TEXT NOT NULL,
+  min_sales_amount NUMERIC(10,2) NOT NULL UNIQUE,
+  ppf_rate NUMERIC(5,2) NOT NULL,
+  rent_waiver_percent INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Seed defaults
+INSERT INTO ppf_tiers (tier_name, min_sales_amount, ppf_rate, rent_waiver_percent)
+VALUES 
+  ('Starter', 0, 3, 0),
+  ('Silver', 10000, 5, 0),
+  ('Gold', 50000, 7, 50),
+  ('Platinum', 100000, 10, 100)
+ON CONFLICT (min_sales_amount) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS promotional_offers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL,
+  description TEXT,
+  discount_type TEXT NOT NULL CHECK (discount_type IN ('percentage', 'fixed')),
+  discount_value NUMERIC(10,2) NOT NULL,
+  target_limit INTEGER, -- null = unlimited
+  current_uses INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- RLS setup
+DO $$ DECLARE t TEXT; BEGIN
+  FOREACH t IN ARRAY ARRAY['shelf_pricing_tiers', 'ppf_tiers', 'promotional_offers'] LOOP
+    EXECUTE FORMAT('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', t);
+    EXECUTE FORMAT('DROP POLICY IF EXISTS "allow_all" ON %I;', t);
+    EXECUTE FORMAT('CREATE POLICY "allow_all" ON %I FOR ALL USING (true);', t);
+    EXECUTE FORMAT('DROP TRIGGER IF EXISTS trg_updated_at ON %I;', t);
+    EXECUTE FORMAT('CREATE TRIGGER trg_updated_at BEFORE UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION set_updated_at();', t);
+  END LOOP;
+END; $$;
+
+-- ============================================================
+-- Increment Offer Uses RPC
+-- ============================================================
+CREATE OR REPLACE FUNCTION increment_offer_uses(offer_id UUID)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE promotional_offers 
+  SET current_uses = current_uses + 1
+  WHERE id = offer_id;
+END;
+$$;
+
+-- ============================================================
+-- Authentication & Session Tables (Task 11)
+-- ============================================================
+
+-- Table: approved_users
+-- Stores credentials for brands to login
+CREATE TABLE IF NOT EXISTS approved_users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT NOT NULL UNIQUE,
+  password TEXT, -- Stores Bcrypt hashed passwords
+  business_name TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  first_login TIMESTAMPTZ,
+  last_login TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table: user_sessions
+-- Manages member login sessions
+CREATE TABLE IF NOT EXISTS user_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES approved_users(id) ON DELETE CASCADE,
+  session_token UUID NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table: admin_users
+-- Stores credentials for platform administrators
+CREATE TABLE IF NOT EXISTS admin_users (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT DEFAULT 'admin' CHECK (role IN ('super_admin', 'admin', 'viewer')),
+  is_active BOOLEAN DEFAULT TRUE,
+  last_login TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Table: admin_sessions
+-- Manages admin login sessions
+CREATE TABLE IF NOT EXISTS admin_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  admin_id UUID REFERENCES admin_users(id) ON DELETE CASCADE,
+  session_token UUID NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================
+-- Row Level Security (RESTRICTED FOR PRODUCTION)
+-- ============================================================
+
+-- Enable RLS on all sensitive tables
+DO $$ 
+DECLARE 
+  t TEXT;
+BEGIN
+  FOR t IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') 
+  LOOP
+    EXECUTE FORMAT('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', t);
+  END LOOP;
+END $$;
+
+-- Drop permissive policies
+DROP POLICY IF EXISTS "allow_all" ON brands;
+DROP POLICY IF EXISTS "allow_all" ON shelf_bookings;
+DROP POLICY IF EXISTS "allow_all" ON brand_products;
+DROP POLICY IF EXISTS "allow_all" ON invoices;
+DROP POLICY IF EXISTS "allow_all" ON invoice_line_items;
+DROP POLICY IF EXISTS "allow_all" ON brand_sales;
+DROP POLICY IF EXISTS "allow_all" ON payouts;
+DROP POLICY IF EXISTS "allow_all" ON approved_users;
+DROP POLICY IF EXISTS "allow_all" ON user_sessions;
+DROP POLICY IF EXISTS "allow_all_approved_users" ON approved_users;
+DROP POLICY IF EXISTS "allow_all_user_sessions" ON user_sessions;
+
+-- Define restricted policies (Admin/Service Role only for most)
+-- Public read for informational tables
+DROP POLICY IF EXISTS "brands_public_read" ON brands;
+CREATE POLICY "brands_public_read" ON brands FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "products_public_read" ON brand_products;
+CREATE POLICY "products_public_read" ON brand_products FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "pricing_public_read" ON shelf_pricing_tiers;
+CREATE POLICY "pricing_public_read" ON shelf_pricing_tiers FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "ppf_public_read" ON ppf_tiers;
+CREATE POLICY "ppf_public_read" ON ppf_tiers FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "offers_public_read" ON promotional_offers;
+CREATE POLICY "offers_public_read" ON promotional_offers FOR SELECT USING (true);
+
+-- Deny all public for sensitive tables (requires authenticated role or service_role)
+DROP POLICY IF EXISTS "invoices_restricted" ON invoices;
+CREATE POLICY "invoices_restricted" ON invoices FOR ALL USING (false);
+
+DROP POLICY IF EXISTS "sales_restricted" ON brand_sales;
+CREATE POLICY "sales_restricted" ON brand_sales FOR ALL USING (false);
+
+DROP POLICY IF EXISTS "payouts_restricted" ON payouts;
+CREATE POLICY "payouts_restricted" ON payouts FOR ALL USING (false);
+
+DROP POLICY IF EXISTS "auth_internal_only" ON approved_users;
+CREATE POLICY "auth_internal_only" ON approved_users FOR ALL USING (false);
+
+-- ============================================================
+-- RPC: Secure User Verification (Task 12)
+-- ============================================================
+-- This function allows the frontend to fetch user details (including the hash)
+-- for login verification even when RLS blocks direct table access.
+CREATE OR REPLACE FUNCTION verify_user_login(p_email TEXT)
+RETURNS TABLE (id UUID, email TEXT, password TEXT, business_name TEXT, is_active BOOLEAN, first_login TIMESTAMPTZ) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT u.id, u.email, u.password, u.business_name, u.is_active, u.first_login
+  FROM approved_users u
+  WHERE LOWER(u.email) = LOWER(p_email) AND u.is_active = true;
+END;
+$$;
+
+-- RPC: Secure User Registration (Task 12)
+-- Handles both approved_users and brands table insertion in one transaction
+CREATE OR REPLACE FUNCTION register_user(
+  p_email TEXT,
+  p_password_hash TEXT,
+  p_business_name TEXT,
+  p_phone TEXT,
+  p_description TEXT,
+  p_social_handle TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_user_id UUID;
+BEGIN
+  -- 1. Check if user already exists
+  IF EXISTS (SELECT 1 FROM approved_users WHERE LOWER(email) = LOWER(p_email)) THEN
+    RETURN jsonb_build_object('error', 'An account with this email already exists');
+  END IF;
+
+  -- 2. Create the user
+  INSERT INTO approved_users (email, password, business_name, is_active)
+  VALUES (LOWER(p_email), p_password_hash, p_business_name, true)
+  RETURNING id INTO v_user_id;
+
+  -- 3. Create the brand profile
+  INSERT INTO brands (user_id, email, business_name, phone, description, instagram_handle, onboarding_status)
+  VALUES (v_user_id, LOWER(p_email), p_business_name, p_phone, p_description, p_social_handle, 'pending');
+
+  RETURN jsonb_build_object('success', true, 'user_id', v_user_id);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('error', SQLERRM);
+END;
+$$;
+
+-- RPC: Secure Admin Verification (Task 13)
+CREATE OR REPLACE FUNCTION verify_admin_login(p_email TEXT)
+RETURNS TABLE (id UUID, email TEXT, password_hash TEXT, name TEXT, role TEXT, is_active BOOLEAN) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT a.id, a.email, a.password_hash, a.name, a.role, a.is_active
+  FROM admin_users a
+  WHERE LOWER(a.email) = LOWER(p_email) AND a.is_active = true;
+END;
+$$;
+
+-- RLS: Deny public access to Admin tables
+DROP POLICY IF EXISTS "auth_internal_only" ON admin_users;
+CREATE POLICY "auth_internal_only" ON admin_users FOR ALL USING (false);
+
+DROP POLICY IF EXISTS "auth_internal_only" ON admin_sessions;
+CREATE POLICY "auth_internal_only" ON admin_sessions FOR ALL USING (false);
+-- NOTE: Requires pgcrypto extension. Run this once if you have existing plaintext passwords.
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- This query identifies plaintext passwords (those not starting with $2a$ or $2b$) 
+-- and hashes them. Note: This assumes you were using 'bcryptjs' with standard 10 salts.
+UPDATE approved_users
+SET password = crypt(password, gen_salt('bf'))
+WHERE password NOT LIKE '$2a$%' AND password NOT LIKE '$2b$%';
+
+UPDATE admin_users
+SET password_hash = crypt(password_hash, gen_salt('bf'))
+WHERE password_hash NOT LIKE '$2a$%' AND password_hash NOT LIKE '$2b$%';
 
 -- ============================================================
 -- DONE

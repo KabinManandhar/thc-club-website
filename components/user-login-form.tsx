@@ -2,15 +2,15 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Lock, ArrowLeft } from "lucide-react"
 import { userAuth } from "@/lib/user-auth"
+import { ArrowLeft, Lock } from "lucide-react"
 import Image from "next/image"
+import { useState } from "react"
 
 interface UserLoginFormProps {
   onLoginSuccess: () => void
@@ -63,7 +63,7 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
               <Lock className="w-5 h-5 text-[#FE7F2D]" />
               member access
             </CardTitle>
-            <p className="text-[11px] lowercase font-bold tracking-widest text-[#010307]/40">secure kathmandu gate 01</p>
+            <p className="text-[11px] lowercase font-bold tracking-widest text-[#010307]/40">secure kathmandu outlet 01</p>
           </div>
         </CardHeader>
         <CardContent className="p-8 pt-0 bg-white/50 backdrop-blur-sm">

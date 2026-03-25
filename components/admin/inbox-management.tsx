@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { Check, X, Search, MessageSquare, Inbox, Clock, CheckCircle2, XCircle, LayoutGrid, UserPlus, Package, ArrowRight, AlertCircle, Eye } from "lucide-react"
+import { MessageSquare, Inbox, Clock, CheckCircle2, XCircle, Search, AlertCircle, Trash2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
@@ -70,6 +70,19 @@ export function InboxManagement() {
       fetchAll()
     } catch (err: any) {
       toast.error(err.message || "Failed to update status")
+    }
+  }
+
+  const handleDelete = async (id: string, type: "enquiry" | "request") => {
+    if (!confirm("Are you sure you want to permanently delete this record?")) return
+    try {
+      const dbTable = type === "enquiry" ? "enquiries" : "brand_change_requests"
+      const { error } = await supabase.from(dbTable).delete().eq("id", id)
+      if (error) throw error
+      toast.success("Record purged from terminal.")
+      fetchAll()
+    } catch (err: any) {
+      toast.error(err.message || "Deletion failed")
     }
   }
 
@@ -158,7 +171,19 @@ export function InboxManagement() {
                            <h3 className="text-xl font-black tracking-tight">{enq.subject}</h3>
                         </div>
                      </div>
-                     {getStatusBadge(enq.status)}
+                     <div className="flex items-center gap-3">
+                        {getStatusBadge(enq.status)}
+                        {["resolved", "rejected"].includes(enq.status) && (
+                          <Button 
+                             variant="ghost" 
+                             size="icon" 
+                             className="h-8 w-8 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full"
+                             onClick={() => handleDelete(enq.id, "enquiry")}
+                          >
+                             <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                     </div>
                   </div>
                   <p className="bg-gray-50/50 p-6 rounded-3xl text-sm font-medium italic border border-gray-50 leading-relaxed mb-8">
                      “{enq.message}”
@@ -195,7 +220,19 @@ export function InboxManagement() {
                            <h3 className="text-xl font-black tracking-tight capitalize">{req.request_type.replace('_', ' ')}</h3>
                         </div>
                      </div>
-                     {getStatusBadge(req.status)}
+                     <div className="flex items-center gap-3">
+                        {getStatusBadge(req.status)}
+                        {["approved", "rejected"].includes(req.status) && (
+                           <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-full"
+                              onClick={() => handleDelete(req.id, "request")}
+                           >
+                              <Trash2 className="w-4 h-4" />
+                           </Button>
+                        )}
+                     </div>
                   </div>
                   
                   <div className="bg-orange-50/30 p-6 rounded-3xl border border-orange-50 mb-8 space-y-4">

@@ -1,13 +1,14 @@
 import { supabase } from "./supabase"
+import bcrypt from "bcryptjs"
 
 export interface ApprovedUser {
   id: string
   email: string
   business_name: string
-  password: string
+  password?: string
   is_active: boolean
-  first_login?: string
-  last_login?: string
+  first_login?: string | null
+  last_login?: string | null
 }
 
 export interface UserAuthState {
@@ -18,46 +19,69 @@ export interface UserAuthState {
 export const userAuth = {
   async login(email: string, password: string): Promise<{ user: ApprovedUser | null; error: string | null }> {
     try {
-      // Check if user exists and password is correct
-      const { data: user, error } = await supabase
-        .from("approved_users")
-        .select("*")
-        .eq("email", email.toLowerCase())
-        .eq("password", password)
-        .eq("is_active", true)
-        .single()
+      // 1. Fetch user via SECURITY DEFINER RPC (bypasses RLS on approved_users)
+      const { data: users, error: rpcError } = await supabase
+        .rpc("verify_user_login", { p_email: email.toLowerCase() })
 
-      if (error || !user) {
+      if (rpcError) {
+        console.error("RPC error:", rpcError)
+        return { user: null, error: "Login failed. Please try again." }
+      }
+
+      if (!users || users.length === 0) {
         return { user: null, error: "Invalid email or password" }
       }
 
-      // Create session token
+      const userRow = users[0]
+
+      // 2. Verify bcrypt hash
+      if (!userRow.password) {
+        return { user: null, error: "Account credentials not set up. Contact support." }
+      }
+
+      const isMatch = await bcrypt.compare(password, userRow.password)
+      if (!isMatch) {
+        return { user: null, error: "Invalid email or password" }
+      }
+
+      // 3. Create session in user_sessions table (publicly accessible via RLS)
       const sessionToken = crypto.randomUUID()
       const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + 7) // 7 day session for users
+      expiresAt.setDate(expiresAt.getDate() + 7) // 7 day session
 
-      await supabase.from("user_sessions").insert({
-        user_id: user.id,
+      const { error: sessionError } = await supabase.from("user_sessions").insert({
+        user_id: userRow.id,
         session_token: sessionToken,
         expires_at: expiresAt.toISOString(),
       })
 
-      // Update login timestamps
-      const now = new Date().toISOString()
-      const updateData: any = { last_login: now }
-      if (!user.first_login) {
-        updateData.first_login = now
+      if (sessionError) {
+        console.error("Session insert error:", sessionError)
+        // Don't fail login if session fails — just warn
       }
 
-      await supabase.from("approved_users").update(updateData).eq("id", user.id)
+      // 4. Update login timestamps via RPC
+      await supabase.rpc("update_user_login_time", {
+        p_user_id: userRow.id,
+        p_is_first_login: !userRow.first_login,
+      })
 
-      // Store session in localStorage
+      // 5. Store session locally
+      const user: ApprovedUser = {
+        id: userRow.id,
+        email: userRow.email,
+        business_name: userRow.business_name,
+        is_active: userRow.is_active,
+        first_login: userRow.first_login,
+        last_login: userRow.last_login,
+      }
+
       localStorage.setItem("user_session", sessionToken)
       localStorage.setItem("user_data", JSON.stringify(user))
 
       return { user, error: null }
-    } catch (error) {
-      console.error("User login error:", error)
+    } catch (err) {
+      console.error("User login error:", err)
       return { user: null, error: "Login failed" }
     }
   },
@@ -66,15 +90,12 @@ export const userAuth = {
     try {
       const sessionToken = localStorage.getItem("user_session")
       if (sessionToken) {
-        // Remove session from database
         await supabase.from("user_sessions").delete().eq("session_token", sessionToken)
       }
-
-      // Clear localStorage
       localStorage.removeItem("user_session")
       localStorage.removeItem("user_data")
-    } catch (error) {
-      console.error("User logout error:", error)
+    } catch (err) {
+      console.error("User logout error:", err)
     }
   },
 
@@ -83,33 +104,30 @@ export const userAuth = {
       const sessionToken = localStorage.getItem("user_session")
       const userStr = localStorage.getItem("user_data")
 
-      if (!sessionToken || !userStr) {
-        return null
-      }
+      if (!sessionToken || !userStr) return null
 
-      // Verify session is still valid
-      const { data: session, error } = await supabase
+      // Validate session against database (user_sessions is publicly readable)
+      const { data: sessions } = await supabase
         .from("user_sessions")
-        .select("*, approved_users(*)")
+        .select("id, expires_at")
         .eq("session_token", sessionToken)
         .gt("expires_at", new Date().toISOString())
-        .single()
 
-      if (error || !session) {
-        // Session expired or invalid
-        this.logout()
+      if (!sessions || sessions.length === 0) {
+        // Session expired or not found
+        await this.logout()
         return null
       }
 
-      return JSON.parse(userStr)
-    } catch (error) {
-      console.error("Get current user error:", error)
+      return JSON.parse(userStr) as ApprovedUser
+    } catch (err) {
+      console.error("Get current user error:", err)
       return null
     }
   },
 
   async verifySession(): Promise<boolean> {
-    const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'development' || process.env.NODE_ENV === 'development'
+    const isDev = process.env.NEXT_PUBLIC_APP_ENV === "development" || process.env.NODE_ENV === "development"
     if (typeof window !== "undefined" && isDev && localStorage.getItem("thc_test_mode") === "true") {
       return true
     }
@@ -126,69 +144,46 @@ export const userAuth = {
     socialHandle: string
   ): Promise<{ user: ApprovedUser | null; error: string | null }> {
     try {
-      // Check if user already exists
-      const { data: existing } = await supabase
-        .from("approved_users")
-        .select("id")
-        .eq("email", email.toLowerCase())
-        .maybeSingle()
+      // 1. Hash password in frontend
+      const hashedPassword = await bcrypt.hash(password, 10)
 
-      if (existing) {
-        return { user: null, error: "An account with this email already exists" }
-      }
-
-      // Create user
-      const { data: newUser, error: createError } = await supabase
-        .from("approved_users")
-        .insert({
-          email: email.toLowerCase(),
-          password: password,
-          business_name: businessName,
-          is_active: true, // Everyone can login to see pricing
-        })
-        .select("*")
-        .single()
-
-      if (createError || !newUser) {
-        return { user: null, error: createError?.message || "Registration failed" }
-      }
-
-      // Create a brand profile
-      await supabase.from("brands").insert({
-        email: email.toLowerCase(),
-        business_name: businessName,
-        phone: phone,
-        description: brandDescription,
-        instagram_handle: socialHandle,
-        onboarding_status: "pending",
+      // 2. Call register_user RPC (SECURITY DEFINER — bypasses RLS)
+      const { data, error: rpcError } = await supabase.rpc("register_user", {
+        p_email: email.toLowerCase(),
+        p_password_hash: hashedPassword,
+        p_business_name: businessName,
+        p_phone: phone,
+        p_description: brandDescription,
+        p_social_handle: socialHandle,
       })
 
-      return { user: newUser, error: null }
-    } catch (error) {
-      console.error("Sign up error:", error)
+      if (rpcError) {
+        return { user: null, error: rpcError.message }
+      }
+
+      const result = data as { success?: boolean; user_id?: string; error?: string }
+
+      if (result?.error) {
+        return { user: null, error: result.error }
+      }
+
+      // 3. Return minimal user object (can't fetch from approved_users due to RLS)
+      const user: ApprovedUser = {
+        id: result.user_id || "",
+        email: email.toLowerCase(),
+        business_name: businessName,
+        is_active: true,
+      }
+
+      return { user, error: null }
+    } catch (err) {
+      console.error("Sign up error:", err)
       return { user: null, error: "Registration failed" }
     }
   },
 
-  async resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      // Check if user exists in approved_users
-      const { data: user, error } = await supabase
-        .from("approved_users")
-        .select("email")
-        .eq("email", email.toLowerCase())
-        .eq("is_active", true)
-        .single()
-
-      if (error || !user) {
-        return { success: false, error: "Email not found in approved users list" }
-      }
-
-      // In a real app, you'd send a reset link here
-      return { success: true }
-    } catch (error) {
-      console.error("Reset password error:", error)
-      return { success: false, error: "Failed to process request" }
-    }
+  async resetPassword(_email: string): Promise<{ success: boolean; error?: string }> {
+    // Placeholder — would trigger an email reset in a full auth system
+    return { success: true }
   },
 }

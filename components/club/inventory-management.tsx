@@ -45,6 +45,9 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
+  const [isStockOpen, setIsStockOpen] = useState(false)
+  const [stockForm, setStockForm] = useState({ id: "", name: "", stock_quantity: "0" })
+
   const fetchProducts = useCallback(async () => {
     setLoading(true)
     const { data, error } = await supabase
@@ -114,6 +117,46 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
       toast.success("Request submitted to community admin for verification.")
     } catch (error: any) {
       setFormError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const openStockUpdate = (product: BrandProduct) => {
+    setStockForm({
+      id: product.id,
+      name: product.name,
+      stock_quantity: product.stock_quantity.toString(),
+    })
+    setIsStockOpen(true)
+  }
+
+  const handleStockUpdate = async () => {
+    const product = products.find(p => p.id === stockForm.id)
+    if (!product) return
+
+    setSaving(true)
+    try {
+      const payload = {
+        ...product,
+        stock_quantity: parseInt(stockForm.stock_quantity) || 0,
+      }
+      // Clean sensitive fields
+      const { id, brand_id, created_at, updated_at, ...cleanedData } = payload as any;
+
+      const { error } = await supabase.from("brand_change_requests").insert({
+        brand_id: brandId,
+        request_type: "product_update",
+        target_id: product.id,
+        new_data: cleanedData,
+        status: "pending"
+      })
+
+      if (error) throw error
+      setIsStockOpen(false)
+      toast.success("Stock update request submitted for verification.")
+    } catch (err: any) {
+      toast.error(err.message)
     } finally {
       setSaving(false)
     }
@@ -207,7 +250,10 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                        {getStockBadge(p)}
                     </TableCell>
                     <TableCell className="px-8 text-right space-x-1">
-                      <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-400 hover:text-black hover:bg-black/5 rounded-xl border border-transparent hover:border-black/5 transition-all" onClick={() => openEdit(p)}>
+                      <Button variant="ghost" size="icon" className="h-10 w-10 text-orange-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl border border-transparent hover:border-orange-100 transition-all" onClick={() => openStockUpdate(p)} title="Update stock">
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-10 w-10 text-gray-400 hover:text-black hover:bg-black/5 rounded-xl border border-transparent hover:border-black/5 transition-all" onClick={() => openEdit(p)} title="Edit product details">
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       <div className="inline-block" title="Admin access required for deletion">
@@ -281,24 +327,33 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                        className="rounded-2xl h-14 border-gray-100 font-black text-lg"
                     />
                   </div>
-                  <div>
-                    <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Opening Stock</Label>
-                    <Input 
-                       type="number" 
-                       value={form.stock_quantity} 
-                       onChange={(e) => setForm(f => ({ ...f, stock_quantity: e.target.value }))} 
-                       className="rounded-2xl h-14 border-gray-100 font-bold"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Low Alert At</Label>
-                    <Input 
-                       type="number" 
-                       value={form.low_stock_threshold} 
-                       onChange={(e) => setForm(f => ({ ...f, low_stock_threshold: e.target.value }))} 
-                       className="rounded-2xl h-14 border-gray-100 font-bold"
-                    />
-                  </div>
+                  {!editingProduct && (
+                    <>
+                      <div>
+                        <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Opening Stock</Label>
+                        <Input 
+                           type="number" 
+                           value={form.stock_quantity} 
+                           onChange={(e) => setForm(f => ({ ...f, stock_quantity: e.target.value }))} 
+                           className="rounded-2xl h-14 border-gray-100 font-bold"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Low Alert At</Label>
+                        <Input 
+                           type="number" 
+                           value={form.low_stock_threshold} 
+                           onChange={(e) => setForm(f => ({ ...f, low_stock_threshold: e.target.value }))} 
+                           className="rounded-2xl h-14 border-gray-100 font-bold"
+                        />
+                      </div>
+                    </>
+                  )}
+                  {editingProduct && (
+                    <div className="col-span-2 flex items-center justify-center bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                      <p className="text-[10px] font-black uppercase text-gray-400">Use 'update stock' button for inventory changes</p>
+                    </div>
+                  )}
                </div>
 
                <div>
@@ -327,6 +382,49 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                  className="bg-black hover:bg-black/90 text-white rounded-2xl h-14 px-12 font-black uppercase tracking-widest text-[10px] shadow-2xl active:scale-95 transition-all"
               >
                 {saving ? "Transmitting..." : editingProduct ? "Commit Edits" : "Launch Product"}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stock Update Dialog */}
+      <Dialog open={isStockOpen} onOpenChange={setIsStockOpen}>
+        <DialogContent className="max-w-md p-0 overflow-hidden border-none shadow-2xl rounded-[2rem]">
+          <div className="bg-white p-10 space-y-8">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black tracking-tighter uppercase italic">Update Stock</DialogTitle>
+              <p className="text-[10px] text-black/30 font-black uppercase tracking-widest flex items-center gap-2">
+                 <Shield className="w-3.5 h-3.5" /> Stock Synchronization Request
+              </p>
+            </DialogHeader>
+
+            <div className="space-y-6">
+               <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 italic">
+                  <p className="text-xs font-bold text-gray-400 lowercase tracking-wide">Product Identity</p>
+                  <p className="text-lg font-black text-gray-900 lowercase">{stockForm.name}</p>
+               </div>
+               
+               <div>
+                  <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Current/New In-Store Stock</Label>
+                  <Input 
+                     type="number" 
+                     value={stockForm.stock_quantity} 
+                     onChange={(e) => setStockForm(f => ({ ...f, stock_quantity: e.target.value }))} 
+                     className="rounded-2xl h-16 border-gray-100 font-black text-2xl text-center"
+                     autoFocus
+                  />
+               </div>
+            </div>
+
+            <DialogFooter className="pt-4 gap-4 sm:justify-between border-t border-gray-100 mt-2">
+              <Button variant="ghost" onClick={() => setIsStockOpen(false)} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[10px]">Cancel</Button>
+              <Button 
+                 onClick={handleStockUpdate} 
+                 disabled={saving} 
+                 className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white rounded-2xl h-14 px-12 font-black uppercase tracking-widest text-[10px] shadow-xl active:scale-95 transition-all"
+              >
+                {saving ? "Transmitting..." : "Update Stock"}
               </Button>
             </DialogFooter>
           </div>
