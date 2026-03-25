@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -68,7 +69,7 @@ export function PayoutsTracker() {
   // View existing statement
   const [viewPayout, setViewPayout] = useState<Payout | null>(null)
 
-  const printRef = useRef<HTMLDivElement>(null)
+  const printRef = useRef<HTMLDivElement | null>(null)
 
   // ─── Data Fetching ──────────────────────────────────────────────────────────
 
@@ -92,8 +93,14 @@ export function PayoutsTracker() {
         .eq("month", currentMonth)
         .eq("year", currentYear)
 
-      setPayouts((payoutData || []) as Payout[])
-      setLiveSales((salesData || []) as LiveSale[])
+      const payoutsResult = (payoutData || []) as Payout[]
+      
+      // Filter out live sales that already have an associated payout record
+      const finalizedIds = new Set(payoutsResult.map(p => `${p.brand_id}-${p.month}-${p.year}`))
+      const filteredLiveSales = (salesData || []).filter(s => !finalizedIds.has(`${s.brand_id}-${s.month}-${s.year}`))
+
+      setPayouts(payoutsResult)
+      setLiveSales(filteredLiveSales as LiveSale[])
     } catch (err) {
       console.error("Fetch failed", err)
       toast.error("Failed to sync latest financial data.")
@@ -258,7 +265,7 @@ export function PayoutsTracker() {
     }
   }
 
-  const handlePrint = (ref: React.RefObject<HTMLDivElement>) => {
+  const handlePrint = (ref: React.RefObject<HTMLDivElement | null>) => {
     const content = ref.current
     if (!content) return
     const w = window.open("", "_blank")
@@ -281,17 +288,25 @@ export function PayoutsTracker() {
   // ─── Render Helpers ─────────────────────────────────────────────────────────
 
   const renderSettlementDetails = (details: any) => {
-    if (!details) return <p className="text-sm font-bold text-gray-400 italic">No settlement details provided</p>
+    if (!details) return (
+      <div className="flex items-center gap-3 text-amber-500/50 italic bg-amber-50/50 p-4 rounded-xl border border-amber-100/50">
+        <AlertCircle className="w-5 h-5" />
+        <span className="text-xs font-bold uppercase tracking-tight">No disbursement profile configured by brand</span>
+      </div>
+    )
     
     const type = details.type || "bank"
     
     if (type === "bank") {
       return (
-        <div className="flex items-center gap-3">
-          <Landmark className="w-5 h-5 text-[#FE7F2D]" />
-          <div>
-            <div className="text-sm font-black italic">{details.bankName}</div>
-            <div className="text-[10px] font-bold text-gray-500 tabular-nums">{details.accountNumber} • {details.accountName}</div>
+        <div className="flex items-center gap-4 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100/50">
+          <Landmark className="w-6 h-6 text-emerald-600" />
+          <div className="flex flex-col">
+            <div className="text-sm font-black italic text-gray-900">{details.bankName || 'Standard Bank Transfer'}</div>
+            <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+              {details.accountNumber} • {details.accountName}
+            </div>
+            {details.branchName && <div className="text-[9px] text-gray-400 italic mt-0.5">Branch: {details.branchName}</div>}
           </div>
         </div>
       )
@@ -299,11 +314,13 @@ export function PayoutsTracker() {
     
     if (type === "wallet") {
       return (
-        <div className="flex items-center gap-3">
-          <Smartphone className="w-5 h-5 text-[#FE7F2D]" />
-          <div>
-            <div className="text-sm font-black italic uppercase italic">{details.walletProvider}</div>
-            <div className="text-[10px] font-bold text-gray-500 tabular-nums">{details.walletNumber} • {details.accountName}</div>
+        <div className="flex items-center gap-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100/50">
+          <Smartphone className="w-6 h-6 text-blue-500" />
+          <div className="flex flex-col">
+            <div className="text-sm font-black italic text-gray-900 uppercase tracking-tight">{details.walletProvider || 'Digital Wallet'}</div>
+            <div className="text-[10px] font-bold text-gray-500 tabular-nums">
+              {details.walletNumber} • {details.accountName}
+            </div>
           </div>
         </div>
       )
@@ -311,9 +328,12 @@ export function PayoutsTracker() {
 
     if (type === "cash") {
       return (
-        <div className="flex items-center gap-3 text-[#FE7F2D]">
-          <Banknote className="w-5 h-5" />
-          <div className="text-sm font-black italic uppercase tracking-tight">Physical Cash Settlement</div>
+        <div className="flex items-center gap-4 bg-orange-50/50 p-4 rounded-xl border border-orange-100/50">
+          <Banknote className="w-6 h-6 text-orange-500" />
+          <div className="flex flex-col">
+            <div className="text-sm font-black italic text-gray-900 uppercase tracking-tight">Physical Cash Disbursement</div>
+            <div className="text-[10px] font-bold text-orange-600/60 uppercase tracking-widest">To be settled at Club Treasury</div>
+          </div>
         </div>
       )
     }
@@ -326,7 +346,7 @@ export function PayoutsTracker() {
   const totalLiveGross = liveSales.reduce((s, x) => s + (x.gross_sales || 0), 0)
   const totalLiveDue = liveSales.reduce((s, x) => s + ((x.gross_sales || 0) - (x.ppf_amount || 0)), 0)
 
-  const printRef2 = useRef<HTMLDivElement>(null)
+  const printRef2 = useRef<HTMLDivElement | null>(null)
 
   // ─── Flow open state ────────────────────────────────────────────────────────
   const isFlowOpen = !!(flowSale || flowPayout)
@@ -341,7 +361,7 @@ export function PayoutsTracker() {
   }
 
   // ─── Statement panel (for viewing existing settled payouts) ─────────────────
-  const StatementView = ({ payout, printRef }: { payout: Payout; printRef: React.RefObject<HTMLDivElement> }) => (
+  const StatementView = ({ payout, printRef }: { payout: Payout; printRef: React.RefObject<HTMLDivElement | null> }) => (
     <div ref={printRef} className="space-y-8">
       <div className="flex justify-between items-end border-b-2 border-[#010307] pb-6">
         <div>
@@ -487,131 +507,181 @@ export function PayoutsTracker() {
         </Card>
       </div>
 
-      {/* ── Pending Settlements (Live) ── */}
-      <div className="space-y-6">
-        <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
-          <AlertCircle className="w-5 h-5 text-gray-400" /> Pending Settlements (Live)
-        </h3>
-        <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-gray-50">
-          <Table>
-            <TableHeader className="bg-gray-50/50">
-              <TableRow className="border-none">
-                <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Brand Partner</TableHead>
-                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
-                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Gross Sales</TableHead>
-                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">PPF (Fee)</TableHead>
-                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Net Due</TableHead>
-                <TableHead className="px-10 py-6 text-right" />
-              </TableRow>
-            </TableHeader>
-            <TableBody className="divide-y divide-gray-50">
-              {liveSales.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-24 text-gray-300 italic font-medium">
-                    No sales recorded for the current cycle.
-                  </TableCell>
-                </TableRow>
-              ) : liveSales.map(sale => (
-                <TableRow key={sale.id} className="group hover:bg-gray-50/30 transition-colors">
-                  <TableCell className="px-10 py-8 font-black text-gray-900 italic uppercase">{sale.brands?.business_name}</TableCell>
-                  <TableCell className="py-8 font-bold text-xs text-gray-500 tabular-nums">{sale.month}/{sale.year}</TableCell>
-                  <TableCell className="py-8 font-bold text-sm">NPR {sale.gross_sales.toLocaleString()}</TableCell>
-                  <TableCell className="py-8 font-black text-xs text-red-400">NPR {(sale.ppf_amount || 0).toLocaleString()}</TableCell>
-                  <TableCell className="py-8 font-black text-[#FE7F2D] text-lg italic">
-                    NPR {(sale.gross_sales - (sale.ppf_amount || 0)).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="px-10 py-8 text-right">
-                    <Button
-                      size="sm"
-                      onClick={() => openFlowForSale(sale)}
-                      className="bg-[#010307] text-white hover:bg-[#FE7F2D] rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"
-                    >
-                      <Banknote className="w-3.5 h-3.5" /> Complete Payout
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
+      {/* ── Tabs Navigation ── */}
+      <Tabs defaultValue="pending" className="w-full">
+        <TabsList className="bg-white/50 backdrop-blur-md p-1 rounded-2xl h-14 w-full md:w-auto border border-black/5 shadow-sm mb-8 gap-2">
+          <TabsTrigger value="pending" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-8 data-[state=active]:bg-black data-[state=active]:text-white transition-all h-full">
+            <Clock className="w-4 h-4 mr-2" /> Pending Settlements
+          </TabsTrigger>
+          <TabsTrigger value="ledger" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-8 data-[state=active]:bg-[#FE7F2D] data-[state=active]:text-white transition-all h-full">
+            <ShieldCheck className="w-4 h-4 mr-2" /> Finalized Ledger
+          </TabsTrigger>
+        </TabsList>
 
-      {/* ── Payout Ledger (Settled/Final) ── */}
-      <div className="space-y-6">
-        <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-gray-400" /> Payout Ledger (Settled / Final)
-        </h3>
-        <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-gray-50">
-          <Table>
-            <TableHeader className="bg-gray-50/50">
-              <TableRow className="border-none">
-                <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Partner</TableHead>
-                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
-                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Final Payout</TableHead>
-                <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Status</TableHead>
-                <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="divide-y divide-gray-50">
-              {payouts.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-24 text-gray-300 italic font-medium">
-                    No finalized payout ledgers exist yet.
-                  </TableCell>
+        <TabsContent value="pending" className="space-y-12 animate-in fade-in slide-in-from-left-4 duration-500">
+           {/* ── Pending Settlements (Live) ── */}
+           <div className="space-y-6">
+            <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-gray-400" /> Pending Settlements (Live)
+            </h3>
+            <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-gray-50">
+              <Table>
+                <TableHeader className="bg-gray-50/50">
+                  <TableRow className="border-none">
+                    <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Brand Partner</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Gross Sales</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">PPF (Fee)</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Net Due</TableHead>
+                    <TableHead className="px-10 py-6 text-right" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-50">
+                  {liveSales.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-24 text-gray-300 italic font-medium">
+                        No sales recorded for the current cycle.
+                      </TableCell>
+                    </TableRow>
+                  ) : liveSales.map(sale => (
+                    <TableRow key={sale.id} className="group hover:bg-gray-50/30 transition-colors">
+                      <TableCell className="px-10 py-8">
+                        <div className="flex flex-col">
+                          <span className="font-black text-gray-900 italic uppercase">{sale.brands?.business_name}</span>
+                          <div className="mt-1">
+                            {sale.brands?.bank_account_details ? (
+                              <div className="flex items-center gap-1.5 text-[9px] font-bold text-[#FE7F2D] uppercase tracking-tighter">
+                                {sale.brands.bank_account_details.type === 'bank' && <Landmark className="w-3 h-3" />}
+                                {sale.brands.bank_account_details.type === 'wallet' && <Smartphone className="w-3 h-3" />}
+                                {sale.brands.bank_account_details.type === 'cash' && <Banknote className="w-3 h-3" />}
+                                {sale.brands.bank_account_details.type === 'cash' 
+                                  ? "Cash" 
+                                  : sale.brands.bank_account_details.type === 'wallet'
+                                    ? `${sale.brands.bank_account_details.walletProvider || 'Wallet'} (${sale.brands.bank_account_details.walletNumber || '?'})`
+                                    : `${sale.brands.bank_account_details.bankName || 'Bank'} (...${(sale.brands.bank_account_details.accountNumber || '').slice(-4)})`
+                                }
+                              </div>
+                            ) : (
+                              <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter italic">No account configured</span>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-8 font-bold text-xs text-gray-500 tabular-nums">{sale.month}/{sale.year}</TableCell>
+                      <TableCell className="py-8 font-bold text-sm">NPR {sale.gross_sales.toLocaleString()}</TableCell>
+                      <TableCell className="py-8 font-black text-xs text-red-400">NPR {(sale.ppf_amount || 0).toLocaleString()}</TableCell>
+                      <TableCell className="py-8 font-black text-[#FE7F2D] text-lg italic">
+                        NPR {(sale.gross_sales - (sale.ppf_amount || 0)).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="px-10 py-8 text-right">
+                        <Button
+                          size="sm"
+                          onClick={() => openFlowForSale(sale)}
+                          className="bg-[#010307] text-white hover:bg-[#FE7F2D] rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-2"
+                        >
+                          <Banknote className="w-3.5 h-3.5" /> Complete Payout
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </div>
+
+          {/* ── Pending (Finalized but not paid) ── */}
+          <div className="space-y-6">
+            <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
+              <Clock className="w-5 h-5 text-gray-400" /> Finalized Accruals (Pending Payment)
+            </h3>
+            <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-gray-50">
+              <Table>
+                <TableHeader className="bg-gray-50/50">
+                  <TableRow className="border-none">
+                    <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Partner</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Amount Due</TableHead>
+                    <TableHead className="px-10 py-6 text-right" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-50">
+                  {payouts.filter(p => p.status === 'pending').length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-24 text-gray-300 italic font-medium">
+                        No localized pending payouts found.
+                      </TableCell>
+                    </TableRow>
+                  ) : payouts.filter(p => p.status === 'pending').map(po => (
+                    <TableRow key={po.id} className="group hover:bg-gray-50/30 transition-colors">
+                      <TableCell className="px-10 py-8 font-black text-gray-900 italic uppercase">
+                        {po.brands?.business_name}
+                      </TableCell>
+                      <TableCell className="py-8 font-bold text-xs text-gray-500 tabular-nums">{po.month}/{po.year}</TableCell>
+                      <TableCell className="py-8 font-black text-orange-600 text-lg italic text-center">NPR {po.net_payout.toLocaleString()}</TableCell>
+                      <TableCell className="px-10 py-8 text-right">
+                        <Button size="sm" variant="outline"
+                          className="rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest text-[#FE7F2D] border-orange-100 hover:bg-orange-50 flex items-center gap-1"
+                          onClick={() => openFlowForPayout(po)}>
+                          <Banknote className="w-3.5 h-3.5" /> Release Payment
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="ledger" className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+          <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
+            <CheckCircle2 className="w-5 h-5 text-gray-400" /> Finalized Settlement Ledger
+          </h3>
+          <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-gray-50">
+            <Table>
+              <TableHeader className="bg-gray-50/50">
+                <TableRow className="border-none">
+                  <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Partner</TableHead>
+                  <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
+                  <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Settled Amount</TableHead>
+                  <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Date</TableHead>
+                  <TableHead className="px-10 py-6 text-right">Action</TableHead>
                 </TableRow>
-              ) : payouts.map(po => (
-                <TableRow key={po.id} className="group hover:bg-gray-50/30 transition-colors">
-                  <TableCell className="px-10 py-8 font-black text-gray-900 italic uppercase">{po.brands?.business_name}</TableCell>
-                  <TableCell className="py-8 font-bold text-xs text-gray-500 tabular-nums">{po.month}/{po.year}</TableCell>
-                  <TableCell className="py-8 font-black text-green-700 text-lg italic text-center">NPR {po.net_payout.toLocaleString()}</TableCell>
-                  <TableCell className="py-8 text-center">
-                    {po.status === "paid" ? (
-                      <Badge className="bg-green-50 text-green-600 border-none font-black text-[8px] tracking-widest uppercase px-3">
-                        <CheckCircle className="w-3 h-3 mr-1" /> Settled
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-orange-50 text-orange-600 border-none font-black text-[8px] tracking-widest uppercase px-3">
-                        <Clock className="w-3 h-3 mr-1" /> Accruing
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-10 py-8 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {po.status === "pending" ? (
-                        <>
-                          <Button size="sm" variant="outline"
-                            className="rounded-xl h-10 px-5 font-black text-[10px] uppercase tracking-widest text-[#FE7F2D] border-orange-100 hover:bg-orange-50 flex items-center gap-1"
-                            onClick={() => openFlowForPayout(po)}>
-                            <Banknote className="w-3.5 h-3.5" /> Complete Payout
-                          </Button>
-                          <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full hover:bg-gray-100"
-                            onClick={() => handleRedoPayout(po.month, po.year)} title="Recalculate">
-                            <RefreshCcw className="w-4 h-4 text-gray-400" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-[8px] font-black uppercase tracking-widest text-gray-300 italic">
-                            Settled {new Date(po.paid_at!).toLocaleDateString()}
-                          </span>
-                          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full"
-                            onClick={() => setViewPayout(po)} title="View Statement">
-                            <Receipt className="w-4 h-4 text-[#010307]/20 hover:text-[#010307]" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="w-8 h-8 rounded-full hover:text-red-500"
-                            onClick={() => handleUndoSettlement(po.id)} title="Undo Settlement">
-                            <RefreshCcw className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-50">
+                {payouts.filter(p => p.status === 'paid').length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-32 text-gray-300 italic font-medium">
+                      Treasury archive is currently empty.
+                    </TableCell>
+                  </TableRow>
+                ) : payouts.filter(p => p.status === 'paid').map(po => (
+                  <TableRow key={po.id} className="group hover:bg-gray-50/30 transition-colors">
+                    <TableCell className="px-10 py-8 font-black text-gray-900 italic uppercase">{po.brands?.business_name}</TableCell>
+                    <TableCell className="py-8 font-bold text-xs text-gray-500 tabular-nums">{po.month}/{po.year}</TableCell>
+                    <TableCell className="py-8 font-black text-green-700 text-lg italic text-center">NPR {po.net_payout.toLocaleString()}</TableCell>
+                    <TableCell className="py-8 text-center text-xs font-bold text-gray-400 uppercase tracking-widest font-mono">
+                      {new Date(po.paid_at!).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="px-10 py-8 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full bg-gray-50 hover:bg-gray-100"
+                          onClick={() => setViewPayout(po)} title="View Statement">
+                          <Receipt className="w-4 h-4 text-[#010307]/40 hover:text-[#010307]" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full hover:text-red-500"
+                          onClick={() => handleUndoSettlement(po.id)} title="Undo Settlement">
+                          <RefreshCcw className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* ════════════════════════════════════════════════════════
           COMPLETE PAYOUT FLOW DIALOG (3 steps)
@@ -774,7 +844,7 @@ export function PayoutsTracker() {
                 </div>
               </div>
 
-              <StatementView payout={completedPayout} printRef={printRef} />
+              {completedPayout && <StatementView payout={completedPayout} printRef={printRef} />}
 
               <div className="flex gap-4 pt-8 border-t border-gray-100">
                 <Button onClick={() => handlePrint(printRef)}

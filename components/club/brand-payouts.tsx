@@ -25,7 +25,8 @@ import {
   Receipt,
   Smartphone,
   Wallet,
-  Banknote
+  Banknote,
+  AlertCircle
 } from "lucide-react"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -321,52 +322,80 @@ export function BrandPayouts({ brandId }: BrandPayoutsProps) {
           </Button>
         </div>
 
-        <Card className="border border-black/5 shadow-sm rounded-[2rem] bg-white overflow-hidden">
+        <Card className="border border-[#010307]/5 shadow-2xl rounded-[3rem] bg-white overflow-hidden transition-all duration-500 hover:shadow-orange-500/5">
            <div className="overflow-x-auto">
               <table className="w-full text-left">
                  <thead className="bg-gray-50/50">
                     <tr className="border-none">
-                       <th className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Ledger ID</th>
-                       <th className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Period</th>
-                       <th className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Gross Vol</th>
-                       <th className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Fees</th>
-                       <th className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Settlement</th>
-                       <th className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400 text-right">Status</th>
+                       <th className="px-10 py-8 font-black text-[10px] uppercase tracking-[0.2em] text-[#010307]/30">Ledger Index</th>
+                       <th className="py-8 font-black text-[10px] uppercase tracking-[0.2em] text-[#010307]/30">Cycle</th>
+                       <th className="py-8 font-black text-[10px] uppercase tracking-[0.2em] text-[#010307]/30">Gross Aggregation</th>
+                       <th className="py-8 font-black text-[10px] uppercase tracking-[0.2em] text-[#010307]/30">Service Fees (PPF)</th>
+                       <th className="py-8 font-black text-[10px] uppercase tracking-[0.2em] text-[#010307]/30">Net Disbursement</th>
+                       <th className="px-10 py-8 font-black text-[10px] uppercase tracking-[0.2em] text-[#010307]/30 text-right">Verification</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-gray-50">
                     {loading ? (
-                       <tr><td colSpan={6} className="text-center py-20 animate-pulse text-gray-300 font-black uppercase tracking-widest text-[10px]">Syncing accounts...</td></tr>
+                       <tr><td colSpan={6} className="text-center py-24 animate-pulse">
+                          <div className="flex flex-col items-center gap-4">
+                             <div className="w-10 h-10 border-4 border-[#FE7F2D]/20 border-t-[#FE7F2D] rounded-full animate-spin"></div>
+                             <p className="text-[#010307]/20 font-black uppercase tracking-widest text-[10px]">Syncing Financial Logs...</p>
+                          </div>
+                       </td></tr>
                     ) : payouts.length === 0 ? (
-                       <tr><td colSpan={6} className="text-center py-24 text-gray-300 italic font-medium">No finalized settlements recorded in the ledger yet.</td></tr>
+                       <tr><td colSpan={6} className="text-center py-32 text-[#010307]/20 italic font-black uppercase text-xs tracking-widest">No finalized ledger entries detected.</td></tr>
                     ) : (
                        payouts.map((p) => (
-                           <tr key={p.id} className="group hover:bg-[#010307]/5 transition-colors">
-                              <td className="px-10 py-8">
-                                 <span className="font-mono text-xs font-bold text-[#010307]/20 lowercase tracking-tighter">#{p.id.slice(0, 8)}</span>
+                           <tr key={p.id} className="group hover:bg-[#FE7F2D]/[0.02] transition-colors">
+                              <td className="px-10 py-10">
+                                 <div className="flex items-center gap-3">
+                                    <div className="w-2 h-2 rounded-full bg-[#FE7F2D]/20 transition-all group-hover:bg-[#FE7F2D] group-hover:shadow-[0_0_8px_rgba(254,127,45,0.4)]"></div>
+                                    <span className="font-mono text-xs font-bold text-[#010307]/30 lowercase tracking-tighter">log_{p.id.slice(0, 8)}</span>
+                                 </div>
                               </td>
-                              <td className="py-8 font-black text-xs text-[#010307]/60 tabular-nums">
-                                 {p.month}/{p.year}
+                              <td className="py-10">
+                                 <div className="flex flex-col">
+                                    <span className="font-black text-sm text-[#010307] italic">{p.month}/{p.year}</span>
+                                    <span className="text-[8px] font-bold text-[#010307]/20 uppercase tracking-widest">monthly cycle</span>
+                                 </div>
                               </td>
-                              <td className="py-8 font-black text-sm text-[#010307]">npr {p.gross_sales?.toLocaleString() || "0"}</td>
-                              <td className="py-8 font-bold text-sm text-red-500 flex items-center gap-1.5 opacity-60">
-                                 <TrendingDown className="w-3.5 h-3.5 text-red-300" /> npr {p.ppf_amount?.toLocaleString() || "0"}
+                              <td className="py-10">
+                                 <div className="flex flex-col">
+                                    <span className="font-black text-sm text-[#010307] tabular-nums">npr {p.gross_sales?.toLocaleString() || "0"}</span>
+                                    <span className="text-[8px] font-bold text-green-500/40 uppercase tracking-widest">total revenue</span>
+                                 </div>
                               </td>
-                              <td className="py-8 font-black text-[#FE7F2D] text-lg italic">
-                                 npr {p.net_payout?.toLocaleString() || "0"}
+                              <td className="py-10 font-bold text-sm">
+                                 <div className="flex flex-col">
+                                    <div className="flex items-center gap-1.5 text-red-500/60 font-black tabular-nums">
+                                       <TrendingDown className="w-3.5 h-3.5 opacity-50" /> npr {p.ppf_amount?.toLocaleString() || "0"}
+                                    </div>
+                                    <span className="text-[8px] font-bold text-red-500/20 uppercase tracking-widest font-mono">fee protocol</span>
+                                 </div>
                               </td>
-                              <td className="px-10 py-8 text-right flex items-center justify-end gap-3">
-                                 {getStatusBadge(p.status)}
-                                 {p.status === 'paid' && (
-                                   <Button 
-                                     variant="ghost" 
-                                     size="icon" 
-                                     onClick={() => setViewPayout(p)}
-                                     className="w-8 h-8 rounded-full opacity-40 group-hover:opacity-100 transition-opacity hover:text-[#FE7F2D]"
-                                   >
-                                      <Receipt className="w-4 h-4" />
-                                   </Button>
-                                 )}
+                              <td className="py-10">
+                                 <div className="flex flex-col">
+                                    <span className="font-black text-[#FE7F2D] text-xl italic tracking-tighter tabular-nums drop-shadow-sm group-hover:scale-105 transition-transform origin-left">
+                                       npr {p.net_payout?.toLocaleString() || "0"}
+                                    </span>
+                                    <span className="text-[8px] font-bold text-[#FE7F2D]/30 uppercase tracking-widest italic">settlement value</span>
+                                 </div>
+                              </td>
+                              <td className="px-10 py-10 text-right">
+                                 <div className="flex items-center justify-end gap-6">
+                                    {getStatusBadge(p.status)}
+                                    {p.status === 'paid' && (
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm"
+                                        onClick={() => setViewPayout(p)}
+                                        className="h-10 px-4 rounded-xl border-[#010307]/5 font-black text-[9px] uppercase tracking-widest hover:bg-[#010307] hover:text-white transition-all flex items-center gap-2 group/btn"
+                                      >
+                                         <Receipt className="w-3.5 h-3.5 group-hover/btn:scale-110 transition-transform" /> statement
+                                      </Button>
+                                    )}
+                                 </div>
                               </td>
                            </tr>
                        ))
@@ -382,22 +411,41 @@ export function BrandPayouts({ brandId }: BrandPayoutsProps) {
             <ShieldCheck className="w-8 h-8" />
          </div>
          <div className="space-y-1 flex-1 text-center md:text-left">
-            <h4 className="text-xl font-black tracking-tighter lowercase italic">automated settlements</h4>
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2">
+            <h4 className="text-xl font-black tracking-tighter lowercase italic flex items-center gap-2 justify-center md:justify-start">
+              active disbursement profile
+              <Badge className="bg-green-500/10 text-green-600 border-none font-black text-[8px] uppercase tracking-widest px-2 py-0.5">verified</Badge>
+            </h4>
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-3">
                {settlementDetails.type === 'cash' ? (
-                 <div className="flex items-center gap-2 text-[#FE7F2D] font-black text-xs italic underline underline-offset-4 decoration-2">
-                    <Banknote className="w-4 h-4" /> physical cash
+                 <div className="flex items-center gap-4 bg-orange-50/50 px-5 py-3 rounded-2xl border border-orange-100/50">
+                    <Banknote className="w-5 h-5 text-[#FE7F2D]" /> 
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40 mb-0.5">Physical Settlement</span>
+                      <span className="text-xs font-bold text-[#FE7F2D] italic">Cash at Club Treasury Desk</span>
+                    </div>
                  </div>
                ) : settlementDetails.type === 'wallet' && settlementDetails.walletNumber ? (
-                 <div className="flex items-center gap-2 text-[#FE7F2D] font-black text-xs italic underline underline-offset-4 decoration-2">
-                    <Smartphone className="w-4 h-4" /> {settlementDetails.walletProvider} ({settlementDetails.walletNumber})
+                 <div className="flex items-center gap-4 bg-blue-50/30 px-5 py-3 rounded-2xl border border-blue-100/50">
+                    <Smartphone className="w-5 h-5 text-blue-500" /> 
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40 mb-0.5">{settlementDetails.walletProvider || 'Digital Wallet'}</span>
+                      <span className="text-xs font-bold text-[#010307] italic underline underline-offset-4 decoration-blue-500/30">{settlementDetails.walletNumber}</span>
+                      <span className="text-[9px] text-[#010307]/30 italic mt-0.5">verified holder: {settlementDetails.accountName}</span>
+                    </div>
                  </div>
                ) : settlementDetails.type === 'bank' && settlementDetails.accountNumber ? (
-                 <div className="flex items-center gap-2 text-[#FE7F2D] font-black text-xs italic underline underline-offset-4 decoration-2">
-                    <Building2 className="w-4 h-4" /> {settlementDetails.bankName} (...{settlementDetails.accountNumber.slice(-4)})
+                 <div className="flex items-center gap-4 bg-emerald-50/30 px-5 py-3 rounded-2xl border border-emerald-100/50">
+                    <Building2 className="w-5 h-5 text-emerald-600" /> 
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40 mb-0.5">{settlementDetails.bankName || 'Bank'}</span>
+                      <span className="text-xs font-bold text-[#010307] italic underline underline-offset-4 decoration-emerald-500/30">Ending in ...{settlementDetails.accountNumber.slice(-4)}</span>
+                      <span className="text-[9px] text-[#010307]/30 italic mt-0.5">{settlementDetails.accountName}</span>
+                    </div>
                  </div>
                ) : (
-                 <p className="text-[#010307]/40 font-medium text-sm italic leading-relaxed lowercase">Configure your preferred settlement method. Admins will process payouts based on these details.</p>
+                 <div className="flex items-center gap-2 bg-gray-50 px-5 py-3 rounded-2xl border border-gray-100 text-[#010307]/20 font-bold text-[10px] uppercase tracking-widest italic">
+                    <AlertCircle className="w-4 h-4" /> configuration missing
+                 </div>
                )}
             </div>
          </div>
@@ -412,109 +460,154 @@ export function BrandPayouts({ brandId }: BrandPayoutsProps) {
                </Button>
             </DialogTrigger>
             <DialogContent className="max-w-xl rounded-[2.5rem] p-0 border-none shadow-2xl overflow-hidden focus:outline-none">
-               <div className="bg-[#010307] text-white p-10 space-y-2">
-                  <DialogTitle className="text-3xl font-black italic lowercase tracking-tighter">Settlement Account</DialogTitle>
-                  <DialogDescription className="text-white/40 text-[10px] font-bold uppercase tracking-widest italic">official disbursement information</DialogDescription>
-               </div>
-               <div className="p-10 space-y-8">
-                  <Tabs value={settlementDetails.type} onValueChange={(v) => setSettlementDetails({...settlementDetails, type: v as PaymentMethodType})} className="w-full">
-                    <TabsList className="grid grid-cols-3 w-full h-14 bg-gray-50 rounded-2xl p-1">
-                      <TabsTrigger value="bank" className="rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Bank</TabsTrigger>
-                      <TabsTrigger value="wallet" className="rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Wallet</TabsTrigger>
-                      <TabsTrigger value="cash" className="rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:shadow-sm">Cash</TabsTrigger>
-                    </TabsList>
-                    
-                    <div className="mt-8">
-                      <TabsContent value="bank" className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2 col-span-2">
-                             <Label className="text-[9px] font-black uppercase tracking-widest text-[#010307]/30">Account Holder Name</Label>
-                             <Input 
-                                value={settlementDetails.accountName}
-                                onChange={(e) => setSettlementDetails({...settlementDetails, accountName: e.target.value})}
-                                className="h-12 rounded-xl border-none bg-gray-50 font-bold lowercase italic"
-                                placeholder="..."
-                             />
-                          </div>
-                          <div className="space-y-2">
-                             <Label className="text-[9px] font-black uppercase tracking-widest text-[#010307]/30">Bank Name</Label>
-                             <Input 
-                                value={settlementDetails.bankName}
-                                onChange={(e) => setSettlementDetails({...settlementDetails, bankName: e.target.value})}
-                                className="h-12 rounded-xl border-none bg-gray-50 font-bold lowercase italic"
-                                placeholder="NIC Asia, NABIL, etc."
-                             />
-                          </div>
-                          <div className="space-y-2">
-                             <Label className="text-[9px] font-black uppercase tracking-widest text-[#010307]/30">Account Number</Label>
-                             <Input 
-                                value={settlementDetails.accountNumber}
-                                onChange={(e) => setSettlementDetails({...settlementDetails, accountNumber: e.target.value})}
-                                className="h-12 rounded-xl border-none bg-gray-50 font-bold italic"
-                                placeholder="..."
-                             />
-                          </div>
-                          <div className="space-y-2">
-                             <Label className="text-[9px] font-black uppercase tracking-widest text-[#010307]/30">Branch</Label>
-                             <Input 
-                                value={settlementDetails.branchName}
-                                onChange={(e) => setSettlementDetails({...settlementDetails, branchName: e.target.value})}
-                                className="h-12 rounded-xl border-none bg-gray-50 font-bold lowercase italic"
-                             />
-                          </div>
-                          <div className="space-y-2">
-                             <Label className="text-[9px] font-black uppercase tracking-widest text-[#010307]/30">SWIFT (Optional)</Label>
-                             <Input 
-                                value={settlementDetails.swiftCode}
-                                onChange={(e) => setSettlementDetails({...settlementDetails, swiftCode: e.target.value})}
-                                className="h-12 rounded-xl border-none bg-gray-50 font-bold uppercase"
-                             />
-                          </div>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="wallet" className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <div className="grid grid-cols-2 gap-4">
-                           <div className="space-y-2">
-                              <Label className="text-[9px] font-black uppercase tracking-widest text-[#010307]/30">Wallet Provider</Label>
-                              <Input 
-                                 value={settlementDetails.walletProvider}
-                                 onChange={(e) => setSettlementDetails({...settlementDetails, walletProvider: e.target.value})}
-                                 className="h-12 rounded-xl border-none bg-gray-50 font-bold lowercase italic"
-                                 placeholder="eSewa, Khalti, etc."
-                              />
-                           </div>
-                           <div className="space-y-2">
-                              <Label className="text-[9px] font-black uppercase tracking-widest text-[#010307]/30">Registered Number</Label>
-                              <Input 
-                                 value={settlementDetails.walletNumber}
-                                 onChange={(e) => setSettlementDetails({...settlementDetails, walletNumber: e.target.value})}
-                                 className="h-12 rounded-xl border-none bg-gray-50 font-bold italic"
-                                 placeholder="98..."
-                              />
-                           </div>
+                <div className="bg-[#010307] text-white p-10 space-y-3 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-[#FE7F2D]/10 blur-3xl -mr-16 -mt-16"></div>
+                   <div className="flex items-center gap-4 relative z-10">
+                      <div className="w-12 h-12 bg-[#FE7F2D] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-orange-500/20">
+                         <ShieldCheck className="w-6 h-6" />
+                      </div>
+                      <div>
+                         <DialogTitle className="text-3xl font-black italic lowercase tracking-tighter">Treasury Terminal</DialogTitle>
+                         <DialogDescription className="text-white/40 text-[10px] font-bold uppercase tracking-widest italic">Official Disbursement Configuration</DialogDescription>
+                      </div>
+                   </div>
+                </div>
+                <div className="p-10 space-y-10">
+                   <Tabs value={settlementDetails.type} onValueChange={(v) => setSettlementDetails({...settlementDetails, type: v as PaymentMethodType})} className="w-full">
+                     <TabsList className="grid grid-cols-3 w-full h-16 bg-gray-50 rounded-[1.5rem] p-1.5 border border-[#010307]/5">
+                       <TabsTrigger value="bank" className="rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#010307] data-[state=active]:text-white data-[state=active]:shadow-xl flex items-center gap-2">
+                          <Building2 className="w-3.5 h-3.5" /> Bank
+                       </TabsTrigger>
+                       <TabsTrigger value="wallet" className="rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#010307] data-[state=active]:text-white data-[state=active]:shadow-xl flex items-center gap-2">
+                          <Smartphone className="w-3.5 h-3.5" /> Wallet
+                       </TabsTrigger>
+                       <TabsTrigger value="cash" className="rounded-xl font-black text-[10px] uppercase tracking-widest data-[state=active]:bg-[#010307] data-[state=active]:text-white data-[state=active]:shadow-xl flex items-center gap-2">
+                          <Banknote className="w-3.5 h-3.5" /> Cash
+                       </TabsTrigger>
+                     </TabsList>
+                     
+                     <div className="mt-10">
+                       <TabsContent value="bank" className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                         <div className="flex items-center gap-3 mb-2 px-1">
+                            <div className="w-8 h-8 rounded-lg bg-[#FE7F2D]/10 flex items-center justify-center text-[#FE7F2D]">
+                               <Building2 className="w-4 h-4" />
+                            </div>
+                            <h4 className="font-black text-sm italic lowercase tracking-tight">Bank Settlement Details</h4>
+                         </div>
+                         <div className="grid grid-cols-2 gap-6">
                            <div className="space-y-2 col-span-2">
-                              <Label className="text-[9px] font-black uppercase tracking-widest text-[#010307]/30">Account Name</Label>
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40 flex justify-between">
+                                 Account Holder Name
+                                 <span className="text-[8px] italic opacity-50">Legal Name Required</span>
+                              </Label>
                               <Input 
                                  value={settlementDetails.accountName}
                                  onChange={(e) => setSettlementDetails({...settlementDetails, accountName: e.target.value})}
-                                 className="h-12 rounded-xl border-none bg-gray-50 font-bold lowercase italic"
-                                 placeholder="..."
+                                 className="h-14 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-[#FE7F2D]/30 transition-all font-bold lowercase italic text-base placeholder:opacity-20 translate-y-0"
+                                 placeholder="e.g. creative ventures pvt ltd"
                               />
                            </div>
-                        </div>
-                      </TabsContent>
-
-                      <TabsContent value="cash" className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <div className="p-8 bg-orange-50 rounded-2xl border border-orange-100/50 flex flex-col items-center text-center gap-4">
-                           <Banknote className="w-10 h-10 text-[#FE7F2D]" />
-                           <p className="text-xs font-bold text-[#FE7F2D] lowercase leading-relaxed">
-                              Cash settlements will be handled physically at the club treasury. Please ensure you sign the payment voucher upon receipt.
-                           </p>
-                        </div>
-                      </TabsContent>
-                    </div>
-                  </Tabs>
+                           <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40">Bank Name</Label>
+                              <Input 
+                                 value={settlementDetails.bankName}
+                                 onChange={(e) => setSettlementDetails({...settlementDetails, bankName: e.target.value})}
+                                 className="h-14 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-[#FE7F2D]/30 transition-all font-bold lowercase italic"
+                                 placeholder="e.g. NIC Asia Bank"
+                              />
+                           </div>
+                           <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40">Account Number</Label>
+                              <Input 
+                                 value={settlementDetails.accountNumber}
+                                 onChange={(e) => setSettlementDetails({...settlementDetails, accountNumber: e.target.value})}
+                                 className="h-14 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-[#FE7F2D]/30 transition-all font-black text-base tabular-nums"
+                                 placeholder="0000 0000 0000"
+                              />
+                           </div>
+                           <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40">Branch Name</Label>
+                              <Input 
+                                 value={settlementDetails.branchName}
+                                 onChange={(e) => setSettlementDetails({...settlementDetails, branchName: e.target.value})}
+                                 className="h-14 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-[#FE7F2D]/30 transition-all font-bold lowercase italic"
+                                 placeholder="e.g. Thamel"
+                              />
+                           </div>
+                           <div className="space-y-2">
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40">Swift Code <span className="text-[8px] opacity-30 font-bold">(Optional)</span></Label>
+                              <Input 
+                                 value={settlementDetails.swiftCode}
+                                 onChange={(e) => setSettlementDetails({...settlementDetails, swiftCode: e.target.value})}
+                                 className="h-14 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-[#FE7F2D]/30 transition-all font-bold uppercase tracking-widest text-sm"
+                                 placeholder="NICANP..."
+                              />
+                           </div>
+                         </div>
+                       </TabsContent>
+ 
+                       <TabsContent value="wallet" className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                          <div className="flex items-center gap-3 mb-2 px-1">
+                             <div className="w-8 h-8 rounded-lg bg-[#FE7F2D]/10 flex items-center justify-center text-[#FE7F2D]">
+                                <Smartphone className="w-4 h-4" />
+                             </div>
+                             <h4 className="font-black text-sm italic lowercase tracking-tight">Digital Wallet Links</h4>
+                          </div>
+                          <div className="grid grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                               <Label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40">Provider</Label>
+                               <Input 
+                                  value={settlementDetails.walletProvider}
+                                  onChange={(e) => setSettlementDetails({...settlementDetails, walletProvider: e.target.value})}
+                                  className="h-14 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-[#FE7F2D]/30 transition-all font-bold lowercase italic text-base"
+                                  placeholder="e.g. eSewa / Khalti"
+                               />
+                            </div>
+                            <div className="space-y-2">
+                               <Label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40">Linked Phone Number</Label>
+                               <Input 
+                                  value={settlementDetails.walletNumber}
+                                  onChange={(e) => setSettlementDetails({...settlementDetails, walletNumber: e.target.value})}
+                                  className="h-14 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-[#FE7F2D]/30 transition-all font-black text-base tabular-nums"
+                                  placeholder="98..."
+                               />
+                            </div>
+                            <div className="space-y-2 col-span-2">
+                               <Label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40">Full Name on Wallet</Label>
+                               <Input 
+                                  value={settlementDetails.accountName}
+                                  onChange={(e) => setSettlementDetails({...settlementDetails, accountName: e.target.value})}
+                                  className="h-14 rounded-2xl border border-gray-100 bg-gray-50/50 focus:bg-white focus:border-[#FE7F2D]/30 transition-all font-bold lowercase italic text-base"
+                                  placeholder="as seen in wallet app"
+                               />
+                            </div>
+                         </div>
+                       </TabsContent>
+ 
+                       <TabsContent value="cash" className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                         <div className="p-10 bg-orange-50/50 rounded-[2.5rem] border border-[#FE7F2D]/10 flex flex-col items-center text-center gap-6 relative overflow-hidden group">
+                            <div className="absolute top-0 left-0 w-full h-1 bg-[#FE7F2D]/20"></div>
+                            <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-[#FE7F2D] shadow-xl shadow-orange-500/10 group-hover:scale-110 transition-transform">
+                               <Banknote className="w-8 h-8" />
+                            </div>
+                            <div className="space-y-2">
+                               <p className="text-[10px] font-black text-[#FE7F2D] uppercase tracking-widest">Physical Settlement Signal</p>
+                               <p className="text-sm font-bold text-[#010307]/60 lowercase leading-relaxed max-w-xs mx-auto">
+                                  Cash settlements are aggregated and disbursed directly at the <span className="text-[#010307] font-black italic">Club Treasury Desk</span> in Kathmandu.
+                               </p>
+                            </div>
+                            <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-none font-bold italic lowercase text-[10px] px-6 py-2 rounded-full">Manual Voucher Signing Required</Badge>
+                         </div>
+                       </TabsContent>
+                     </div>
+                   </Tabs>
+ 
+                   <div className="p-6 bg-gray-50 rounded-2xl flex items-start gap-4 border border-gray-100 italic">
+                      <ShieldCheck className="w-5 h-5 text-green-600 mt-1 shrink-0" />
+                      <p className="text-[10px] font-medium text-gray-500 leading-relaxed uppercase">
+                         Your financial telemetry is shared ONLY with authorized treasury administrators. All changes are logged for security verification.
+                      </p>
+                   </div>
 
                   <div className="flex gap-4 pt-4">
                      <Button variant="ghost" onClick={() => setIsDialogOpen(false)} className="flex-1 h-14 rounded-2xl font-black lowercase italic tracking-widest text-[#010307]/40">cancel</Button>

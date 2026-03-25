@@ -17,6 +17,7 @@ import {
   PlusCircle,
   HelpCircle,
   TrendingUp,
+  BarChart3,
 } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useState } from "react"
@@ -52,6 +53,7 @@ export function BrandLayout({
 
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { id: "sales", label: "Sales Report", icon: BarChart3 },
     { id: "inbox", label: "Inbox & Enquiries", icon: MessageSquare },
     { id: "inventory", label: "Product Catalog", icon: Package },
     { id: "shelf", label: "Shelf Space", icon: HelpCircle },

@@ -7,7 +7,6 @@ import {
     Activity,
     ArrowUpRight,
     DollarSign,
-    History,
     Package,
     LayoutGrid,
     Calendar,
@@ -21,9 +20,10 @@ import { useEffect, useState } from "react"
 
 interface BrandDashboardOverviewProps {
   brandId: string
+  onTabChange?: (tab: string) => void
 }
 
-export function BrandDashboardOverview({ brandId }: BrandDashboardOverviewProps) {
+export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardOverviewProps) {
   const [stats, setStats] = useState({
     totalSales: 0,
     totalOrders: 0,
@@ -32,7 +32,6 @@ export function BrandDashboardOverview({ brandId }: BrandDashboardOverviewProps)
   const [lowStockProducts, setLowStockProducts] = useState<any[]>([])
   const [activeBooking, setActiveBooking] = useState<any>(null)
   const [allottedSlots, setAllottedSlots] = useState<any[]>([])
-  const [topProducts, setTopProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -65,30 +64,6 @@ export function BrandDashboardOverview({ brandId }: BrandDashboardOverviewProps)
         activeProducts: products.length
       })
 
-      const { data: invoiceItems } = await supabase
-        .from("invoice_items")
-        .select("product_id, quantity")
-        .in("product_id", products.map(p => p.id))
-      
-      if (invoiceItems && invoiceItems.length > 0) {
-        const productSales: Record<string, number> = {}
-        invoiceItems.forEach(item => {
-          if (!productSales[item.product_id]) productSales[item.product_id] = 0
-          productSales[item.product_id] += item.quantity
-        })
-        
-        const top = products
-          .filter(p => productSales[p.id])
-          .map(p => ({
-            ...p,
-            sold: productSales[p.id]
-          }))
-          .sort((a, b) => b.sold - a.sold)
-          .slice(0, 5)
-        
-        setTopProducts(top)
-      }
-
     } catch (error) {
       console.error("Error fetching dashboard data:", error)
     } finally {
@@ -99,12 +74,12 @@ export function BrandDashboardOverview({ brandId }: BrandDashboardOverviewProps)
   if (loading) {
     return (
       <div className="space-y-10">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[1,2,3].map(i => <Card key={i} className="animate-pulse h-48 rounded-[2.5rem] bg-white/50 border-none shadow-xl"></Card>)}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[1,2,3,4].map(i => <Card key={i} className="animate-pulse h-32 rounded-2xl bg-white border-none shadow-sm"></Card>)}
         </div>
         <div className="grid lg:grid-cols-2 gap-8">
-           <Card className="animate-pulse h-96 rounded-[3rem] bg-white/50 border-none shadow-xl"></Card>
-           <Card className="animate-pulse h-96 rounded-[3rem] bg-white/50 border-none shadow-xl"></Card>
+           <Card className="animate-pulse h-96 rounded-[3rem] bg-white border-none shadow-xl"></Card>
+           <Card className="animate-pulse h-96 rounded-[3rem] bg-white border-none shadow-xl"></Card>
         </div>
       </div>
     )
@@ -123,6 +98,49 @@ export function BrandDashboardOverview({ brandId }: BrandDashboardOverviewProps)
                partner id: {brandId.slice(0, 8)}
             </Badge>
          </div>
+      </div>
+
+      {/* Quick Actions at Top - Primary Focus */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <button 
+            onClick={() => onTabChange?.("inventory")}
+            className="flex flex-col items-center justify-center p-8 bg-white hover:bg-[#010307] hover:text-white rounded-[2rem] border border-[#010307]/5 transition-all group active:scale-95 text-center shadow-sm hover:shadow-xl"
+          >
+            <div className="w-12 h-12 bg-[#FE7F2D]/10 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-[#FE7F2D] transition-colors">
+                <Plus className="w-6 h-6 text-[#FE7F2D] group-hover:text-white" />
+            </div>
+            <span className="text-xs font-black lowercase italic tracking-tight">launch new item</span>
+          </button>
+          
+          <button 
+            onClick={() => onTabChange?.("profile")}
+            className="flex flex-col items-center justify-center p-8 bg-white hover:bg-[#010307] hover:text-white rounded-[2rem] border border-[#010307]/5 transition-all group active:scale-95 text-center shadow-sm hover:shadow-xl"
+          >
+            <div className="w-12 h-12 bg-[#FE7F2D]/10 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-[#FE7F2D] transition-colors">
+                <UserCircle className="w-6 h-6 text-[#FE7F2D] group-hover:text-white" />
+            </div>
+            <span className="text-xs font-black lowercase italic tracking-tight">update profiles</span>
+          </button>
+
+          <button 
+            onClick={() => onTabChange?.("inbox")}
+            className="flex flex-col items-center justify-center p-8 bg-white hover:bg-[#010307] hover:text-white rounded-[2rem] border border-[#010307]/5 transition-all group active:scale-95 text-center shadow-sm hover:shadow-xl"
+          >
+            <div className="w-12 h-12 bg-[#FE7F2D]/10 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-[#FE7F2D] transition-colors">
+                <MessageSquare className="w-6 h-6 text-[#FE7F2D] group-hover:text-white" />
+            </div>
+            <span className="text-xs font-black lowercase italic tracking-tight">signal inbox</span>
+          </button>
+
+          <button 
+            onClick={() => onTabChange?.("payouts")}
+            className="flex flex-col items-center justify-center p-8 bg-[#FE7F2D] text-white rounded-[2rem] border border-[#FE7F2D]/10 transition-all group active:scale-95 text-center shadow-xl shadow-orange-500/20"
+          >
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <DollarSign className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-xs font-black lowercase italic tracking-tight">payout request</span>
+          </button>
       </div>
 
       {/* Quick Stats Grid */}
@@ -173,7 +191,7 @@ export function BrandDashboardOverview({ brandId }: BrandDashboardOverviewProps)
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Shelf Territory */}
         <Card className="border border-black/5 shadow-sm rounded-[2rem] bg-white overflow-hidden p-0">
            <CardHeader className="p-8 pb-4 border-b border-[#010307]/5">
@@ -228,65 +246,6 @@ export function BrandDashboardOverview({ brandId }: BrandDashboardOverviewProps)
                            </div>
                         </div>
                       ))}
-                   </div>
-                   
-                   {activeBooking && (
-                      <div className="space-y-4 pt-4 border-t border-gray-50 px-2">
-                        <div className="flex justify-between items-center group">
-                           <div className="flex items-center gap-2 text-gray-400 group-hover:text-gray-600 transition-colors">
-                              <Calendar className="w-3 h-3" />
-                              <span className="text-[10px] font-bold uppercase tracking-wide">subscription start</span>
-                           </div>
-                           <span className="text-xs font-black text-[#010307] italic">{new Date(activeBooking.start_date).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex justify-between items-center group">
-                           <div className="flex items-center gap-2 text-red-400 group-hover:text-red-500 transition-colors">
-                              <Clock className="w-3 h-3" />
-                              <span className="text-[10px] font-bold uppercase tracking-wide">auto-renewal date</span>
-                           </div>
-                           <span className="text-xs font-black text-red-600 italic">{new Date(activeBooking.end_date).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                   )}
-                   
-                   <div className="bg-[#FE7F2D]/5 p-4 rounded-2xl border border-[#FE7F2D]/10">
-                      <p className="text-[10px] font-bold text-[#FE7F2D] lowercase tracking-tight italic">
-                         territorial assignment is live. use the products tab to stock your allotted units.
-                      </p>
-                   </div>
-                </div>
-              ) : activeBooking ? (
-                <div className="space-y-6">
-                   <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                         <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">shelf level</p>
-                         <p className="font-black text-[#010307] lowercase italic">{activeBooking.shelf_type.replace('_', ' ')}</p>
-                      </div>
-                      <div className="p-4 bg-[#FE7F2D]/5 rounded-2xl border border-[#FE7F2D]/10">
-                         <p className="text-[9px] font-bold text-[#FE7F2D]/60 uppercase tracking-widest mb-1">slot</p>
-                         <p className="font-black text-[#FE7F2D] text-xl leading-none italic">#{activeBooking.slot_number}</p>
-                      </div>
-                   </div>
-                   <div className="space-y-4 pt-4 border-t border-gray-50">
-                      <div className="flex justify-between items-center">
-                         <div className="flex items-center gap-2 text-gray-400">
-                            <Calendar className="w-3 h-3" />
-                            <span className="text-[10px] font-bold uppercase tracking-wide">start date</span>
-                         </div>
-                         <span className="text-xs font-black text-[#010307] italic">{new Date(activeBooking.start_date).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                         <div className="flex items-center gap-2 text-red-400">
-                            <Clock className="w-3 h-3" />
-                            <span className="text-[10px] font-bold uppercase tracking-wide">expires at</span>
-                         </div>
-                         <span className="text-xs font-black text-red-600 italic">{new Date(activeBooking.end_date).toLocaleDateString()}</span>
-                      </div>
-                   </div>
-                   <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50">
-                      <p className="text-[10px] font-bold text-blue-600 lowercase tracking-tight italic">
-                         Your territorial rights are active. Contact support 14 days before expiration for renewal options.
-                      </p>
                    </div>
                 </div>
               ) : (
@@ -344,49 +303,6 @@ export function BrandDashboardOverview({ brandId }: BrandDashboardOverviewProps)
                    <p className="text-gray-400 font-bold lowercase italic text-xs tracking-wide">catalog is synchronized.</p>
                 </div>
               )}
-           </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="border border-black/5 shadow-sm rounded-[2rem] bg-white overflow-hidden p-0">
-           <CardHeader className="p-8 pb-4 border-b border-[#010307]/5">
-              <CardTitle className="text-xl font-black tracking-tighter lowercase italic flex items-center gap-3">
-                <Zap className="w-5 h-5 text-yellow-500" />
-                quick actions
-              </CardTitle>
-              <p className="text-[10px] font-bold lowercase text-[#010307]/30 tracking-widest mt-1">direct system signals</p>
-           </CardHeader>
-           <CardContent className="p-8 space-y-4">
-              <div className="grid grid-cols-1 gap-3">
-                 <button className="flex items-center justify-between p-4 bg-gray-50 hover:bg-black hover:text-white rounded-2xl border border-gray-100 transition-all group active:scale-95 text-left">
-                    <div className="flex items-center gap-4">
-                       <Plus className="w-4 h-4 text-[#FE7F2D]" />
-                       <span className="text-xs font-black lowercase italic tracking-tight">launch new item</span>
-                    </div>
-                    <ArrowUpRight className="w-3 h-3 text-gray-300 group-hover:text-white" />
-                 </button>
-                 <button className="flex items-center justify-between p-4 bg-gray-50 hover:bg-black hover:text-white rounded-2xl border border-gray-100 transition-all group active:scale-95 text-left">
-                    <div className="flex items-center gap-4">
-                       <UserCircle className="w-4 h-4 text-[#FE7F2D]" />
-                       <span className="text-xs font-black lowercase italic tracking-tight">update profiles</span>
-                    </div>
-                    <ArrowUpRight className="w-3 h-3 text-gray-300 group-hover:text-white" />
-                 </button>
-                 <button className="flex items-center justify-between p-4 bg-gray-50 hover:bg-black hover:text-white rounded-2xl border border-gray-100 transition-all group active:scale-95 text-left">
-                    <div className="flex items-center gap-4">
-                       <MessageSquare className="w-4 h-4 text-[#FE7F2D]" />
-                       <span className="text-xs font-black lowercase italic tracking-tight">signal inbox</span>
-                    </div>
-                    <ArrowUpRight className="w-3 h-3 text-gray-300 group-hover:text-white" />
-                 </button>
-                 <button className="flex items-center justify-between p-4 bg-orange-50 hover:bg-[#FE7F2D] hover:text-white rounded-2xl border border-[#FE7F2D]/10 transition-all group active:scale-95 text-left">
-                    <div className="flex items-center gap-4">
-                       <DollarSign className="w-4 h-4 text-[#FE7F2D] group-hover:text-white" />
-                       <span className="text-xs font-black lowercase italic tracking-tight">payout request</span>
-                    </div>
-                    <ArrowUpRight className="w-3 h-3 text-[#FE7F2D]/40 group-hover:text-white" />
-                 </button>
-              </div>
            </CardContent>
         </Card>
       </div>

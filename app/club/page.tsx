@@ -6,6 +6,7 @@ import { BrandLayout } from "@/components/club/brand-layout"
 import { BrandLegal } from "@/components/club/brand-legal"
 import { BrandPayouts } from "@/components/club/brand-payouts"
 import { BrandProfile } from "@/components/club/brand-profile"
+import { BrandSalesReport } from "@/components/club/brand-sales-report"
 import { BrandShelfInfo } from "@/components/club/brand-shelf-info"
 import { InventoryManagement } from "@/components/club/inventory-management"
 import { OnboardingWizard } from "@/components/club/onboarding-wizard"
@@ -124,7 +125,8 @@ function ClubPageContent() {
         onTabChange={setActiveTab}
         onLogout={handleLogout}
       >
-        {activeTab === "dashboard" && <BrandDashboardOverview brandId={brand.id} />}
+        {activeTab === "dashboard" && <BrandDashboardOverview brandId={brand.id} onTabChange={setActiveTab} />}
+        {activeTab === "sales" && <BrandSalesReport brandId={brand.id} />}
         {activeTab === "inventory" && <InventoryManagement brandId={brand.id} />}
         {activeTab === "inbox" && <BrandInbox brandId={brand.id} />}
         {activeTab === "shelf" && <BrandShelfInfo brandId={brand.id} onTabChange={setActiveTab} />}
