@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Search, Printer, Eye, Receipt, FileText, Download } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { ReceiptPrinter } from "./receipt-printer"
 import { useRef } from "react"
@@ -156,8 +156,8 @@ export function InvoiceList() {
                             <div className="space-y-6">
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h3 className="text-3xl font-black italic uppercase italic">THC Club</h3>
-                                  <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Store Terminal 01</p>
+                                  <DialogTitle className="text-3xl font-black italic uppercase">THC Club</DialogTitle>
+                                  <DialogDescription className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-1">Store Terminal 01</DialogDescription>
                                 </div>
                                 <div className="text-right">
                                   <p className="font-black text-xl italic text-[#FE7F2D]">{inv.invoice_number}</p>

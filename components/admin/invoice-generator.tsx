@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
@@ -379,8 +379,8 @@ export function InvoiceGenerator() {
                    <CheckCircle2 className="w-6 h-6" />
                 </div>
                 <div>
-                   <h3 className="text-lg font-black italic">Invoiced Synchronized</h3>
-                   <p className="text-green-700/60 text-[10px] font-black uppercase tracking-widest">Stock and sales records updated</p>
+                   <DialogTitle className="text-lg font-black italic">Invoice Synchronized</DialogTitle>
+                   <DialogDescription className="text-green-700/60 text-[10px] font-black uppercase tracking-widest mt-0.5">Stock and sales records updated</DialogDescription>
                 </div>
              </div>
              <Button variant="ghost" size="icon" onClick={() => setShowInvoice(false)} className="rounded-full hover:bg-green-100">

@@ -46,12 +46,22 @@ interface Payout {
   brands?: { business_name: string; bank_account_details?: any }
 }
 
+interface RecentInvoice {
+  id: string
+  invoice_number: string
+  created_at: string
+  total_amount: number
+  customer_name?: string
+  brands?: { business_name: string }
+}
+
 // ─── Step types for the Complete Payout flow ─────────────────────────────────
 type PayoutFlowStep = "report" | "confirm" | "statement"
 
 export function PayoutsTracker() {
   const [payouts, setPayouts] = useState<Payout[]>([])
   const [liveSales, setLiveSales] = useState<LiveSale[]>([])
+  const [recentInvoices, setRecentInvoices] = useState<RecentInvoice[]>([])
   const [loading, setLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -65,8 +75,19 @@ export function PayoutsTracker() {
   const [adminNotes, setAdminNotes] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [completedPayout, setCompletedPayout] = useState<Payout | null>(null)
+  const [lastSynced, setLastSynced] = useState<Date | null>(null)
 
-  // View existing statement
+  // Derived Stats
+  const currentMonth = new Date().getMonth() + 1
+  const currentYear = new Date().getFullYear()
+
+  // Only count current month for the "Live Flow" ticker, but use all for the total due
+  const currentMonthSales = liveSales.filter(s => s.month === currentMonth && s.year === currentYear)
+  const totalMonthGross = currentMonthSales.reduce((s, x) => s + (x.gross_sales || 0), 0)
+  
+  const totalLiveGross = liveSales.reduce((s, x) => s + (x.gross_sales || 0), 0)
+  const totalLiveDue = liveSales.reduce((sum, s) => sum + (s.gross_sales - (s.ppf_amount || 0)), 0)
+
   const [viewPayout, setViewPayout] = useState<Payout | null>(null)
 
   const printRef = useRef<HTMLDivElement | null>(null)
@@ -90,8 +111,12 @@ export function PayoutsTracker() {
       const { data: salesData } = await supabase
         .from("brand_sales")
         .select("*, brands(business_name, bank_account_details)")
-        .eq("month", currentMonth)
-        .eq("year", currentYear)
+
+      const { data: latestInvoices } = await supabase
+        .from("invoices")
+        .select("id, invoice_number, created_at, total_amount, customer_name, brands(business_name)")
+        .order("created_at", { ascending: false })
+        .limit(10)
 
       const payoutsResult = (payoutData || []) as Payout[]
       
@@ -99,8 +124,16 @@ export function PayoutsTracker() {
       const finalizedIds = new Set(payoutsResult.map(p => `${p.brand_id}-${p.month}-${p.year}`))
       const filteredLiveSales = (salesData || []).filter(s => !finalizedIds.has(`${s.brand_id}-${s.month}-${s.year}`))
 
+      // Final sort: latest year, latest month
+      const sortedLiveSales = (filteredLiveSales as LiveSale[]).sort((a, b) => {
+        if (b.year !== a.year) return b.year - a.year
+        return b.month - a.month
+      })
+
       setPayouts(payoutsResult)
-      setLiveSales(filteredLiveSales as LiveSale[])
+      setLiveSales(sortedLiveSales)
+      setRecentInvoices((latestInvoices || []) as unknown as RecentInvoice[])
+      setLastSynced(now)
     } catch (err) {
       console.error("Fetch failed", err)
       toast.error("Failed to sync latest financial data.")
@@ -343,9 +376,6 @@ export function PayoutsTracker() {
 
   // ─── Derived totals ─────────────────────────────────────────────────────────
 
-  const totalLiveGross = liveSales.reduce((s, x) => s + (x.gross_sales || 0), 0)
-  const totalLiveDue = liveSales.reduce((s, x) => s + ((x.gross_sales || 0) - (x.ppf_amount || 0)), 0)
-
   const printRef2 = useRef<HTMLDivElement | null>(null)
 
   // ─── Flow open state ────────────────────────────────────────────────────────
@@ -456,7 +486,15 @@ export function PayoutsTracker() {
           <h1 className="text-3xl font-black tracking-tighter uppercase italic flex items-center gap-3">
             <Wallet className="w-8 h-8 text-[#FE7F2D]" /> Payouts Terminal
           </h1>
-          <p className="text-gray-500 font-medium text-sm">Real-time settlement aggregator and financial reconciliation.</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-gray-500 font-medium text-sm">Real-time settlement aggregator and financial reconciliation.</p>
+            {lastSynced && (
+               <div className="flex items-center gap-1 px-2 py-0.5 bg-gray-50 rounded-full border border-black/5">
+                  <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span>
+                  <span className="text-[8px] font-bold text-gray-400 uppercase">Synced {lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+               </div>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
           <Button variant="outline" onClick={fetchData} disabled={isSyncing}
@@ -480,8 +518,8 @@ export function PayoutsTracker() {
             </div>
             <Badge className="bg-orange-100 text-orange-700 border-none font-black uppercase text-[8px] px-3 tracking-widest">Live Flow</Badge>
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Current Month Gross</p>
-          <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalLiveGross.toLocaleString()}</h3>
+          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Current Month Flux</p>
+          <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalMonthGross.toLocaleString()}</h3>
         </Card>
 
         <Card className="border-none shadow-xl rounded-[2.5rem] bg-white p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
@@ -630,6 +668,42 @@ export function PayoutsTracker() {
                 </TableBody>
               </Table>
             </Card>
+          </div>
+
+          {/* ── Recent POS Activity ── */}
+          <div className="space-y-6 pt-10 border-t border-gray-100">
+            <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
+              <Receipt className="w-5 h-5 text-gray-400" /> Recent Store Activity
+            </h3>
+            <Card className="border-none shadow-xl rounded-[2.5rem] bg-white/40 overflow-hidden border border-white/60">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-none">
+                    <TableHead className="px-10 py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Timestamp</TableHead>
+                    <TableHead className="py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Partner</TableHead>
+                    <TableHead className="py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Invoice</TableHead>
+                    <TableHead className="py-5 font-black text-[9px] uppercase tracking-widest text-gray-400 text-right pr-10">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentInvoices.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-10 text-gray-300 italic text-xs">No recent transactions synced.</TableCell>
+                    </TableRow>
+                  ) : recentInvoices.map(inv => (
+                    <TableRow key={inv.id} className="border-0">
+                      <TableCell className="px-10 py-4 font-mono text-[10px] text-gray-400">
+                        {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </TableCell>
+                      <TableCell className="py-4 text-[10px] font-black uppercase italic text-gray-900">{inv.brands?.business_name}</TableCell>
+                      <TableCell className="py-4 text-[10px] font-bold text-gray-400">{inv.invoice_number}</TableCell>
+                      <TableCell className="py-4 text-right pr-10 font-bold text-xs">NPR {inv.total_amount.toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+            <p className="text-[10px] text-gray-400 font-medium italic text-center">showing last 10 live invoices across all brand partners.</p>
           </div>
         </TabsContent>
 
