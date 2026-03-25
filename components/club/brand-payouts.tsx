@@ -383,7 +383,23 @@ export function BrandPayouts({ brandId }: BrandPayoutsProps) {
          </div>
          <div className="space-y-1 flex-1 text-center md:text-left">
             <h4 className="text-xl font-black tracking-tighter lowercase italic">automated settlements</h4>
-            <p className="text-[#010307]/40 font-medium text-sm italic leading-relaxed lowercase">Configure your preferred settlement method. Admins will process payouts based on these details.</p>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2">
+               {settlementDetails.type === 'cash' ? (
+                 <div className="flex items-center gap-2 text-[#FE7F2D] font-black text-xs italic underline underline-offset-4 decoration-2">
+                    <Banknote className="w-4 h-4" /> physical cash
+                 </div>
+               ) : settlementDetails.type === 'wallet' && settlementDetails.walletNumber ? (
+                 <div className="flex items-center gap-2 text-[#FE7F2D] font-black text-xs italic underline underline-offset-4 decoration-2">
+                    <Smartphone className="w-4 h-4" /> {settlementDetails.walletProvider} ({settlementDetails.walletNumber})
+                 </div>
+               ) : settlementDetails.type === 'bank' && settlementDetails.accountNumber ? (
+                 <div className="flex items-center gap-2 text-[#FE7F2D] font-black text-xs italic underline underline-offset-4 decoration-2">
+                    <Building2 className="w-4 h-4" /> {settlementDetails.bankName} (...{settlementDetails.accountNumber.slice(-4)})
+                 </div>
+               ) : (
+                 <p className="text-[#010307]/40 font-medium text-sm italic leading-relaxed lowercase">Configure your preferred settlement method. Admins will process payouts based on these details.</p>
+               )}
+            </div>
          </div>
          
          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
