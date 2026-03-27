@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS brands (
 CREATE TABLE IF NOT EXISTS shelf_bookings (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   brand_id UUID REFERENCES brands(id) ON DELETE CASCADE,
+  slot_id UUID, -- Updated later after shelf_slots is created
   shelf_type TEXT NOT NULL CHECK (shelf_type IN ('bottom', 'eye_level', 'top_level')),
   duration TEXT NOT NULL CHECK (duration IN ('quarterly', 'half_yearly', 'yearly')),
   slot_number INTEGER,
@@ -207,11 +208,25 @@ CREATE TABLE IF NOT EXISTS brand_change_requests (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 1.13 shelves (physical shelf units)
-CREATE TABLE IF NOT EXISTS shelves (
+-- 1.13 Physical Infrastructure (Forced Reset for target schema)
+DROP TABLE IF EXISTS shelf_slots CASCADE;
+DROP TABLE IF EXISTS shelves CASCADE;
+DROP TABLE IF EXISTS shelf_sections CASCADE;
+
+-- 1.13 shelf_sections (Logical areas of the club)
+CREATE TABLE shelf_sections (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name TEXT NOT NULL UNIQUE,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 1.14 shelves (physical shelf units)
+CREATE TABLE shelves (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
-  section TEXT,
+  section_id UUID REFERENCES shelf_sections(id) ON DELETE CASCADE,
   is_movable BOOLEAN NOT NULL DEFAULT false,
   size TEXT CHECK (size IN ('small', 'medium', 'large')),
   shelf_type TEXT CHECK (shelf_type IN ('bottom', 'eye_level', 'top_level', 'mixed')),
@@ -220,8 +235,8 @@ CREATE TABLE IF NOT EXISTS shelves (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 1.14 shelf_slots (individual slots within shelves)
-CREATE TABLE IF NOT EXISTS shelf_slots (
+-- 1.15 shelf_slots (individual slots within shelves)
+CREATE TABLE shelf_slots (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   shelf_id UUID REFERENCES shelves(id) ON DELETE CASCADE,
   brand_id UUID REFERENCES brands(id) ON DELETE SET NULL,
@@ -229,9 +244,9 @@ CREATE TABLE IF NOT EXISTS shelf_slots (
   status TEXT NOT NULL DEFAULT 'available'
     CHECK (status IN ('available', 'occupied', 'maintenance')),
   shelf_type TEXT NOT NULL,
-  shelf_name TEXT,
-  section TEXT,
-  section_id UUID,
+  shelf_name TEXT, -- Cached for performance
+  section TEXT,    -- Cached for performance
+  section_id UUID REFERENCES shelf_sections(id) ON DELETE SET NULL,
   occupied_by TEXT,
   booking_id UUID,
   rent_amount NUMERIC(10,2),
@@ -241,6 +256,19 @@ CREATE TABLE IF NOT EXISTS shelf_slots (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Add missing column + FK back to shelf_bookings
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'shelf_bookings' AND column_name = 'slot_id') THEN
+        ALTER TABLE shelf_bookings ADD COLUMN slot_id UUID;
+    END IF;
+END $$;
+
+ALTER TABLE shelf_bookings DROP CONSTRAINT IF EXISTS fk_shelf_bookings_slot;
+ALTER TABLE shelf_bookings 
+ADD CONSTRAINT fk_shelf_bookings_slot 
+FOREIGN KEY (slot_id) REFERENCES shelf_slots(id) ON DELETE SET NULL;
 
 -- 1.15 visit_requests
 CREATE TABLE IF NOT EXISTS visit_requests (
@@ -690,6 +718,7 @@ CREATE POLICY "allow_all" ON stock_update_requests FOR ALL USING (true);
 CREATE POLICY "allow_all" ON brand_change_requests FOR ALL USING (true);
 CREATE POLICY "allow_all" ON shelves               FOR ALL USING (true);
 CREATE POLICY "allow_all" ON shelf_slots           FOR ALL USING (true);
+CREATE POLICY "allow_all" ON shelf_sections        FOR ALL USING (true); -- Added missing policy
 CREATE POLICY "allow_all" ON brand_contracts       FOR ALL USING (true);
 CREATE POLICY "allow_all" ON enquiries             FOR ALL USING (true);
 CREATE POLICY "allow_all" ON visit_requests        FOR ALL USING (true);

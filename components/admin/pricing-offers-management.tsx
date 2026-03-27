@@ -176,103 +176,105 @@ export function PricingOffersManagement() {
 
       {/* Processing Fees Configuration */}
       <Card className="border border-black/5 shadow-xl rounded-3xl bg-white overflow-hidden">
-         <CardHeader className="bg-gray-50/50 border-b border-black/5 flex flex-col sm:flex-row items-center justify-between">
+         <CardHeader className="bg-gray-50/50 border-b border-black/5 flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="space-y-1">
                <CardTitle className="text-base font-black italic lowercase tracking-tighter flex items-center gap-2">
                  <BarChart3 className="w-5 h-5 text-blue-500" /> Payment Processing Fee (PPF) Pipeline
                </CardTitle>
                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Dynamic PPF layers and rent waivers based on gross</CardDescription>
             </div>
-            <Button onClick={handleSavePPF} disabled={saving} className="bg-blue-600 hover:bg-black text-white rounded-xl h-10 px-6 font-black uppercase text-[10px] tracking-widest transition-all">
+            <Button onClick={handleSavePPF} disabled={saving} className="w-full sm:w-auto bg-blue-600 hover:bg-black text-white rounded-xl h-10 px-6 font-black uppercase text-[10px] tracking-widest transition-all">
                <Save className="w-4 h-4 mr-2" /> Save Protocol
             </Button>
          </CardHeader>
          <CardContent className="p-0">
-            <table className="w-full text-left">
-               <thead className="bg-[#010307] text-white">
-                  <tr>
-                     <th className="px-8 py-4 font-black uppercase tracking-widest text-[10px]">Tier Classification</th>
-                     <th className="py-4 font-black uppercase tracking-widest text-[10px]">Floor Threshold (NPR)</th>
-                     <th className="py-4 font-black uppercase tracking-widest text-[10px]">PPF Index (%)</th>
-                     <th className="px-8 py-4 font-black uppercase tracking-widest text-[10px]">Rent Relief (%)</th>
-                  </tr>
-               </thead>
-               <tbody className="divide-y divide-gray-100">
-                  {ppfTiers.map((tier) => (
-                    <tr key={tier.id} className="hover:bg-gray-50/50">
-                       <td className="px-8 py-6">
-                          <Badge variant="outline" className={`font-black uppercase tracking-widest border-2 px-3 
-                             ${tier.tier_name === "Platinum" ? "border-purple-200 text-purple-700 bg-purple-50" :
-                               tier.tier_name === "Gold" ? "border-amber-200 text-amber-600 bg-amber-50" :
-                               tier.tier_name === "Silver" ? "border-gray-200 text-gray-500 bg-gray-50" : "border-emerald-200 text-emerald-700 bg-emerald-50"}`}>
-                            {tier.tier_name}
-                          </Badge>
-                       </td>
-                       <td className="py-6">
-                          <Input type="number" value={tier.min_sales_amount} onChange={(e) => setPpfTiers(pt => pt.map(t => t.id === tier.id ? { ...t, min_sales_amount: Number(e.target.value) } : t))} className="h-10 w-32 rounded-xl font-bold bg-white" />
-                       </td>
-                       <td className="py-6">
-                          <Input type="number" value={tier.ppf_rate} onChange={(e) => setPpfTiers(pt => pt.map(t => t.id === tier.id ? { ...t, ppf_rate: Number(e.target.value) } : t))} className="h-10 w-24 rounded-xl font-black text-red-600 bg-red-50/50" />
-                       </td>
-                       <td className="px-8 py-6">
-                          <Input type="number" value={tier.rent_waiver_percent} onChange={(e) => setPpfTiers(pt => pt.map(t => t.id === tier.id ? { ...t, rent_waiver_percent: Number(e.target.value) } : t))} className="h-10 w-24 rounded-xl font-bold text-green-700 bg-green-50/50" />
-                       </td>
-                    </tr>
-                  ))}
-               </tbody>
-            </table>
+            <div className="table-responsive">
+               <table className="w-full text-left">
+                  <thead className="bg-[#010307] text-white">
+                     <tr>
+                        <th className="px-8 py-4 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Tier Classification</th>
+                        <th className="py-4 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Floor Threshold (NPR)</th>
+                        <th className="py-4 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">PPF Index (%)</th>
+                        <th className="px-8 py-4 font-black uppercase tracking-widest text-[10px] whitespace-nowrap">Rent Relief (%)</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                     {ppfTiers.map((tier) => (
+                        <tr key={tier.id} className="hover:bg-gray-50/50">
+                           <td className="px-8 py-6">
+                              <Badge variant="outline" className={`font-black uppercase tracking-widest border-2 px-3 
+                                 ${tier.tier_name === "Platinum" ? "border-purple-200 text-purple-700 bg-purple-50" :
+                                 tier.tier_name === "Gold" ? "border-amber-200 text-amber-600 bg-amber-50" :
+                                 tier.tier_name === "Silver" ? "border-gray-200 text-gray-500 bg-gray-50" : "border-emerald-200 text-emerald-700 bg-emerald-50"}`}>
+                                 {tier.tier_name}
+                              </Badge>
+                           </td>
+                           <td className="py-6 min-w-[140px]">
+                              <Input type="number" value={tier.min_sales_amount} onChange={(e) => setPpfTiers(pt => pt.map(t => t.id === tier.id ? { ...t, min_sales_amount: Number(e.target.value) } : t))} className="h-10 w-32 rounded-xl font-bold bg-white" />
+                           </td>
+                           <td className="py-6 min-w-[100px]">
+                              <Input type="number" value={tier.ppf_rate} onChange={(e) => setPpfTiers(pt => pt.map(t => t.id === tier.id ? { ...t, ppf_rate: Number(e.target.value) } : t))} className="h-10 w-24 rounded-xl font-black text-red-600 bg-red-50/50" />
+                           </td>
+                           <td className="px-8 py-6 min-w-[100px]">
+                              <Input type="number" value={tier.rent_waiver_percent} onChange={(e) => setPpfTiers(pt => pt.map(t => t.id === tier.id ? { ...t, rent_waiver_percent: Number(e.target.value) } : t))} className="h-10 w-24 rounded-xl font-bold text-green-700 bg-green-50/50" />
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
          </CardContent>
       </Card>
 
       {/* Promotional Offers Configuration */}
       <Card className="border border-black/5 shadow-xl rounded-3xl bg-black text-white overflow-hidden">
-         <CardHeader className="bg-white/5 border-b border-white/5 flex flex-col sm:flex-row items-center justify-between">
+         <CardHeader className="bg-white/5 border-b border-white/5 flex flex-col lg:flex-row items-center justify-between gap-4">
             <div className="space-y-1">
                <CardTitle className="text-base font-black italic lowercase tracking-tighter flex items-center gap-2">
                  <Tag className="w-5 h-5 text-purple-400" /> Active Platform Offers
                </CardTitle>
                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-white/40">Incentivize new onboardings with dynamic discounts</CardDescription>
             </div>
-            <div className="flex gap-4">
-               <Button onClick={addOfferRow} variant="outline" className="text-black border-white/20 hover:bg-white/90 rounded-xl h-10 px-6 font-black uppercase text-[10px] tracking-widest transition-all">
+            <div className="flex gap-4 w-full lg:w-auto">
+               <Button onClick={addOfferRow} variant="outline" className="flex-1 lg:flex-none text-black border-white/20 hover:bg-white/90 rounded-xl h-10 px-6 font-black uppercase text-[10px] tracking-widest transition-all">
                   + Add Offer
                </Button>
-               <Button onClick={handleSaveOffers} disabled={saving} className="bg-purple-600 hover:bg-white hover:text-black rounded-xl h-10 px-6 font-black uppercase text-[10px] tracking-widest transition-all">
+               <Button onClick={handleSaveOffers} disabled={saving} className="flex-1 lg:flex-none bg-purple-600 hover:bg-white hover:text-black rounded-xl h-10 px-6 font-black uppercase text-[10px] tracking-widest transition-all">
                   <Save className="w-4 h-4 mr-2" /> Sync Offers
                </Button>
             </div>
          </CardHeader>
-         <CardContent className="p-8 space-y-4">
+         <CardContent className="p-4 sm:p-8 space-y-4">
             {offers.length === 0 ? (
                <div className="py-10 text-center text-white/30 font-bold text-sm italic">No active promotional layers.</div>
             ) : offers.map((offer) => (
-                <div key={offer.id} className="grid md:grid-cols-7 gap-4 p-6 rounded-2xl bg-white/5 border border-white/10 items-end group relative">
-                   <div className="space-y-2 md:col-span-2">
+                <div key={offer.id} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 p-6 rounded-2xl bg-white/5 border border-white/10 items-end group relative transition-all hover:bg-white/[0.07]">
+                   <div className="space-y-2 sm:col-span-2">
                       <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Global Campaign Identifier</Label>
                       <Input value={offer.name} onChange={e => setOffers(os => os.map(o => o.id === offer.id ? { ...o, name: e.target.value} : o))} className="bg-white/10 border-none font-black text-white rounded-xl h-12" />
                    </div>
                    <div className="space-y-2">
                       <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Promo Code</Label>
-                      <Input value={offer.promo_code || ""} placeholder="e.g. WELCOME10" onChange={e => setOffers(os => os.map(o => o.id === offer.id ? { ...o, promo_code: e.target.value.toUpperCase()} : o))} className="bg-white/10 border-none font-black text-purple-400 rounded-xl h-12 placeholder:text-white/10 placeholder:font-normal" />
+                      <Input value={offer.promo_code || ""} placeholder="e.g. WELCOME10" onChange={e => setOffers(os => os.map(o => o.id === offer.id ? { ...o, promo_code: e.target.value.toUpperCase()} : o))} className="bg-white/10 border-none font-black text-purple-400 rounded-xl h-12 uppercase" />
                    </div>
                    <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Matrix</Label>
+                      <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Type</Label>
                       <select value={offer.discount_type} onChange={(e) => setOffers(os => os.map(o => o.id === offer.id ? { ...o, discount_type: e.target.value as any} : o))} className="w-full flex h-12 rounded-xl bg-white/10 border-none px-3 py-2 text-sm text-white font-bold ring-offset-background outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
                          <option value="percentage">Percentage (%)</option>
                          <option value="fixed">Fixed Flat (NPR)</option>
                       </select>
                    </div>
                    <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Deduction Index</Label>
+                      <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Index</Label>
                       <Input type="number" value={offer.discount_value} onChange={e => setOffers(os => os.map(o => o.id === offer.id ? { ...o, discount_value: Number(e.target.value)} : o))} className="bg-white/10 border-none font-bold text-green-400 rounded-xl h-12" />
                    </div>
                    <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Capacity ({offer.current_uses} used)</Label>
+                      <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Limit ({offer.current_uses} used)</Label>
                       <Input type="number" value={offer.target_limit || 0} onChange={e => setOffers(os => os.map(o => o.id === offer.id ? { ...o, target_limit: Number(e.target.value)} : o))} className="bg-white/10 border-none font-bold text-white rounded-xl h-12" />
                    </div>
-                   <div className="space-y-2 flex flex-col items-center group/active">
+                   <div className="space-y-2 flex flex-col items-center sm:items-start group/active">
                       <Label className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Pipeline Active</Label>
-                      <div className="h-12 flex items-center gap-4">
+                      <div className="h-12 flex items-center gap-4 w-full">
                         <Switch checked={offer.is_active} onCheckedChange={c => setOffers(os => os.map(o => o.id === offer.id ? { ...o, is_active: c} : o))} className="data-[state=checked]:bg-green-500" />
                         {!offer.id.startsWith("new-") && (
                           <Button 

@@ -41,10 +41,18 @@ export interface VisitRequest {
   updated_at: string
 }
 
+export interface ShelfSection {
+  id: string
+  name: string
+  description?: string
+  created_at: string
+  updated_at: string
+}
+
 export interface Shelf {
   id: string
   name: string
-  section?: string
+  section_id?: string
   is_movable: boolean
   size?: "small" | "medium" | "large"
   shelf_type?: "bottom" | "eye_level" | "top_level" | "mixed"
@@ -58,6 +66,7 @@ export interface ShelfSlot {
   slot_number: number
   shelf_type: "bottom" | "eye_level" | "top_level" | "mixed"
   section?: string
+  section_id?: string
   shelf_name?: string
   shelf_id?: string
   brand_id?: string | null
@@ -108,6 +117,7 @@ export interface BrandContract {
 export interface ShelfBooking {
   id: string
   brand_id: string
+  slot_id?: string
   shelf_type: "bottom" | "eye_level" | "top_level"
   duration: "quarterly" | "half_yearly" | "yearly"
   slot_number?: number

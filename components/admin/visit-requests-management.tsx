@@ -344,7 +344,7 @@ export function VisitRequestsManagement() {
                               onClick={() =>
                                 updateVisitRequest(selectedRequest.id, {
                                   status: updateData.status as "pending" | "confirmed" | "cancelled" | "completed",
-                                  notes: updateData.notes || null,
+                                  notes: updateData.notes || " ",
                                 })
                               }
                               className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white"
@@ -357,7 +357,7 @@ export function VisitRequestsManagement() {
                                   onClick={() =>
                                     updateVisitRequest(selectedRequest.id, {
                                       status: "confirmed",
-                                      notes: updateData.notes || null,
+                                      notes: updateData.notes || " ",
                                     })
                                   }
                                   className="bg-green-600 hover:bg-green-700 text-white"
@@ -368,7 +368,7 @@ export function VisitRequestsManagement() {
                                   onClick={() =>
                                     updateVisitRequest(selectedRequest.id, {
                                       status: "cancelled",
-                                      notes: updateData.notes || null,
+                                      notes: updateData.notes || " ",
                                     })
                                   }
                                   variant="destructive"

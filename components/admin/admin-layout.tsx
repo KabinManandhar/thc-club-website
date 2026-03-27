@@ -6,21 +6,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { adminAuth, type AdminUser } from "@/lib/auth";
 import {
-  Award,
+  BadgeDollarSign,
   BarChart3,
   BookOpen,
+  DollarSign,
+  FileText,
   LogOut,
   Menu,
   MessageSquare,
   Package,
   Receipt,
   Settings,
-  User,
   Users,
-  X,
-  DollarSign,
-  FileText,
-  BadgeDollarSign,
+  X
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -64,7 +62,7 @@ export function AdminLayout({
     { id: "payouts", label: "Payouts Tracker", icon: DollarSign },
     { id: "pricing-offers", label: "Pricing & Economics", icon: BadgeDollarSign },
 
-    { id: "slots", label: "Visual Shelf Grid", icon: Package },
+    { id: "slots", label: "Shelf Slot Management", icon: Package },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 

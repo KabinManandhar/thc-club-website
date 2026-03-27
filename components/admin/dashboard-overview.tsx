@@ -14,14 +14,15 @@ interface DashboardStats {
   pendingBrands: number
   enquiriesCount: number
   newEnquiries: number
-  visitRequestsCount: number
-  pendingVisits: number
+  totalSales: number
+  totalFees: number
   bookingRequestsCount: number
   pendingBookings: number
   availableSlots: number
   occupiedSlots: number
   pendingStockRequests: number
   pendingChangeRequests: number
+  liveSettlementsCount: number
 }
 
 interface DashboardOverviewProps {
@@ -34,14 +35,15 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
     pendingBrands: 0,
     enquiriesCount: 0,
     newEnquiries: 0,
-    visitRequestsCount: 0,
-    pendingVisits: 0,
+    totalSales: 0,
+    totalFees: 0,
     bookingRequestsCount: 0,
     pendingBookings: 0,
     availableSlots: 0,
     occupiedSlots: 0,
     pendingStockRequests: 0,
     pendingChangeRequests: 0,
+    liveSettlementsCount: 0,
   })
   const [pendingStock, setPendingStock] = useState<StockUpdateRequest[]>([])
   const [pendingChanges, setPendingChanges] = useState<BrandChangeRequest[]>([])
@@ -63,16 +65,18 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
   const fetchStats = async () => {
     try {
-      const [brandsRes, enquiriesRes, bookingsRes, slotsRes, stockRes, changesRes, financeRes] = await Promise.all([
+      const [brandsRes, enquiriesRes, bookingsRes, slotsRes, stockRes, changesRes, financeRes, brandSalesRes, payoutsRes] = await Promise.all([
         supabase.from("brands").select("onboarding_status"),
         supabase.from("enquiries").select("status"),
         supabase.from("shelf_bookings").select("status"),
         supabase.from("shelf_slots").select("status"),
         supabase.from("stock_update_requests").select("status").eq("status", "pending"),
         supabase.from("brand_change_requests").select("status").eq("status", "pending"),
-        supabase.from("invoices").select("total_amount, ppf_amount").eq("status", "paid")
+        supabase.from("invoices").select("total_amount, ppf_amount").eq("status", "paid"),
+        supabase.from("brand_sales").select("brand_id, month, year"),
+        supabase.from("payouts").select("brand_id, month, year")
       ])
-
+  
       const brandsData = brandsRes.data || []
       const enquiriesData = enquiriesRes.data || []
       const bookingsData = bookingsRes.data || []
@@ -80,23 +84,29 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
       const stockData = stockRes.data || []
       const changesData = changesRes.data || []
       const financeData = financeRes.data || []
-
+      const salesData = brandSalesRes.data || []
+      const payoutsData = payoutsRes.data || []
+  
+      const finalizedKeys = new Set(payoutsData.map(p => `${p.brand_id}-${p.month}-${p.year}`))
+      const pendingSettlements = salesData.filter(s => !finalizedKeys.has(`${s.brand_id}-${s.month}-${s.year}`))
+  
       const totalSales = financeData.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0)
       const totalFees = financeData.reduce((sum, inv) => sum + Number(inv.ppf_amount || 0), 0)
-
+  
       setStats({
         brandsCount: brandsData.length,
         pendingBrands: brandsData.filter((b) => b.onboarding_status === "pending").length,
         enquiriesCount: enquiriesData.length,
         newEnquiries: enquiriesData.filter((e) => e.status === "new").length,
-        visitRequestsCount: totalSales, // Hijacking this for total sales display in local state
-        pendingVisits: totalFees, // Hijacking this for total fees display in local state
+        totalSales,
+        totalFees,
         bookingRequestsCount: bookingsData.length,
         pendingBookings: bookingsData.filter((b) => b.status === "pending").length,
         availableSlots: slotsData.filter((s) => s.status === "available").length,
         occupiedSlots: slotsData.filter((s) => s.status === "occupied").length,
         pendingStockRequests: stockData.length,
         pendingChangeRequests: changesData.length,
+        liveSettlementsCount: pendingSettlements.length
       })
     } catch (error) {
       console.error("Error fetching stats:", error)
@@ -209,15 +219,15 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
   const statCards = [
     {
       title: "Active Sales (Total)",
-      value: `NPR ${stats.visitRequestsCount.toLocaleString()}`,
-      pending: 0,
+      value: `NPR ${stats.totalSales.toLocaleString()}`,
+      pending: stats.liveSettlementsCount,
       icon: DollarSign,
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
     {
       title: "Payment Processing Fee Earned",
-      value: `NPR ${stats.pendingVisits.toLocaleString()}`,
+      value: `NPR ${stats.totalFees.toLocaleString()}`,
       pending: 0,
       icon: TrendingUp,
       color: "text-blue-600",

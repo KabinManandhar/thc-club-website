@@ -99,18 +99,19 @@ export function BrandPayouts({ brandId }: BrandPayoutsProps) {
         .order("year", { ascending: false })
         .order("month", { ascending: false })
       
-      const now = new Date()
-      const { data: liveSales } = await supabase
+      const { data: salesData } = await supabase
         .from("brand_sales")
-        .select("gross_sales, ppf_amount")
+        .select("*")
         .eq("brand_id", brandId)
-        .eq("month", now.getMonth() + 1)
-        .eq("year", now.getFullYear())
-        .maybeSingle()
 
       const typedPayouts = (payoutsData || []) as Payout[]
       const totalPaid = typedPayouts.filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.net_payout || 0), 0) || 0
-      const pendingAccrual = liveSales ? (liveSales.gross_sales - (liveSales.ppf_amount || 0)) : 0
+      
+      // Identify sales that are NOT yet in payouts
+      const finalizedKeys = new Set(typedPayouts.map(p => `${p.month}-${p.year}`))
+      const pendingSales = (salesData || []).filter(s => !finalizedKeys.has(`${s.month}-${s.year}`))
+      const pendingAccrual = pendingSales.reduce((sum, s) => sum + (s.gross_sales - (s.ppf_amount || 0)), 0)
+      
       const last = typedPayouts.filter(p => p.status === 'paid')?.[0]?.net_payout || 0
       
       setStats({ totalPayout: totalPaid, pendingPayout: pendingAccrual, lastAmount: last })
@@ -286,16 +287,16 @@ export function BrandPayouts({ brandId }: BrandPayoutsProps) {
             <h3 className="text-3xl font-black text-[#010307] tracking-tighter italic">npr {stats.totalPayout.toLocaleString()}</h3>
          </Card>
 
-         <Card className="border border-black/5 shadow-sm rounded-2xl bg-white p-8 group transition-all">
+          <Card className="border border-black/5 shadow-sm rounded-2xl bg-white p-8 group transition-all">
             <div className="flex justify-between items-start mb-6">
                <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-[#FE7F2D]">
                   <TrendingUp className="w-5 h-5" />
                </div>
-               <Badge className="bg-gray-50 text-black/50 border-none font-black uppercase text-[8px] px-3 tracking-widest italic">Live Flow</Badge>
+               <Badge className="bg-gray-50 text-black/50 border-none font-black uppercase text-[8px] px-3 tracking-widest italic">Live Status</Badge>
             </div>
-            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 font-mono">Current Month Accrual</p>
+            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 font-mono">Pending Balance (Total)</p>
             <h3 className="text-3xl font-black text-[#010307] tracking-tighter italic">npr {stats.pendingPayout.toLocaleString()}</h3>
-         </Card>
+          </Card>
 
          <Card className="border border-black/5 shadow-sm rounded-2xl bg-[#010307] p-8 group transition-all">
             <div className="flex justify-between items-start mb-6">
