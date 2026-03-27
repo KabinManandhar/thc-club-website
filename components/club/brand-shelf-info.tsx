@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase"
 import {
-  Clock,
-  LayoutGrid,
-  Package,
-  Zap
+   Clock,
+   LayoutGrid,
+   Package,
+   Zap
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -20,6 +20,7 @@ interface BrandShelfInfoProps {
 
 export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
   const [shelfData, setShelfData] = useState<any[]>([])
+  const [pendingBookings, setPendingBookings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -33,7 +34,8 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
         .from("shelf_bookings")
         .select("*")
         .eq("brand_id", brandId)
-        .in("status", ["active", "pending"]),
+        .eq("status", "pending")
+        .order("created_at", { ascending: false }),
       supabase
         .from("shelf_slots")
         .select("*, shelves(*)")
@@ -41,6 +43,7 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
     ])
     
     if (slotsRes.data) setShelfData(slotsRes.data)
+    if (bookingsRes.data) setPendingBookings(bookingsRes.data)
     setLoading(false)
   }
 
@@ -77,7 +80,42 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
         </Button>
       </div>
 
-      {shelfData.length === 0 ? (
+      {/* Pending Requests Section */}
+      {pendingBookings.length > 0 && (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3">
+             <Clock className="w-5 h-5 text-[#FE7F2D]" />
+             <h3 className="text-xl font-black italic lowercase tracking-tight">pending applications</h3>
+             <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-none font-black text-[10px] rounded-full px-3">{pendingBookings.length}</Badge>
+          </div>
+          <div className="grid gap-4">
+             {pendingBookings.map((booking) => (
+                <div key={booking.id} className="p-6 bg-white border border-[#FE7F2D]/10 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:border-[#FE7F2D]/30 transition-all shadow-sm">
+                   <div className="flex items-center gap-5">
+                      <div className="h-14 w-14 bg-[#FE7F2D]/5 rounded-2xl flex items-center justify-center border border-[#FE7F2D]/10 text-[#FE7F2D]">
+                         <LayoutGrid className="w-7 h-7" />
+                      </div>
+                      <div>
+                         <h4 className="font-black italic text-lg lowercase leading-tight">{booking.tier || 'Standard'} Tier Request</h4>
+                         <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-[0.2em] mt-1 italic">Reference: {booking.id.split('-')[0]} • {booking.duration?.replace('_', ' ') || 'Quarterly'}</p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-10">
+                      <div className="text-right">
+                         <p className="text-[9px] font-black uppercase text-[#010307]/20 tracking-widest mb-1">Monthly Cost</p>
+                         <p className="font-black text-xl text-[#010307] italic lowercase">Rs. {booking.total_amount?.toLocaleString() || '---'}</p>
+                      </div>
+                      <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-[#FE7F2D]/20 font-black lowercase italic px-4 py-1.5 rounded-full whitespace-nowrap">
+                         Waitlist Active
+                      </Badge>
+                   </div>
+                </div>
+             ))}
+          </div>
+        </div>
+      )}
+
+      {shelfData.length === 0 && pendingBookings.length === 0 ? (
         <Card className="border-none shadow-xl rounded-[3rem] bg-white p-20 text-center">
            <Package className="w-16 h-16 text-[#010307]/10 mx-auto mb-6" />
            <h3 className="text-2xl font-black tracking-tighter lowercase italic">no active allotment</h3>
@@ -101,7 +139,7 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
                    <div className="space-y-2">
                       <div className="flex items-center gap-2">
                          <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_12px_rgba(74,222,128,0.6)]"></div>
-                         <p className="text-[10px] font-black text-[#FE7F2D] uppercase tracking-[0.4em]">active floor unit</p>
+                         <p className="text-[10px] font-black text-[#FE7F2D] uppercase tracking-[0.4em]">active shelf slot</p>
                       </div>
                       <h4 className="font-black text-3xl text-white lowercase italic leading-none truncate max-w-[240px]">{slot.shelf_name || (slot.shelves?.name) || 'Collective Hub'}</h4>
                       <p className="text-[11px] font-bold text-white/40 uppercase tracking-[0.2em]">{slot.section || (slot.shelves?.section) || 'Premium Hallway'}</p>
@@ -154,7 +192,7 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10 text-center md:text-left">
             <div className="space-y-4">
                <h3 className="text-3xl font-black tracking-tighter lowercase italic leading-none">expand your presence</h3>
-               <p className="text-[#010307]/40 font-medium max-w-sm text-sm lowercase italic">request additional floor zones or high-visibility slots to showcase more products.</p>
+               <p className="text-[#010307]/40 font-medium max-w-sm text-sm lowercase italic">request additional shelf slots or high-visibility slots to showcase more products.</p>
                <div className="flex flex-wrap justify-center md:justify-start gap-3 pt-2">
                   <Badge variant="outline" className="rounded-full border-[#010307]/5 text-[#010307]/20 font-bold lowercase text-[10px] px-3 py-1">premium placement</Badge>
                   <Badge variant="outline" className="rounded-full border-[#010307]/5 text-[#010307]/20 font-bold lowercase text-[10px] px-3 py-1">multi-slot bundling</Badge>

@@ -12,13 +12,15 @@ const PRICING = {
   yearly: { low: 900, eye: 1200, top: 1000 },
 }
 
-export function ShelfBooking() {
+export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: string, isFirstTime?: boolean, onComplete?: () => void }) {
   const [tier, setTier] = useState<"low" | "eye" | "top">("eye")
   const [duration, setDuration] = useState<"quarterly" | "half_yearly" | "yearly">("quarterly")
 
   const currentPrice = PRICING[duration][tier]
   const months = duration === "quarterly" ? 3 : duration === "half_yearly" ? 6 : 12
-  const totalAmount = currentPrice * months
+  const rentTotal = currentPrice * months
+  const registrationFee = isFirstTime ? 800 : 0
+  const totalAmount = rentTotal + registrationFee
 
   return (
     <div className="space-y-6">
@@ -74,6 +76,16 @@ export function ShelfBooking() {
               <span className="text-gray-600">Total Duration</span>
               <span className="font-semibold">{months} Months</span>
             </div>
+
+            {isFirstTime && (
+               <div className="flex justify-between items-center border-b border-orange-200 pb-4">
+                 <div className="flex flex-col">
+                   <span className="text-gray-600">Registration Fee</span>
+                   <span className="text-[10px] text-[#FE7F2D] font-bold uppercase italic">One-time security deposit</span>
+                 </div>
+                 <span className="font-semibold">NPR {registrationFee.toLocaleString()}</span>
+               </div>
+            )}
 
             <div className="flex justify-between items-center pt-2">
               <span className="font-bold text-lg">Total Amount</span>

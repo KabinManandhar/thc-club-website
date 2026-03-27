@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Package, Search, Filter, Calendar, User, AlertCircle, Settings, Plus, MoveDown, Columns, Component, Trash2, LayoutGrid, Zap, DollarSign, Activity } from "lucide-react"
-import { supabase, type ShelfSlot, type Shelf, type ShelfSection } from "@/lib/supabase"
+import { supabase, type ShelfSlot, type Shelf, type ShelfSection, type PromotionalOffer } from "@/lib/supabase"
 import { toast } from "sonner"
 
 interface SlotStats {
@@ -25,6 +25,7 @@ export function ShelfSlotsManagement() {
   const [shelves, setShelves] = useState<Shelf[]>([])
   const [sections, setSections] = useState<ShelfSection[]>([])
   const [brands, setBrands] = useState<any[]>([])
+  const [offers, setOffers] = useState<PromotionalOffer[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [shelfTypeFilter, setShelfTypeFilter] = useState<string>("all")
@@ -63,6 +64,7 @@ export function ShelfSlotsManagement() {
     occupied_from: "",
     occupied_until: "",
     notes: "",
+    applied_promo_id: "",
   })
 
   // Edit / Delete Shelf State
@@ -91,22 +93,25 @@ export function ShelfSlotsManagement() {
 
   const fetchSlots = async () => {
     try {
-      const [slotsRes, shelvesRes, brandsRes, sectionsRes] = await Promise.all([
-        supabase.from("shelf_slots").select("*, brands(business_name)").order("slot_number", { ascending: true }),
+      const [slotsRes, shelvesRes, brandsRes, sectionsRes, offersRes] = await Promise.all([
+        supabase.from("shelf_slots").select("*, brands(business_name), promotional_offers(*)").order("slot_number", { ascending: true }),
         supabase.from("shelves").select("*").order("name"),
         supabase.from("brands").select("id, business_name").order("business_name"),
-        supabase.from("shelf_sections").select("*").order("name")
+        supabase.from("shelf_sections").select("*").order("name"),
+        supabase.from("promotional_offers").select("*").eq("is_active", true).order("name")
       ])
   
       if (slotsRes.error) throw slotsRes.error
       if (shelvesRes.error && shelvesRes.error.code !== "42P01") throw shelvesRes.error
       if (brandsRes.error) throw brandsRes.error
       if (sectionsRes.error) throw sectionsRes.error
+      if (offersRes.error) throw offersRes.error
 
       setSlots(slotsRes.data || [])
       setShelves(shelvesRes.data || [])
       setBrands(brandsRes.data || [])
       setSections(sectionsRes.data || [])
+      setOffers(offersRes.data || [])
       
       console.log("Loaded Infrastructure:", {
          slots: slotsRes.data?.length,
@@ -285,9 +290,9 @@ export function ShelfSlotsManagement() {
         .eq("id", id)
 
       if (error) {
-         // Fallback if brand_id column is missing from db (SQL not run yet)
+         // Fallback if brand_id or applied_promo_id columns are missing from db (SQL not run yet)
          if (error.code === '42703') {
-             const { brand_id, rent_amount, occupied_from, occupied_until, notes, shelf_name, section, shelf_type, ...fallbackUpdates } = updates as any;
+             const { brand_id, rent_amount, occupied_from, occupied_until, notes, applied_promo_id, shelf_name, section, shelf_type, ...fallbackUpdates } = updates as any;
              const { error: fallbackError } = await supabase
                 .from("shelf_slots")
                 .update({ ...fallbackUpdates, updated_at: new Date().toISOString() })
@@ -532,7 +537,8 @@ export function ShelfSlotsManagement() {
                                   rent_amount: slot.rent_amount?.toString() || "",
                                   occupied_from: slot.occupied_from || "",
                                   occupied_until: slot.occupied_until || "",
-                                  notes: "",
+                                  notes: slot.notes || "",
+                                  applied_promo_id: slot.applied_promo_id || "none",
                                 })
                               }} 
                             />
@@ -544,7 +550,8 @@ export function ShelfSlotsManagement() {
                 })}
               </div>
             </section>
-        )})}
+          )
+        })}
 
         {/* Fallback for unlinked legacy slots */}
         {filteredSlots.some(s => !s.section_id || !s.shelf_id) && (
@@ -573,7 +580,8 @@ export function ShelfSlotsManagement() {
                                     rent_amount: slot.rent_amount?.toString() || "",
                                     occupied_from: slot.occupied_from || "",
                                     occupied_until: slot.occupied_until || "",
-                                    notes: "",
+                                    notes: slot.notes || "",
+                                    applied_promo_id: slot.applied_promo_id || "none",
                                   })
                                }} 
                             />
@@ -674,12 +682,38 @@ export function ShelfSlotsManagement() {
                 />
               </div>
 
+              <div>
+                <Label htmlFor="offer">Active Platform Offer</Label>
+                <Select
+                  value={updateData.applied_promo_id}
+                  onValueChange={(value) => setUpdateData(prev => ({ ...prev, applied_promo_id: value }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="No Active Offer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Offer / Native Price</SelectItem>
+                    {offers.map(offer => (
+                      <SelectItem key={offer.id} value={offer.id}>
+                        {offer.name} ({offer.discount_type === 'percentage' ? `${offer.discount_value}% Off` : `-${offer.discount_value} NPR`})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {updateData.applied_promo_id !== "none" && (
+                   <p className="mt-1 text-[10px] text-green-600 font-bold uppercase italic">
+                      {offers.find(o => o.id === updateData.applied_promo_id)?.description || "Offer Applied"}
+                   </p>
+                )}
+              </div>
+
               <div className="flex gap-2 pt-4">
                 <Button
                   onClick={() =>
                     updateSlot(selectedSlot.id, {
                       status: updateData.status as any,
                       brand_id: (updateData.brand_id && updateData.brand_id !== 'none') ? updateData.brand_id : null,
+                      applied_promo_id: (updateData.applied_promo_id && updateData.applied_promo_id !== 'none') ? updateData.applied_promo_id : null,
                       occupied_by: updateData.occupied_by || null,
                       rent_amount: updateData.rent_amount ? Number(updateData.rent_amount) : null,
                     })

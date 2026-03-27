@@ -253,6 +253,7 @@ CREATE TABLE shelf_slots (
   occupied_from DATE,
   occupied_until DATE,
   notes TEXT,
+  applied_promo_id UUID REFERENCES promotional_offers(id) ON DELETE SET NULL, -- Link for applied offers
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

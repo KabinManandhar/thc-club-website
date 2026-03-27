@@ -76,11 +76,14 @@ export interface ShelfSlot {
   rent_amount?: number | null
   occupied_from?: string | null
   occupied_until?: string | null
+  notes?: string
+  applied_promo_id?: string | null
   created_at: string
   updated_at: string
   // joined
   shelves?: Shelf
   brands?: Brand
+  promotional_offers?: PromotionalOffer
 }
 
 // ============================================================

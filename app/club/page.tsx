@@ -10,9 +10,10 @@ import { BrandSalesReport } from "@/components/club/brand-sales-report"
 import { BrandShelfInfo } from "@/components/club/brand-shelf-info"
 import { InventoryManagement } from "@/components/club/inventory-management"
 import { OnboardingWizard } from "@/components/club/onboarding-wizard"
+import { ShelfBooking } from "@/components/club/shelf-booking"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { supabase } from "@/lib/supabase"
 import { userAuth, type ApprovedUser } from "@/lib/user-auth"
@@ -28,8 +29,11 @@ function ClubPageContent() {
   const [currentUser, setCurrentUser] = useState<ApprovedUser | null>(null)
   const [brand, setBrand] = useState<any>(null)
   const [activeBooking, setActiveBooking] = useState<any | null>(null)
+  const [pendingBookings, setPendingBookings] = useState<any[]>([])
+  const [bookingCount, setBookingCount] = useState(0)
   const [pricingTiers, setPricingTiers] = useState<any[]>([])
   const [ppfTiers, setPpfTiers] = useState<any[]>([])
+  const [activeOffers, setActiveOffers] = useState<any[]>([])
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("dashboard")
 
@@ -43,12 +47,14 @@ function ClubPageContent() {
 
   const fetchPublicConfig = async () => {
     try {
-      const [{ data: pt }, { data: ppf }] = await Promise.all([
+      const [{ data: pt }, { data: ppf }, { data: offers }] = await Promise.all([
         supabase.from("shelf_pricing_tiers").select("*"),
-        supabase.from("ppf_tiers").select("*").order("min_sales_amount", { ascending: true })
+        supabase.from("ppf_tiers").select("*").order("min_sales_amount", { ascending: true }),
+        supabase.from("promotional_offers").select("*").eq("is_active", true).order("created_at", { ascending: false })
       ])
       if (pt) setPricingTiers(pt)
       if (ppf) setPpfTiers(ppf)
+      if (offers) setActiveOffers(offers)
     } catch (e) {
       console.error("Failed to load pricing config", e)
     }
@@ -91,15 +97,18 @@ function ClubPageContent() {
 
       if (brandData) {
         setBrand(brandData)
-        const { data: bookingData } = await supabase
+        // Fetch all bookings for history and pending tracking
+        const { data: allBookings, error: bError } = await supabase
           .from("shelf_bookings")
           .select("*")
           .eq("brand_id", brandData.id)
-          .in("status", ["active", "pending"])
           .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle()
-        setActiveBooking(bookingData || null)
+        
+        if (allBookings) {
+          setBookingCount(allBookings.length)
+          setPendingBookings(allBookings.filter(b => b.status === "pending"))
+          setActiveBooking(allBookings.find(b => ["active", "pending"].includes(b.status)) || null)
+        }
       } else {
         const { data: newBrand } = await supabase
           .from("brands")
@@ -208,7 +217,37 @@ function ClubPageContent() {
             <TabsTrigger value="dashboard" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap">the pitch</TabsTrigger>
             <TabsTrigger value="pricing" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap">economics</TabsTrigger>
             <TabsTrigger value="slots" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap">slot space</TabsTrigger>
-            <TabsTrigger value="onboarding" className="text-[#010307]/40 hover:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide sm:ml-auto transition-all whitespace-nowrap">initiate onboarding</TabsTrigger>
+            {pendingBookings.length > 0 && (
+              <TabsTrigger value="pending" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap flex items-center gap-2">
+                pending requests <Badge className="bg-[#FE7F2D] text-white h-4 w-4 p-0 flex items-center justify-center text-[8px]">{pendingBookings.length}</Badge>
+              </TabsTrigger>
+            )}
+           <TabsTrigger
+  value="onboarding"
+  className="
+    group
+    flex items-center gap-2
+    px-3 py-2
+    sm:px-4 sm:py-2.5
+    text-[10px] sm:text-xs
+    font-semibold lowercase tracking-wide
+    text-[#FE7F2D]
+    bg-[#FE7F2D]/10
+    border border-[#FE7F2D]/30
+    rounded-md
+    hover:bg-[#FE7F2D]
+    hover:text-white
+    hover:border-[#FE7F2D]
+    transition-all duration-200 ease-out
+    whitespace-nowrap
+    sm:ml-auto
+  "
+>
+  <span>initiate onboarding</span>
+  <span className="opacity-70 group-hover:translate-x-1 transition-transform">
+    →
+  </span>
+</TabsTrigger>
           </TabsList>
         
           {/* --- THE PITCH --- */}
@@ -319,22 +358,31 @@ function ClubPageContent() {
   <div className="max-w-4xl mx-auto space-y-12">
     
     {/* Opening Offer Alert */}
-    <div className="relative overflow-hidden bg-[#FE7F2D] rounded-[2.5rem] p-8 text-white shadow-xl shadow-orange-500/20 border-4 border-white/20">
-      <div className="absolute top-0 right-0 p-4 opacity-10">
-        <Zap className="w-32 h-32" />
-      </div>
-      <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-2 text-center md:text-left">
-          <Badge className="bg-white text-[#FE7F2D] hover:bg-white font-black lowercase tracking-widest px-4 py-1">limited opening offer</Badge>
-          <h3 className="text-3xl font-black italic lowercase tracking-tighter">first 40 slots only</h3>
-          <p className="text-white/80 text-sm font-medium italic lowercase">These introductory rates are limited to the first 40 shelf slots. Pricing model is subject to change in the near future as we scale.</p>
+    {activeOffers.length > 0 && (
+      <div className="relative overflow-hidden bg-[#FE7F2D] rounded-[2.5rem] p-8 text-white shadow-xl shadow-orange-500/20 border-4 border-white/20">
+        <div className="absolute top-0 right-0 p-4 opacity-10">
+          <Zap className="w-32 h-32" />
         </div>
-        <div className="shrink-0 bg-black/20 backdrop-blur-md rounded-2xl px-8 py-4 border border-white/10 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1">status</p>
-          <p className="text-2xl font-black italic">Active</p>
+        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="space-y-2 text-center md:text-left">
+            <Badge className="bg-white text-[#FE7F2D] hover:bg-white font-black lowercase tracking-widest px-4 py-1">
+              {activeOffers[0].promo_code ? `use code: ${activeOffers[0].promo_code}` : "platform offer"}
+            </Badge>
+            <h3 className="text-3xl font-black italic lowercase tracking-tighter">{activeOffers[0].name}</h3>
+            <p className="text-white/80 text-sm font-medium italic lowercase">{activeOffers[0].description || "Limited time promotional rates for qualified brands."}</p>
+            {activeOffers[0].target_limit && (
+               <p className="text-[10px] font-black uppercase tracking-widest bg-black/20 w-fit px-3 py-1 rounded-full mt-2">
+                  {Math.max(0, activeOffers[0].target_limit - activeOffers[0].current_uses)} / {activeOffers[0].target_limit} Slots Left
+               </p>
+            )}
+          </div>
+          <div className="shrink-0 bg-black/20 backdrop-blur-md rounded-2xl px-8 py-4 border border-white/10 text-center">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1">status</p>
+            <p className="text-2xl font-black italic">Active</p>
+          </div>
         </div>
       </div>
-    </div>
+    )}
 
     <h2 className="text-5xl font-black tracking-tighter lowercase italic text-center text-[#010307]">shelf <span className="italic opacity-30">tiers</span></h2>
     
@@ -393,9 +441,62 @@ function ClubPageContent() {
           Total physical capacity: 108 shelf spaces across 3 curated rooms
         </p>
       </div>
+      </div>
+      
+      {/* Interactive Booking System */}
+      <div className="pt-20 border-t border-dashed border-[#FE7F2D]/20">
+        <ShelfBooking 
+          brandId={brand?.id} 
+          isFirstTime={bookingCount === 0} 
+          onComplete={() => loadBrandData(brand?.email || "")} 
+        />
+      </div>
     </div>
-  </div>
-</TabsContent>
+  </TabsContent>
+
+  {/* --- PENDING REQUESTS --- */}
+  <TabsContent value="pending" className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+     <div className="max-w-4xl mx-auto space-y-12 py-10">
+        <div className="space-y-4 text-center md:text-left">
+           <h2 className="text-5xl font-black italic lowercase tracking-tighter">Pending Requests</h2>
+           <p className="text-[#010307]/40 text-sm font-medium lowercase">Your applications are currently being reviewed by the club administrators. You will be notified via email once approved.</p>
+        </div>
+        
+        <div className="grid gap-6">
+           {pendingBookings.map((booking) => (
+              <Card key={booking.id} className="border border-[#FE7F2D]/10 bg-white/50 backdrop-blur-sm overflow-hidden rounded-[2.5rem]">
+                 <CardHeader className="flex flex-row items-center justify-between p-8 sm:p-10">
+                    <div className="space-y-1">
+                       <CardTitle className="text-2xl font-black italic lowercase tracking-tight">{booking.tier || 'Standard'} Slot Request</CardTitle>
+                       <CardDescription className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#FE7F2D]">
+                          Ref: {booking.id.split('-')[0]} • Status: {booking.status}
+                       </CardDescription>
+                    </div>
+                    <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-[#FE7F2D]/20 font-black lowercase italic px-4 py-1.5 rounded-full">
+                       In Review
+                    </Badge>
+                 </CardHeader>
+                 <CardContent className="border-t border-[#FE7F2D]/5 p-8 sm:p-10 bg-gray-50/30">
+                    <div className="grid sm:grid-cols-3 gap-8 text-sm">
+                       <div className="space-y-1">
+                          <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Duration</p>
+                          <p className="font-bold lowercase italic text-lg">{booking.duration?.replace('_', ' ') || 'Quarterly'}</p>
+                        </div>
+                        <div className="space-y-1">
+                           <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Application Date</p>
+                           <p className="font-bold lowercase italic text-lg">{new Date(booking.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <div className="sm:text-right space-y-1">
+                           <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest sm:text-right">Allotted Monthly Rate</p>
+                           <p className="text-3xl font-black text-[#010307]">NPR {booking.total_amount?.toLocaleString() || '---'}</p>
+                        </div>
+                    </div>
+                 </CardContent>
+              </Card>
+           ))}
+        </div>
+     </div>
+  </TabsContent>
 
           <TabsContent value="onboarding" className="py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {brand && (
