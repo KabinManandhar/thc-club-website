@@ -28,6 +28,8 @@ function ClubPageContent() {
   const [currentUser, setCurrentUser] = useState<ApprovedUser | null>(null)
   const [brand, setBrand] = useState<any>(null)
   const [activeBooking, setActiveBooking] = useState<any | null>(null)
+  const [pricingTiers, setPricingTiers] = useState<any[]>([])
+  const [ppfTiers, setPpfTiers] = useState<any[]>([])
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("dashboard")
 
@@ -36,7 +38,21 @@ function ClubPageContent() {
       localStorage.setItem("thc_test_mode", "true")
     }
     checkAuth()
+    fetchPublicConfig()
   }, [searchParams])
+
+  const fetchPublicConfig = async () => {
+    try {
+      const [{ data: pt }, { data: ppf }] = await Promise.all([
+        supabase.from("shelf_pricing_tiers").select("*"),
+        supabase.from("ppf_tiers").select("*").order("min_sales_amount", { ascending: true })
+      ])
+      if (pt) setPricingTiers(pt)
+      if (ppf) setPpfTiers(ppf)
+    } catch (e) {
+      console.error("Failed to load pricing config", e)
+    }
+  }
 
   const checkAuth = async () => {
     try {
@@ -153,9 +169,9 @@ function ClubPageContent() {
   return (
     <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk relative overflow-x-hidden">
       {isPendingApproval && (
-         <div className="fixed top-0 left-0 right-0 z-[60] bg-[#FE7F2D] text-white py-3 px-10 text-center flex items-center justify-center gap-4">
-            <Clock className="w-4 h-4" />
-            <p className="text-[11px] font-bold lowercase tracking-widest italic">
+         <div className="fixed top-0 left-0 right-0 z-[60] bg-[#FE7F2D] text-white py-3 px-4 sm:px-10 text-center flex items-center justify-center gap-2 sm:gap-4">
+            <Clock className="w-4 h-4 shrink-0" />
+            <p className="text-[10px] sm:text-[11px] font-bold lowercase tracking-widest italic truncate sm:whitespace-normal">
                identity verification in progress • limited access until approved
             </p>
          </div>
@@ -188,188 +204,198 @@ function ClubPageContent() {
 
       <div className="container mx-auto px-6 py-16 max-w-6xl">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full justify-start border-b border-[#FE7F2D]/10 rounded-none h-auto p-0 bg-transparent mb-16 gap-10">
-            <TabsTrigger value="dashboard" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent">the pitch</TabsTrigger>
-            <TabsTrigger value="pricing" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent">economics</TabsTrigger>
-            <TabsTrigger value="slots" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent">slot space</TabsTrigger>
-            <TabsTrigger value="onboarding" className="text-[#010307]/40 hover:text-[#FE7F2D] rounded-none py-4 px-0 text-xs font-bold lowercase tracking-wide ml-auto transition-all">initiate onboarding</TabsTrigger>
+          <TabsList className="w-full flex-nowrap justify-start border-b border-[#FE7F2D]/10 rounded-none h-auto p-0 bg-transparent mb-8 sm:mb-16 gap-6 sm:gap-10 overflow-x-auto scrollbar-hide">
+            <TabsTrigger value="dashboard" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap">the pitch</TabsTrigger>
+            <TabsTrigger value="pricing" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap">economics</TabsTrigger>
+            <TabsTrigger value="slots" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap">slot space</TabsTrigger>
+            <TabsTrigger value="onboarding" className="text-[#010307]/40 hover:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide sm:ml-auto transition-all whitespace-nowrap">initiate onboarding</TabsTrigger>
           </TabsList>
         
-          <TabsContent value="dashboard" className="space-y-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="grid lg:grid-cols-2 gap-20 items-center">
-               <div className="space-y-10">
-                  <div className="space-y-6">
-                     <h1 className="text-6xl lg:text-7xl font-black tracking-tighter lowercase leading-[0.9] italic">kathmandu's <span className="text-[#FE7F2D]">creative</span> HQ.</h1>
-                     <p className="text-xl text-[#010307]/40 font-medium italic leading-relaxed lowercase">this is your gateway to the club's physical ecosystem.</p>
-                  </div>
-                  <div className="flex gap-4">
-                     <Button className="bg-[#FE7F2D] text-white h-16 px-10 rounded-2xl font-bold lowercase text-sm tracking-wide shadow-xl shadow-orange-500/20" onClick={() => setActiveTab("onboarding")}>claim your slot</Button>
-                     <Button variant="outline" className="h-16 px-10 rounded-2xl font-bold lowercase text-sm tracking-wide border-[#010307]/10" onClick={() => setActiveTab("pricing")}>view terms</Button>
-                  </div>
-               </div>
-                <div className="relative">
-                  <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] p-12 bg-white/50 backdrop-blur-sm relative overflow-hidden group">
-                     <div className="space-y-8 relative z-10 text-center md:text-left">
-                        <div className="w-14 h-14 bg-[#FE7F2D] rounded-2xl flex items-center justify-center text-white mx-auto md:mx-0 shadow-lg shadow-orange-500/20">
-                           <Zap className="w-8 h-8" />
-                        </div>
-                        <h3 className="text-3xl font-black tracking-tight italic lowercase">physical shelf presence</h3>
-                        <p className="text-[#010307]/60 font-medium leading-relaxed italic lowercase">once onboarded, choose from 108 high-visibility floor slots. your brand gets its own dedicated territory in the club.</p>
-                        <div className="pt-6 border-t border-[#010307]/5 flex flex-col md:flex-row items-center justify-between text-[11px] font-bold lowercase tracking-widest text-[#010307]/30 gap-4">
-                           <span>current capacity: 108 slots</span>
-                           <span className="bg-[#FE7F2D]/10 text-[#FE7F2D] px-3 py-1 rounded-full text-[9px]">verified status required</span>
-                        </div>
-                     </div>
-                  </Card>
-               </div>
-            </div>
+          {/* --- THE PITCH --- */}
+<TabsContent value="dashboard" className="space-y-12 sm:space-y-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+  <div className="grid lg:grid-cols-2 gap-10 lg:gap-20 items-center">
+    <div className="space-y-8 sm:space-y-10">
+      <div className="space-y-4 sm:space-y-6">
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter lowercase leading-[0.9] italic">kathmandu's <span className="text-[#FE7F2D]">indie</span> marketplace.</h1>
+        <p className="text-base sm:text-xl text-[#010307]/40 font-medium italic leading-relaxed lowercase">A curated collective in Bijeshwori, Swyambhu for Nepal's makers, doers, and dreamers.</p>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Button className="w-full sm:w-auto bg-[#FE7F2D] text-white h-14 sm:h-16 px-8 sm:px-10 rounded-2xl font-bold lowercase text-xs sm:text-sm tracking-wide shadow-xl shadow-orange-500/20" onClick={() => setActiveTab("onboarding")}>claim your shelf</Button>
+        <Button variant="outline" className="w-full sm:w-auto h-14 sm:h-16 px-8 sm:px-10 rounded-2xl font-bold lowercase text-xs sm:text-sm tracking-wide border-[#010307]/10" onClick={() => setActiveTab("pricing")}>view tiers</Button>
+      </div>
+    </div>
+    <div className="relative">
+      <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] p-12 bg-white/50 backdrop-blur-sm relative overflow-hidden group">
+        <div className="space-y-8 relative z-10 text-center md:text-left">
+          <div className="w-14 h-14 bg-[#FE7F2D] rounded-2xl flex items-center justify-center text-white mx-auto md:mx-0 shadow-lg shadow-orange-500/20">
+            <Zap className="w-8 h-8" />
+          </div>
+          <h3 className="text-3xl font-black tracking-tight italic lowercase">cross-selling advantage</h3>
+          <p className="text-[#010307]/60 font-medium leading-relaxed italic lowercase">Every shelf gets bonus exposure through Sayummys Cafe next door. People come for burgers and discover your brand.</p>
+          <div className="pt-6 border-t border-[#010307]/5 flex flex-col md:flex-row items-center justify-between text-[11px] font-bold lowercase tracking-widest text-[#010307]/30 gap-4">
+            <span>location: bijeshwori, swyambhu</span>
+            <span className="bg-[#FE7F2D]/10 text-[#FE7F2D] px-3 py-1 rounded-full text-[9px]">108 shelf spaces</span>
+          </div>
+        </div>
+      </Card>
+    </div>
+  </div>
 
-            <section className="grid md:grid-cols-3 gap-8">
-                {[
-                  { icon: Shield, title: "curated vibe", desc: "we gatekeep energy, not money. only real creators build here." },
-                  { icon: Zap, title: "direct sync", desc: "your products appear on customer dashboards instantly." },
-                  { icon: Clock, title: "support 24/7", desc: "access the community inbox for any assistance." }
-               ].map((item, i) => (
-                  <Card key={i} className="border border-[#FE7F2D]/10 shadow-sm rounded-2xl p-8 bg-white/50 backdrop-blur-sm group hover:border-[#FE7F2D]/30 transition-all">
-                     <div className="w-10 h-10 bg-[#FE7F2D]/10 text-[#FE7F2D] rounded-xl flex items-center justify-center mb-6 group-hover:bg-[#FE7F2D] group-hover:text-white transition-colors">
-                        <item.icon className="w-5 h-5" />
-                     </div>
-                     <h4 className="text-lg font-black tracking-tight lowercase mb-2">{item.title}</h4>
-                     <p className="text-sm text-[#010307]/50 font-medium italic lowercase">{item.desc}</p>
-                  </Card>
-               ))}
-            </section>
-          </TabsContent>
+  <section className="grid md:grid-cols-3 gap-8">
+    {[
+      { icon: Shield, title: "zero politics", desc: "Built by an indiepreneur to focus on your product and story, not pressure." },
+      { icon: Zap, title: "shared muscle", desc: "Collaborative marketing, seasonal pushes, and social media spotlights." },
+      { icon: Clock, title: "real data", desc: "We are working toward providing you with monthly sales and footfall insights." }
+    ].map((item, i) => (
+      <Card key={i} className="border border-[#FE7F2D]/10 shadow-sm rounded-2xl p-8 bg-white/50 backdrop-blur-sm group hover:border-[#FE7F2D]/30 transition-all">
+        <div className="w-10 h-10 bg-[#FE7F2D]/10 text-[#FE7F2D] rounded-xl flex items-center justify-center mb-6 group-hover:bg-[#FE7F2D] group-hover:text-white transition-colors">
+          <item.icon className="w-5 h-5" />
+        </div>
+        <h4 className="text-lg font-black tracking-tight lowercase mb-2">{item.title}</h4>
+        <p className="text-sm text-[#010307]/50 font-medium italic lowercase">{item.desc}</p>
+      </Card>
+    ))}
+  </section>
+</TabsContent>
 
-          <TabsContent value="pricing" className="space-y-12 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-             <div className="max-w-4xl mx-auto space-y-10">
-                <h2 className="text-5xl font-black tracking-tighter lowercase italic text-center text-[#010307]">transparent <span className="italic opacity-30">economics</span></h2>
-                 <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden mb-12">
-                   <table className="w-full text-left">
-                      <thead className="bg-[#FE7F2D]/5 border-b border-[#FE7F2D]/10">
-                         <tr>
-                            <th className="px-12 py-6 font-bold lowercase text-xs tracking-wide text-[#010307]/40">monthly sales tier</th>
-                            <th className="py-6 font-bold lowercase text-xs tracking-wide text-[#010307]/40 text-center">payment processing fee</th>
-                            <th className="px-12 py-6 font-bold lowercase text-xs tracking-wide text-[#010307]/40 text-right">rent waiver</th>
-                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#FE7F2D]/5 text-[#010307]">
-                         <tr className="group hover:bg-[#FE7F2D]/5 transition-colors">
-                            <td className="px-12 py-8">
-                               <p className="font-black text-xl tracking-tighter lowercase italic">tier 01: explore</p>
-                               <span className="text-[10px] font-bold text-[#010307]/30 lowercase tracking-widest">below npr 10,000</span>
-                            </td>
-                            <td className="py-8 text-center font-black text-lg italic text-[#FE7F2D]">
-                               3%
-                            </td>
-                            <td className="px-12 py-8 text-right font-bold lowercase text-[#010307]/20 tracking-widest text-[11px]">standard rent</td>
-                         </tr>
-                         <tr className="group hover:bg-[#FE7F2D]/5 transition-colors">
-                            <td className="px-12 py-8">
-                               <p className="font-black text-xl tracking-tighter lowercase italic">tier 02: active</p>
-                               <span className="text-[10px] font-bold text-[#010307]/30 lowercase tracking-widest">npr 10,000 - 50,000</span>
-                            </td>
-                            <td className="py-8 text-center font-black text-lg italic text-[#FE7F2D]">
-                               5%
-                            </td>
-                            <td className="px-12 py-8 text-right font-bold lowercase text-[#010307]/20 tracking-widest text-[11px]">standard rent</td>
-                         </tr>
-                         <tr className="group hover:bg-[#FE7F2D]/5 transition-colors">
-                            <td className="px-12 py-8">
-                               <p className="font-black text-xl tracking-tighter lowercase italic">tier 03: momentum</p>
-                               <span className="text-[10px] font-bold text-[#010307]/30 lowercase tracking-widest">npr 50,000 - 100,000</span>
-                            </td>
-                            <td className="py-8 text-center font-black text-lg italic text-[#FE7F2D]">
-                               7%
-                            </td>
-                            <td className="px-12 py-8 text-right font-bold lowercase text-[#FE7F2D] tracking-widest text-[11px]">50% rent waived</td>
-                         </tr>
-                         <tr className="group bg-[#FE7F2D]/5 hover:bg-[#FE7F2D]/10 transition-colors">
-                            <td className="px-12 py-8">
-                               <p className="font-black text-xl tracking-tighter lowercase italic">tier 04: master</p>
-                               <Badge className="bg-[#FE7F2D] text-white border-none text-[8px] font-bold lowercase tracking-widest px-4">premium</Badge>
-                               <span className="block text-[10px] font-bold text-[#010307]/30 lowercase tracking-widest mt-1">above npr 100,000</span>
-                            </td>
-                            <td className="py-8 text-center font-black text-lg italic text-[#FE7F2D]">
-                               10%
-                            </td>
-                            <td className="px-12 py-8 text-right font-bold lowercase text-[#FE7F2D] tracking-widest text-[11px]">100% rent waived</td>
-                         </tr>
-                      </tbody>
-                   </table>
-                </Card>
+{/* --- ECONOMICS --- */}
+<TabsContent value="pricing" className="space-y-12 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+  <div className="max-w-4xl mx-auto space-y-10">
+    <h2 className="text-5xl font-black tracking-tighter lowercase italic text-center text-[#010307]">the <span className="italic opacity-30">growth</span> model</h2>
+    
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <Card className="p-8 border border-[#FE7F2D]/10 bg-white/50 rounded-3xl">
+            <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest mb-2">entry</p>
+            <h4 className="text-2xl font-black lowercase italic">Rs. 800 Registration</h4>
+            <p className="text-sm text-[#010307]/50 italic">One-time fee for onboarding and slot setup.</p>
+        </Card>
+        <Card className="p-8 border border-[#FE7F2D]/10 bg-white/50 rounded-3xl">
+            <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest mb-2">transparency</p>
+            <h4 className="text-2xl font-black lowercase italic">No Hidden Cuts</h4>
+            <p className="text-sm text-[#010307]/50 italic">Just simple shelf rent plus a performance-based fee.</p>
+        </Card>
+    </div>
 
-                 <div className="p-12 bg-white border border-[#FE7F2D]/10 rounded-[3rem] shadow-sm flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
-                    <div className="flex-1 space-y-4 relative z-10">
-                       <h3 className="text-3xl font-black italic tracking-tighter lowercase text-[#010307]">performance alignment</h3>
-                       <p className="text-[#010307]/50 text-base font-medium italic leading-relaxed lowercase">
-                          our economics are built to reward growth. as your sales volume climbs, our community management and fulfillment workload increases, which is reflected in a progressive service fee. in return, we incentivize performance by entirely absorbing your shelf rental fixed costs.
-                       </p>
-                    </div>
-                    <div className="shrink-0 flex gap-4 relative z-10">
-                       <div className="p-8 bg-[#FE7F2D]/5 rounded-[2.5rem] border border-[#FE7F2D]/10 text-center min-w-[140px]">
-                          <p className="text-[9px] font-bold lowercase text-[#FE7F2D]/60 tracking-widest mb-2">max platform fee</p>
-                          <p className="text-2xl font-black text-[#FE7F2D] italic">10%</p>
-                       </div>
-                       <div className="p-8 bg-[#FE7F2D] rounded-[2.5rem] text-center min-w-[140px] shadow-lg shadow-orange-500/20">
-                          <p className="text-[9px] font-bold lowercase text-white/60 tracking-widest mb-2">peak incentives</p>
-                          <p className="text-2xl font-black text-white italic">full rent waiver</p>
-                       </div>
-                    </div>
-                </div>
-             </div>
-          </TabsContent>
+    <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden mb-12">
+      <div className="table-responsive">
+        <table className="w-full text-left">
+          <thead className="bg-[#FE7F2D]/5 border-b border-[#FE7F2D]/10">
+            <tr>
+              <th className="px-6 sm:px-12 py-6 font-bold lowercase text-xs tracking-wide text-[#010307]/40 whitespace-nowrap">monthly sales</th>
+              <th className="px-6 py-6 font-bold lowercase text-xs tracking-wide text-[#010307]/40 text-center whitespace-nowrap">processing fee</th>
+              <th className="px-6 sm:px-12 py-6 font-bold lowercase text-xs tracking-wide text-[#010307]/40 text-right whitespace-nowrap">rent incentive</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#FE7F2D]/5 text-[#010307]">
+            {ppfTiers.length > 0 ? ppfTiers.map((tier, idx) => {
+               const nextTier = ppfTiers[idx + 1]
+               const label = nextTier 
+                  ? `Rs. ${tier.min_sales_amount.toLocaleString()} - ${nextTier.min_sales_amount.toLocaleString()}`
+                  : `Rs. ${tier.min_sales_amount.toLocaleString()}+`
+                  
+               return (
+                 <tr key={tier.id} className="group hover:bg-[#FE7F2D]/5 transition-colors">
+                   <td className="px-6 sm:px-12 py-8 font-black text-lg sm:text-xl tracking-tighter lowercase italic whitespace-nowrap">{idx === 0 ? `Up to Rs. ${nextTier?.min_sales_amount.toLocaleString()}` : label}</td>
+                   <td className="px-6 py-8 text-center font-black text-lg italic text-[#FE7F2D] whitespace-nowrap">{tier.ppf_rate}%</td>
+                   <td className="px-6 sm:px-12 py-8 text-right font-bold lowercase text-[#FE7F2D] tracking-widest text-[11px] whitespace-nowrap">
+                      {tier.rent_waiver_percent === 0 ? <span className="text-[#010307]/20">standard rent</span> : `${tier.rent_waiver_percent}% rent waived`}
+                   </td>
+                 </tr>
+               )
+            }) : (
+               <tr className="group hover:bg-[#FE7F2D]/5 transition-colors">
+                 <td colSpan={3} className="px-6 sm:px-12 py-8 text-center font-bold text-[#010307]/20 tracking-widest text-xs uppercase">Loading...</td>
+               </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Card>
+  </div>
+</TabsContent>
 
-          <TabsContent value="slots" className="space-y-12 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-             <div className="max-w-4xl mx-auto space-y-12">
-                <h2 className="text-5xl font-black tracking-tighter lowercase italic text-center text-[#010307]">physical <span className="italic opacity-30">footprint</span></h2>
-                
-                <div className="grid md:grid-cols-2 gap-8">
-                   <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] p-10 bg-white/50 backdrop-blur-sm space-y-6">
-                      <div className="w-12 h-12 bg-[#FE7F2D]/10 text-[#FE7F2D] rounded-2xl flex items-center justify-center font-black italic">01</div>
-                      <h4 className="text-2xl font-black lowercase italic tracking-tight">floor territory</h4>
-                      <p className="text-[#010307]/50 text-sm font-medium italic lowercase leading-relaxed">standard 2ft x 2ft footprint within the high-traffic main hall. optimized for individual brand pedestals or floor-standing racks.</p>
-                      <div className="pt-4 border-t border-[#010307]/5 flex justify-between items-center text-[10px] font-bold lowercase tracking-widest text-[#010307]/30">
-                         <span>available slots: 72</span>
-                         <span className="text-[#FE7F2D]">classic access</span>
-                      </div>
-                   </Card>
+{/* --- SLOT SPACE --- */}
+<TabsContent value="slots" className="space-y-12 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+  <div className="max-w-4xl mx-auto space-y-12">
+    
+    {/* Opening Offer Alert */}
+    <div className="relative overflow-hidden bg-[#FE7F2D] rounded-[2.5rem] p-8 text-white shadow-xl shadow-orange-500/20 border-4 border-white/20">
+      <div className="absolute top-0 right-0 p-4 opacity-10">
+        <Zap className="w-32 h-32" />
+      </div>
+      <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 text-center md:text-left">
+          <Badge className="bg-white text-[#FE7F2D] hover:bg-white font-black lowercase tracking-widest px-4 py-1">limited opening offer</Badge>
+          <h3 className="text-3xl font-black italic lowercase tracking-tighter">first 40 slots only</h3>
+          <p className="text-white/80 text-sm font-medium italic lowercase">These introductory rates are limited to the first 40 shelf slots. Pricing model is subject to change in the near future as we scale.</p>
+        </div>
+        <div className="shrink-0 bg-black/20 backdrop-blur-md rounded-2xl px-8 py-4 border border-white/10 text-center">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-1">status</p>
+          <p className="text-2xl font-black italic">Active</p>
+        </div>
+      </div>
+    </div>
 
-                   <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] p-10 bg-white/50 backdrop-blur-sm space-y-6">
-                      <div className="w-12 h-12 bg-[#FE7F2D] text-white rounded-2xl flex items-center justify-center font-black italic">02</div>
-                      <h4 className="text-2xl font-black lowercase italic tracking-tight">prime wall gallery</h4>
-                      <p className="text-[#010307]/50 text-sm font-medium italic lowercase leading-relaxed">curated wall space for lifestyle products and vertical displays. premium lighting and high-eye-level visibility for key collections.</p>
-                      <div className="pt-4 border-t border-[#010307]/5 flex justify-between items-center text-[10px] font-bold lowercase tracking-widest text-[#010307]/30">
-                         <span>available slots: 24</span>
-                         <span className="text-[#FE7F2D]">premium gallery</span>
-                      </div>
-                   </Card>
+    <h2 className="text-5xl font-black tracking-tighter lowercase italic text-center text-[#010307]">shelf <span className="italic opacity-30">tiers</span></h2>
+    
+    <div className="grid md:grid-cols-3 gap-6">
+      <Card className="border border-[#FE7F2D]/10 p-8 bg-white/50 rounded-[2rem] space-y-4 hover:border-[#FE7F2D]/30 transition-all">
+        <h4 className="text-xl font-black lowercase italic">Low Level</h4>
+        <div className="space-y-1">
+          <p className="text-sm font-bold text-[#FE7F2D]">
+            Rs. {pricingTiers.find(t => t.duration === 'yearly')?.bottom_price || '900'}/mo (Yearly)
+          </p>
+          <p className="text-[10px] text-[#010307]/40 font-bold uppercase">
+            Rs. {pricingTiers.find(t => t.duration === 'quarterly')?.bottom_price || '1,100'} (Quarterly)
+          </p>
+        </div>
+        <p className="text-xs text-[#010307]/50 italic">The bottom three rows of the shelf unit.</p>
+      </Card>
 
-                   <Card className="md:col-span-2 border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] p-10 bg-[#010307] text-white space-y-8 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-64 h-64 bg-[#FE7F2D]/10 rounded-full -mr-32 -mt-32"></div>
-                      <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-                         <div className="space-y-4">
-                            <h4 className="text-3xl font-black lowercase italic tracking-tighter">island feature hubs</h4>
-                            <p className="text-white/40 text-base font-medium italic lowercase leading-relaxed max-w-md">360-degree visibility at key intersection points. these are extremely limited, high-engagement spots for market leaders.</p>
-                         </div>
-                         <div className="shrink-0 flex items-center gap-6">
-                            <div className="text-center">
-                               <p className="text-4xl font-black italic text-[#FE7F2D]">12</p>
-                               <p className="text-[9px] font-bold lowercase tracking-widest text-white/30 uppercase mt-1">total hubs</p>
-                            </div>
-                            <Button variant="outline" className="border-white/10 text-white hover:bg-white hover:text-[#010307] rounded-xl font-bold lowercase h-12 px-6" onClick={() => setActiveTab("onboarding")}>reserve hub</Button>
-                         </div>
-                      </div>
-                   </Card>
-                </div>
+      <Card className="border-2 border-[#FE7F2D] p-8 bg-white rounded-[2rem] space-y-4 relative shadow-lg">
+        <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FE7F2D] text-[9px] uppercase tracking-widest font-black">top seller</Badge>
+        <h4 className="text-xl font-black lowercase italic">Eye Level</h4>
+        <div className="space-y-1">
+          <p className="text-sm font-bold text-[#FE7F2D]">
+            Rs. {pricingTiers.find(t => t.duration === 'yearly')?.eye_level_price || '1,200'}/mo (Yearly)
+          </p>
+          <p className="text-[10px] text-[#010307]/40 font-bold uppercase">
+            Rs. {pricingTiers.find(t => t.duration === 'quarterly')?.eye_level_price || '1,500'} (Quarterly)
+          </p>
+        </div>
+        <p className="text-xs text-[#010307]/50 italic">The two prime rows for maximum visibility and customer engagement.</p>
+      </Card>
 
-                <div className="p-10 bg-[#FE7F2D]/5 rounded-[3rem] border border-[#FE7F2D]/10 text-center">
-                   <p className="text-sm font-medium italic lowercase text-[#010307]/60">
-                      all 108 slots are managed via real-time grid mapping. once onboarded, you get a dedicated territory to build your brand’s physical presence in kathmandu.
-                   </p>
-                </div>
-             </div>
-          </TabsContent>
+      <Card className="border border-[#FE7F2D]/10 p-8 bg-white/50 rounded-[2rem] space-y-4 hover:border-[#FE7F2D]/30 transition-all">
+        <h4 className="text-xl font-black lowercase italic">Top Level</h4>
+        <div className="space-y-1">
+          <p className="text-sm font-bold text-[#FE7F2D]">
+            Rs. {pricingTiers.find(t => t.duration === 'yearly')?.top_level_price || '1,000'}/mo (Yearly)
+          </p>
+          <p className="text-[10px] text-[#010307]/40 font-bold uppercase">
+            Rs. {pricingTiers.find(t => t.duration === 'quarterly')?.top_level_price || '1,350'} (Quarterly)
+          </p>
+        </div>
+        <p className="text-xs text-[#010307]/50 italic">The highest row of the display unit, ideal for larger statement pieces.</p>
+      </Card>
+    </div>
+
+    <div className="grid md:grid-cols-2 gap-6">
+      <div className="p-10 bg-[#010307] text-white rounded-[3rem] space-y-4 relative overflow-hidden">
+        <div className="relative z-10">
+          <h3 className="text-2xl font-black italic lowercase tracking-tighter">Multiple Shelves</h3>
+          <p className="text-white/40 text-sm italic lowercase leading-relaxed">Brands taking multiple shelves get special discounts. We are open to talking about making this collab fruitful.</p>
+        </div>
+      </div>
+      
+      <div className="p-10 bg-[#FE7F2D]/5 border border-[#FE7F2D]/20 rounded-[3rem] flex items-center justify-center text-center">
+        <p className="text-[#FE7F2D] text-sm font-bold italic lowercase">
+          Total physical capacity: 108 shelf spaces across 3 curated rooms
+        </p>
+      </div>
+    </div>
+  </div>
+</TabsContent>
 
           <TabsContent value="onboarding" className="py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             {brand && (

@@ -415,72 +415,76 @@ export function BrandManagement() {
                   </TabsContent>
 
                   <TabsContent value="products" className="mt-0 outline-none">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent text-gray-400 uppercase text-[10px] font-black">
-                          <TableHead>Product</TableHead>
-                          <TableHead>Price</TableHead>
-                          <TableHead>Stock</TableHead>
-                          <TableHead className="text-right">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {products.map(p => (
-                          <TableRow key={p.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                 {p.image_url ? (
-                                    <img src={p.image_url} alt={p.name} className="w-8 h-8 rounded-lg object-cover bg-gray-100 border shadow-sm" />
-                                 ) : (
-                                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100">
-                                       <ImageIcon className="w-4 h-4 text-gray-300" />
-                                    </div>
-                                 )}
-                                 <div className="flex flex-col">
-                                   <div className="font-bold text-gray-900">{p.name}</div>
-                                   <div className="text-[9px] text-gray-400 font-mono tracking-tighter uppercase">{p.sku || "NO-SKU"}</div>
-                                 </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="font-black text-gray-900">NPR {p.price.toLocaleString()}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full ${p.stock_quantity > p.low_stock_threshold ? "bg-green-500" : "bg-red-500"}`}></div>
-                                <span className="font-black">{p.stock_quantity}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                               <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 font-black text-[10px] uppercase">
-                                  <Trash2 className="w-3 h-3 mr-1" /> Remove
-                               </Button>
-                            </TableCell>
+                    <div className="table-responsive">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent text-gray-400 uppercase text-[10px] font-black whitespace-nowrap">
+                            <TableHead className="px-4">Product</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead>Stock</TableHead>
+                            <TableHead className="text-right px-4">Action</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {products.map(p => (
+                            <TableRow key={p.id}>
+                              <TableCell className="px-4">
+                                <div className="flex items-center gap-3">
+                                   {p.image_url ? (
+                                      <img src={p.image_url} alt={p.name} className="w-8 h-8 rounded-lg object-cover bg-gray-100 border shadow-sm" />
+                                   ) : (
+                                      <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100 shrink-0">
+                                         <ImageIcon className="w-4 h-4 text-gray-300" />
+                                      </div>
+                                   )}
+                                   <div className="flex flex-col min-w-[120px]">
+                                     <div className="font-bold text-gray-900 truncate">{p.name}</div>
+                                     <div className="text-[10px] text-gray-400 uppercase tracking-widest">{p.sku}</div>
+                                   </div>
+                                </div>
+                              </TableCell>
+                              <TableCell className="font-mono text-xs font-black whitespace-nowrap">NPR {p.price.toLocaleString()}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${p.stock_quantity > 10 ? 'bg-green-500' : p.stock_quantity > 0 ? 'bg-amber-500' : 'bg-red-500'}`} />
+                                  <span className="font-black italic text-gray-600 tabular-nums">{p.stock_quantity}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right px-4">
+                                 <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 font-black text-[10px] uppercase">
+                                    <Trash2 className="w-3 h-3 mr-1" /> Remove
+                                 </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="sales" className="mt-0 outline-none">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent text-gray-400 uppercase text-[10px] font-black">
-                          <TableHead>Invoice</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Customer</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {invoices.map(inv => (
-                          <TableRow key={inv.id}>
-                            <TableCell className="font-mono text-xs font-black text-[#FE7F2D]">{inv.invoice_number}</TableCell>
-                            <TableCell className="text-xs text-gray-500 font-medium">{new Date(inv.created_at).toLocaleDateString()}</TableCell>
-                            <TableCell className="text-sm font-bold text-gray-900">{inv.customer_name || "Guest Checkout"}</TableCell>
-                            <TableCell className="text-right font-black text-gray-900">NPR {inv.total_amount.toLocaleString()}</TableCell>
+                    <div className="table-responsive">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="hover:bg-transparent text-gray-400 uppercase text-[10px] font-black whitespace-nowrap">
+                            <TableHead className="px-4">Invoice</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Customer</TableHead>
+                            <TableHead className="text-right px-4">Total</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {invoices.map(inv => (
+                            <TableRow key={inv.id}>
+                              <TableCell className="font-mono text-xs font-black text-[#FE7F2D] px-4 whitespace-nowrap">{inv.invoice_number}</TableCell>
+                              <TableCell className="text-xs text-gray-500 font-medium whitespace-nowrap">{new Date(inv.created_at).toLocaleDateString()}</TableCell>
+                              <TableCell className="text-sm font-bold text-gray-900 whitespace-nowrap">{inv.customer_name || "Guest Checkout"}</TableCell>
+                              <TableCell className="text-right font-black text-gray-900 px-4 whitespace-nowrap">NPR {inv.total_amount.toLocaleString()}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="contracts" className="mt-0 outline-none space-y-6">
@@ -649,15 +653,15 @@ export function BrandManagement() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="table-responsive">
             <Table>
               <TableHeader className="bg-gray-50/50">
-                <TableRow className="hover:bg-transparent border-none">
+                <TableRow className="hover:bg-transparent border-none whitespace-nowrap">
                   <TableHead className="w-[30%] px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Brand Portfolio</TableHead>
                   <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Communication</TableHead>
                   <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Vibe Check</TableHead>
                   <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Latest Pulse</TableHead>
-                  <TableHead className="w-[80px]"></TableHead>
+                  <TableHead className="w-[80px] px-6 py-4"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

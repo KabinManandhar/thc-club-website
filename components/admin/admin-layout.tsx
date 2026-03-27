@@ -154,8 +154,8 @@ export function AdminLayout({
       </div>
 
       {/* Main content */}
-      <div className="lg:ml-64">
-        <div className="p-6 lg:p-8">{children}</div>
+      <div className="lg:ml-64 min-w-0">
+        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
       </div>
 
       {/* Mobile overlay */}

@@ -146,7 +146,7 @@ export function BrandLayout({
           <div className="w-10"></div>
         </header>
 
-        <div className="p-6 lg:p-12 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-12 max-w-7xl mx-auto min-w-0">
           {children}
         </div>
 

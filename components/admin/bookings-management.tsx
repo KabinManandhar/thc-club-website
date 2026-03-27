@@ -153,16 +153,16 @@ export function BookingsManagement() {
 
       <Card>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="table-responsive">
             <Table>
               <TableHeader className="bg-gray-50">
-                <TableRow>
-                  <TableHead>Brand</TableHead>
+                <TableRow className="whitespace-nowrap">
+                  <TableHead className="px-4">Brand</TableHead>
                   <TableHead>Shelf Request</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right px-4">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -180,23 +180,23 @@ export function BookingsManagement() {
                 ) : (
                   bookings.map((b) => (
                     <TableRow key={b.id}>
-                      <TableCell>
+                      <TableCell className="px-4 whitespace-nowrap">
                         <div className="font-medium">{(b.brands as any)?.business_name}</div>
                         <div className="text-xs text-gray-500">{(b.brands as any)?.email}</div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         <div className="text-sm">{SHELF_LABELS[b.shelf_type]}</div>
                         <div className="text-xs text-gray-500">{DURATION_LABELS[b.duration]}</div>
                         {b.slot_number && <div className="text-xs text-[#FE7F2D]">Slot #{b.slot_number}</div>}
                       </TableCell>
-                      <TableCell className="text-right font-medium">
+                      <TableCell className="text-right font-medium whitespace-nowrap">
                         NPR {b.total_amount.toLocaleString()}
                       </TableCell>
-                      <TableCell>{statusBadge(b.status)}</TableCell>
-                      <TableCell className="text-sm text-gray-500">
+                      <TableCell className="whitespace-nowrap">{statusBadge(b.status)}</TableCell>
+                      <TableCell className="text-sm text-gray-500 whitespace-nowrap">
                         {new Date(b.created_at).toLocaleDateString()}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right px-4 whitespace-nowrap">
                         {b.status === "pending" && (
                           <div className="flex gap-2 justify-end">
                             <Button
@@ -237,9 +237,9 @@ export function BookingsManagement() {
           {actionBooking && (
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
-                <p><strong>Brand:</strong> {(actionBooking.brands as any)?.business_name}</p>
-                <p><strong>Shelf:</strong> {SHELF_LABELS[actionBooking.shelf_type]} — {DURATION_LABELS[actionBooking.duration]}</p>
-                <p><strong>Total:</strong> NPR {actionBooking.total_amount.toLocaleString()}</p>
+                <p><strong>Brand:</strong> {(actionBooking!.brands as any)?.business_name}</p>
+                <p><strong>Shelf:</strong> {SHELF_LABELS[actionBooking!.shelf_type]} — {DURATION_LABELS[actionBooking!.duration]}</p>
+                <p><strong>Total:</strong> NPR {actionBooking!.total_amount.toLocaleString()}</p>
               </div>
 
               {actionType === "approve" && (
@@ -251,7 +251,7 @@ export function BookingsManagement() {
                     </Label>
                     <div className="bg-white border rounded-xl p-4 shadow-sm">
                       <ShelfGridPicker
-                        shelfTypeLimit={actionBooking.shelf_type}
+                        shelfTypeLimit={actionBooking!.shelf_type}
                         onSelect={(slot) => {
                           setSelectedSlot(slot)
                           setSlotNumber(slot.slot_number.toString())
@@ -264,7 +264,7 @@ export function BookingsManagement() {
                     <div className="bg-[#FE7F2D]/5 border border-[#FE7F2D]/20 rounded-lg p-3 flex justify-between items-center text-xs animate-in slide-in-from-top-2">
                        <div className="flex flex-col gap-0.5">
                           <span className="font-black text-[#FE7F2D] uppercase tracking-widest text-[10px]">Active Selection</span>
-                          <span className="font-bold text-gray-900">{selectedSlot.section} — {selectedSlot.shelf_name}</span>
+                          <span className="font-bold text-gray-900">{selectedSlot!.section} — {selectedSlot!.shelf_name}</span>
                        </div>
                        <div className="text-xl font-black text-[#FE7F2D]">
                           #{selectedSlot.slot_number}

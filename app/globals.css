@@ -128,3 +128,49 @@
   color: #fe7f2d;
   position: relative;
 }
+
+/* ── Mobile-first responsive utilities ── */
+
+/* Safe area insets for notched/dynamic-island phones */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Horizontal scroll container for tables on mobile */
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overflow-x: auto;
+}
+
+/* Hide scrollbar but keep scrollable */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Mobile-friendly tap targets */
+@media (max-width: 640px) {
+  .mobile-tap {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Prevent text overflow on small screens */
+.text-clamp {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive table wrapper */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}

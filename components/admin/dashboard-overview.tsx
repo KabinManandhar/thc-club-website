@@ -260,23 +260,23 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
     <div className="space-y-6 pb-20">
       {/* Welcome Header */}
       {/* Welcome Header */}
-      <div className="bg-white text-black rounded-2xl p-10 border border-black/5 relative overflow-hidden shadow-sm group">
+      <div className="bg-white text-black rounded-2xl p-6 sm:p-10 border border-black/5 relative overflow-hidden shadow-sm group">
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="space-y-2">
-            <h1 className="text-3xl font-black tracking-tighter uppercase italic px-1">Control Center</h1>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tighter uppercase italic px-1">Control Center</h1>
             <p className="text-gray-400 font-medium text-sm">Welcome back, {currentUser?.name?.split(' ')[0] || "Admin"}. System synchronized.</p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-2 sm:gap-4">
             <Button
               onClick={() => onTabChange("invoices")}
-              className="bg-black hover:bg-black/90 text-white font-black uppercase text-[10px] tracking-widest px-8 h-12 rounded-xl shadow-sm transition-all active:scale-95"
+              className="bg-black hover:bg-black/90 text-white font-black uppercase text-[10px] tracking-widest px-4 sm:px-8 h-10 sm:h-12 rounded-xl shadow-sm transition-all active:scale-95"
             >
               <Plus className="w-3.5 h-3.5 mr-2" />
               New Invoice
             </Button>
             <Button
               variant="outline"
-              className="bg-white border-black/5 text-black hover:bg-gray-50 font-black uppercase text-[10px] tracking-widest px-8 h-12 rounded-xl transition-all shadow-sm"
+              className="bg-white border-black/5 text-black hover:bg-gray-50 font-black uppercase text-[10px] tracking-widest px-4 sm:px-8 h-10 sm:h-12 rounded-xl transition-all shadow-sm hidden sm:flex"
               onClick={() => onTabChange("slots")}
             >
               <LayoutGrid className="w-3.5 h-3.5 mr-2" />
@@ -292,11 +292,11 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
           const Icon = stat.icon
           return (
             <Card key={stat.title} className="group border-black/5 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white overflow-hidden">
-              <CardContent className="p-8">
+              <CardContent className="p-5 sm:p-8">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{stat.title}</p>
-                    <p className="text-3xl font-black text-black tracking-tighter">{stat.value}</p>
+                    <p className="text-2xl sm:text-3xl font-black text-black tracking-tighter">{stat.value}</p>
                     {stat.pending > 0 && (
                       <div className="mt-2 flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 text-black rounded-full w-fit border border-black/5">
                         <AlertCircle className="w-3 h-3 text-red-500" />
@@ -317,20 +317,20 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Pending Action Queue */}
         <Card className="lg:col-span-2 border-black/5 shadow-sm rounded-2xl overflow-hidden bg-white">
-          <CardHeader className="bg-gray-50/50 border-b border-black/5 py-4 px-8 flex flex-row items-center justify-between">
+          <div className="px-8 bg-gray-50/50 border-b border-black/5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
               <Shield className="w-4 h-4 text-black" />
               Administrative Verification Queue
             </CardTitle>
             <Badge className="bg-black text-white font-black text-[9px] rounded-full px-4">{pendingStock.length + pendingChanges.length} Pending</Badge>
-          </CardHeader>
+          </div>
           <CardContent className="p-0">
             <div className="max-h-[500px] overflow-y-auto">
               {(pendingStock.length > 0 || pendingChanges.length > 0) ? (
                 <div className="divide-y divide-gray-50">
                   {/* Stock Requests */}
                   {pendingStock.map((request) => (
-                    <div key={request.id} className="p-5 hover:bg-gray-50/50 transition-colors flex items-center justify-between gap-4">
+                    <div key={request.id} className="p-4 sm:p-5 hover:bg-gray-50/50 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                       <div className="flex gap-4">
                         <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center shrink-0">
                           <Package className="w-6 h-6 text-purple-600" />
@@ -377,7 +377,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
                   {/* Generic Changes */}
                   {pendingChanges.map((request) => (
-                    <div key={request.id} className="p-5 hover:bg-gray-50/50 transition-colors flex items-center justify-between gap-4">
+                    <div key={request.id} className="p-4 sm:p-5 hover:bg-gray-50/50 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
                       <div className="flex gap-4">
                         <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center shrink-0">
                           <AlertCircle className="w-6 h-6 text-[#FE7F2D]" />
@@ -388,7 +388,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
                             <Badge className="bg-orange-100 text-[#FE7F2D] text-[9px] uppercase font-bold py-0 border-none">META CHANGE</Badge>
                           </div>
                           <p className="text-xs text-gray-500 font-bold">Brand: <span className="text-[#FE7F2D]">{(request.brands as any)?.business_name}</span></p>
-                          <p className="text-[10px] text-gray-400 font-mono bg-gray-50 p-1 px-2 rounded mt-2 truncate max-w-[200px]">
+                          <p className="text-[10px] text-gray-400 font-mono bg-gray-50 p-1 px-2 rounded mt-2 truncate max-w-[160px] sm:max-w-[200px]">
                              {JSON.stringify(request.new_data)}
                           </p>
                         </div>

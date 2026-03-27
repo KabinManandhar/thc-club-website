@@ -120,10 +120,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk">
       {/* Persistent Marquee */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-3 overflow-hidden border-b border-[#FE7F2D]/20">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-2 sm:py-3 overflow-hidden border-b border-[#FE7F2D]/20">
         <div className="animate-marquee whitespace-nowrap">
           {[1, 2, 3, 4].map((i) => (
-            <span key={i} className="inline-block px-12 text-sm font-bold tracking-wide ">
+            <span key={i} className="inline-block px-6 sm:px-12 text-xs sm:text-sm font-bold tracking-wide ">
               the first rule of <span className="thc-highlight">THC Club</span> is you talk about{" "}
               <span className="thc-highlight">THC Club</span>. the second rule of{" "}
               <span className="thc-highlight">THC Club</span> is you TALK ABOUT{" "}
@@ -134,8 +134,8 @@ export default function LandingPage() {
       </div>
 
       {/* Navigation */}
-      <nav className="sticky top-12 z-40 bg-[#FFFCEB]/95 backdrop-blur-sm border-b border-[#FE7F2D]/20 mt-12">
-        <div className="container mx-auto px-6 py-4">
+      <nav className="sticky top-10 sm:top-12 z-40 bg-[#FFFCEB]/95 backdrop-blur-sm border-b border-[#FE7F2D]/20 mt-10 sm:mt-12">
+        <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Image
@@ -146,56 +146,52 @@ export default function LandingPage() {
                 className="h-8 w-auto cursor-pointer transition-transform hover:scale-105"
                 onClick={() => setActiveTab("home")}
               />
-              <div className="hidden sm:flex items-center gap-6 ml-8">
+              <div className="flex flex-1 sm:ml-8 overflow-x-auto scrollbar-hide items-center gap-4 sm:gap-6 px-2 sm:px-0 mask-linear-fade">
                 <button
                   onClick={() => setActiveTab("home")}
-                  className={`text-xs font-black lowercase italic tracking-widest transition-all ${
+                  className={`text-[10px] sm:text-xs font-black lowercase italic tracking-widest whitespace-nowrap transition-all ${
                     activeTab === "home" ? "text-[#FE7F2D] border-b border-[#FE7F2D]" : "text-[#010307]/40 hover:text-[#010307]"
                   }`}
                 >
-                  club home
+                  home
                 </button>
                 <button
                   onClick={() => setActiveTab("members")}
-                  className={`text-xs font-black lowercase italic tracking-widest transition-all ${
+                  className={`text-[10px] sm:text-xs font-black lowercase italic tracking-widest whitespace-nowrap transition-all ${
                     activeTab === "members" ? "text-[#FE7F2D] border-b border-[#FE7F2D]" : "text-[#010307]/40 hover:text-[#010307]"
                   }`}
                 >
-                  club members
+                  members
                 </button>
               </div>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 sm:gap-6 shrink-0">
               <Image
                 src="/broski.png"
                 alt="broski mascot"
                 width={32}
                 height={32}
-                className="h-8 w-8 transition-transform hover:rotate-12"
+                className="h-6 w-6 sm:h-8 sm:w-8 transition-transform hover:rotate-12 hidden sm:block"
               />
-              <div className="flex gap-2">
-              <div className="flex gap-2">
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="bg-[#FE7F2D] hover:bg-black text-white font-black lowercase italic tracking-widest shadow-lg rounded-xl h-10 px-8 transition-all active:scale-95"
-                        onClick={() => setAuthView("signup")}
-                      >
-                        apply now
-                      </Button>
-                      {!isAuthenticated && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-[#010307]/20 text-[#010307] hover:bg-[#010307] hover:text-white font-black lowercase italic tracking-widest rounded-xl h-10 px-6 transition-all"
-                            onClick={() => setAuthView("login")}
-                          >
-                            <LogIn className="w-3 h-3 mr-2" />
-                            login
-                          </Button>
-                      )}
-                    </div>
-              </div>
+              <div className="flex gap-1.5 sm:gap-2">
+                <Button
+                  size="sm"
+                  className="bg-[#FE7F2D] hover:bg-black text-white font-black lowercase italic tracking-widest shadow-lg rounded-xl h-8 sm:h-10 px-3 sm:px-8 text-[10px] sm:text-sm transition-all active:scale-95"
+                  onClick={() => setAuthView("signup")}
+                >
+                  apply <span className="hidden sm:inline ml-1">now</span>
+                </Button>
+                {!isAuthenticated && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-[#010307]/20 text-[#010307] hover:bg-[#010307] hover:text-white font-black lowercase italic tracking-widest rounded-xl h-8 sm:h-10 px-2 sm:px-6 text-[10px] sm:text-sm transition-all"
+                      onClick={() => setAuthView("login")}
+                    >
+                      <LogIn className="w-3 h-3 sm:mr-2 hidden sm:inline" />
+                      login
+                    </Button>
+                )}
               </div>
             </div>
           </div>
@@ -205,7 +201,7 @@ export default function LandingPage() {
       {activeTab === "home" ? (
         <>
           {/* Hero Section */}
-          <section className="container mx-auto px-6 py-20 lg:py-32">
+          <section className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 lg:py-32">
             <div className="max-w-6xl mx-auto">
               <div className="grid lg:grid-cols-2 gap-12 items-center">
                 <div className="space-y-8 fade-in">
@@ -261,7 +257,7 @@ export default function LandingPage() {
                                   </div>
                                   <h3 className="text-lg font-black lowercase italic text-[#010307]">{item.title}</h3>
                                 </div>
-                                <p className="text-xl text-[#010307]/60 leading-relaxed italic lowercase">
+                                <p className="text-base sm:text-xl text-[#010307]/60 leading-relaxed italic lowercase">
                                   {item.desc}
                                 </p>
                               </div>
@@ -283,10 +279,10 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <Button
                       size="lg"
-                      className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold lowercase tracking-wide text-lg px-10 py-8 rounded-2xl group transition-all active:scale-95 shadow-xl shadow-orange-500/20"
+                      className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold lowercase tracking-wide text-base sm:text-lg px-8 sm:px-10 py-6 sm:py-8 rounded-2xl group transition-all active:scale-95 shadow-xl shadow-orange-500/20"
                       onClick={() => setAuthView("signup")}
                     >
                       join the club
@@ -295,7 +291,7 @@ export default function LandingPage() {
                     <Button
                       variant="outline"
                       size="lg"
-                      className="border-[#010307]/20 text-[#010307] hover:bg-[#010307]/5 font-bold lowercase tracking-wide text-lg px-10 py-8 rounded-2xl transition-all"
+                      className="border-[#010307]/20 text-[#010307] hover:bg-[#010307]/5 font-bold lowercase tracking-wide text-base sm:text-lg px-8 sm:px-10 py-6 sm:py-8 rounded-2xl transition-all"
                       onClick={() => {
                         if (isAuthenticated) window.location.href = "/club"
                         else setAuthView("login")
@@ -307,7 +303,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="relative fade-in flex justify-center lg:justify-end">
-                  <div className="relative w-full max-w-md aspect-square bg-[#FFFCEB] rounded-[3rem] p-10 border border-[#FE7F2D]/10 shadow-2xl group overflow-visible">
+                  <div className="relative w-full max-w-sm sm:max-w-md aspect-square bg-[#FFFCEB] rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 border border-[#FE7F2D]/10 shadow-2xl group overflow-visible">
                     {/* Minimal background deco with its own overflow clipping */}
                     <div className="absolute inset-0 rounded-[3rem] overflow-visible pointer-events-none">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-[#FE7F2D]/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700" />
@@ -323,23 +319,23 @@ export default function LandingPage() {
                           className="w-full h-auto drop-shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-2"
                           priority
                         />
-                        <div className="absolute -bottom-8 -right-8 bg-[#FE7F2D] text-white p-6 rounded-[2rem] shadow-2xl border-4 border-[#FFFCEB] rotate-12 transition-all group-hover:rotate-6 z-20 group-hover:scale-110">
-                           <p className="text-2xl font-black italic lowercase leading-none">zero fakes.</p>
-                           <p className="text-[10px] font-black uppercase tracking-widest mt-2 opacity-60">Verified Collective</p>
+                        <div className="absolute -bottom-4 -right-4 sm:-bottom-8 sm:-right-8 bg-[#FE7F2D] text-white p-3 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl border-4 border-[#FFFCEB] rotate-12 transition-all group-hover:rotate-6 z-20 group-hover:scale-110">
+                           <p className="text-lg sm:text-2xl font-black italic lowercase leading-none">zero fakes.</p>
+                           <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest mt-1 sm:mt-2 opacity-60">Verified Collective</p>
                         </div>
                         
-                        <div className="absolute -top-10 -left-10 bg-black text-white p-4 rounded-3xl shadow-2xl -rotate-12 transition-all group-hover:rotate-0 z-20">
-                           <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full bg-green-500 animate-ping" />
-                              <p className="text-xs font-black uppercase tracking-widest italic">Live from Kathmandu</p>
+                        <div className="absolute -top-6 -left-6 sm:-top-10 sm:-left-10 bg-black text-white p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl -rotate-12 transition-all group-hover:rotate-0 z-20">
+                           <div className="flex items-center gap-1.5 sm:gap-2">
+                              <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-ping" />
+                              <p className="text-[9px] sm:text-xs font-black uppercase tracking-widest italic">Live from Kathmandu</p>
                            </div>
                         </div>
                       </div>
                       
                       <div className="space-y-6 text-center w-full">
-                        <div className="flex justify-center gap-12">
+                        <div className="flex justify-center gap-6 sm:gap-12">
                           <div className="text-center group/stat">
-                            <p className="text-3xl font-black italic text-[#FE7F2D] lowercase leading-none transition-transform group-hover/stat:scale-110">
+                            <p className="text-2xl sm:text-3xl font-black italic text-[#FE7F2D] lowercase leading-none transition-transform group-hover/stat:scale-110">
                               {brands.length || "12"}+
                             </p>
                             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#010307]/30 mt-2">active brands</p>
@@ -350,7 +346,7 @@ export default function LandingPage() {
                           <div className="text-center group/stat">
                             <div className="flex items-center justify-center gap-2">
                               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                              <p className="text-3xl font-black italic text-[#010307] lowercase leading-none transition-transform group-hover/stat:scale-110">
+                              <p className="text-2xl sm:text-3xl font-black italic text-[#010307] lowercase leading-none transition-transform group-hover/stat:scale-110">
                                 active
                               </p>
                             </div>
@@ -374,12 +370,12 @@ export default function LandingPage() {
           </section>
 
           {/* What We Are - Teaser */}
-          <section className="py-20 lg:py-32 bg-white section-divider">
-            <div className="container mx-auto px-6">
+          <section className="py-12 sm:py-20 lg:py-32 bg-white section-divider">
+            <div className="container mx-auto px-4 sm:px-6">
               <div className="max-w-4xl mx-auto text-center space-y-12">
                 <div className="space-y-6">
-                  <h2 className="text-4xl lg:text-5xl font-black lowercase italic tracking-tighter">what is thc club?</h2>
-                  <p className="text-xl lg:text-2xl text-[#010307]/60 font-medium italic leading-relaxed max-w-3xl mx-auto lowercase">
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black lowercase italic tracking-tighter">what is thc club?</h2>
+                  <p className="text-lg sm:text-xl lg:text-2xl text-[#010307]/60 font-medium italic leading-relaxed max-w-3xl mx-auto lowercase">
                     nepal's first curated creative collective. we're a community of real creators sharing space, telling
                     their stories, and making the city feel alive.
                   </p>
@@ -387,7 +383,7 @@ export default function LandingPage() {
                     it's a movement. it's a club. it's yours if you're real.
                   </div>
                 </div>
-                <div className="grid md:grid-cols-3 gap-8">
+                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6 sm:gap-8">
                   {[
                     { icon: Heart, title: "community first", desc: "real creators, real stories" },
                     { icon: Users, title: "curated collective", desc: "quality over quantity" },
@@ -408,11 +404,11 @@ export default function LandingPage() {
 
           {/* Exclusive Access Banner */}
           <section className="py-12 bg-[#010307] text-white">
-            <div className="container mx-auto px-6">
-              <div className="max-w-4xl mx-auto text-center space-y-6">
+            <div className="container mx-auto px-4 sm:px-6">
+              <div className="max-w-4xl mx-auto text-center space-y-4 sm:space-y-6">
                 <div className="flex items-center justify-center gap-4">
-                  <Lock className="w-6 h-6 text-[#FE7F2D]" />
-                  <h2 className="text-2xl lg:text-3xl font-black">exclusive access required</h2>
+                  <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-[#FE7F2D]" />
+                  <h2 className="text-xl sm:text-2xl lg:text-3xl font-black">exclusive access required</h2>
                   <Lock className="w-6 h-6 text-[#FE7F2D]" />
                 </div>
                 <p className="text-lg text-white/80 max-w-2xl mx-auto">
@@ -458,11 +454,11 @@ export default function LandingPage() {
           </section>
 
           {/* Club Members Section Teaser */}
-          <section className="py-20 lg:py-32 bg-white">
-            <div className="container mx-auto px-6">
+          <section className="py-12 sm:py-20 lg:py-32 bg-white">
+            <div className="container mx-auto px-4 sm:px-6">
               <div className="max-w-6xl mx-auto">
                 <div className="text-center mb-16 space-y-6">
-                  <h2 className="text-4xl lg:text-5xl font-black lowercase italic tracking-tighter">our club members</h2>
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black lowercase italic tracking-tighter">our club members</h2>
                   <p className="text-xl text-[#010307]/60 font-medium italic lowercase">
                     the brands that make the collective real. approved, selling, and building.
                   </p>
@@ -511,17 +507,17 @@ export default function LandingPage() {
           </section>
 
           {/* Who It's For - Teaser */}
-          <section className="py-20 lg:py-32 bg-[#FFFCEB] border-y border-[#FE7F2D]/10">
-            <div className="container mx-auto px-6">
+          <section className="py-12 sm:py-20 lg:py-32 bg-[#FFFCEB] border-y border-[#FE7F2D]/10">
+            <div className="container mx-auto px-4 sm:px-6">
               <div className="max-w-6xl mx-auto">
                 <div className="text-center mb-16 space-y-6">
-                  <h2 className="text-4xl lg:text-5xl font-black">is this for you?</h2>
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black">is this for you?</h2>
                   <p className="text-xl text-[#010307]/70">
                     We're built for creators and brands who are doing things with intention — whether you're just starting
                     or scaling up.
                   </p>
                 </div>
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                   {[
                     { title: "local product makers", desc: "handcrafted in nepal", emoji: "🏠" },
                     { title: "handmade + custom brands", desc: "one-of-a-kind creations", emoji: "✋" },
@@ -548,21 +544,21 @@ export default function LandingPage() {
           </section>
 
           {/* CTA */}
-          <section className="py-20 lg:py-32 bg-[#010307] text-white">
-            <div className="container mx-auto px-6 text-center">
-              <div className="max-w-4xl mx-auto space-y-8">
-                <h2 className="text-5xl lg:text-6xl font-black leading-tight">
+          <section className="py-12 sm:py-20 lg:py-32 bg-[#010307] text-white">
+            <div className="container mx-auto px-4 sm:px-6 text-center">
+              <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+                <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black leading-tight">
                   ready to <span className="gradient-text">join</span>?
                 </h2>
-                <div className="space-y-4">
-                  <p className="text-2xl font-bold">108 shelf slots. curated community. exclusive access.</p>
+                <div className="space-y-3 sm:space-y-4">
+                  <p className="text-lg sm:text-2xl font-bold">108 shelf slots. curated community. exclusive access.</p>
                   <p className="text-xl text-white/80">if you're building something real, we want you here.</p>
-                  <p className="text-3xl font-black text-[#FE7F2D]">🖤 this is thc club.</p>
+                  <p className="text-2xl sm:text-3xl font-black text-[#FE7F2D]">🖤 this is thc club.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button
                     size="lg"
-                    className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold lowercase tracking-wide text-xl px-12 py-8 rounded-2xl group transition-all active:scale-95 shadow-2xl shadow-orange-500/40"
+                    className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold lowercase tracking-wide text-base sm:text-xl px-8 sm:px-12 py-6 sm:py-8 rounded-2xl group transition-all active:scale-95 shadow-2xl shadow-orange-500/40"
                     onClick={() => setAuthView("signup")}
                   >
                     join the club
@@ -572,7 +568,7 @@ export default function LandingPage() {
                     <Button
                       variant="outline"
                       size="lg"
-                      className="border-white/20 text-black hover:bg-white/90 font-bold lowercase tracking-wide text-xl px-12 py-8 rounded-2xl transition-all"
+                      className="border-white/20 text-black hover:bg-white/90 font-bold lowercase tracking-wide text-base sm:text-xl px-8 sm:px-12 py-6 sm:py-8 rounded-2xl transition-all"
                       onClick={() => setAuthView("login")}
                     >
                       <Lock className="mr-3 h-4 w-4" />
@@ -585,25 +581,25 @@ export default function LandingPage() {
           </section>
         </>
       ) : (
-        <section className="py-20 lg:py-32 bg-[#FFFCEB] min-h-[60vh]">
-          <div className="container mx-auto px-6">
+        <section className="py-12 sm:py-20 lg:py-32 bg-[#FFFCEB] min-h-[60vh]">
+          <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-6xl mx-auto">
-              <div className="text-center mb-24 space-y-6">
+              <div className="text-center mb-12 sm:mb-24 space-y-4 sm:space-y-6">
                 <div className="inline-flex items-center gap-2 bg-[#FE7F2D]/10 text-[#FE7F2D] px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
                   <Users className="w-3 h-3" />
                   the collective
                 </div>
-                <h2 className="text-6xl lg:text-8xl font-black lowercase italic tracking-tighter">our club members</h2>
-                <p className="text-2xl text-[#010307]/60 font-medium italic lowercase max-w-3xl mx-auto leading-relaxed">
+                <h2 className="text-4xl sm:text-6xl lg:text-8xl font-black lowercase italic tracking-tighter">our club members</h2>
+                <p className="text-lg sm:text-2xl text-[#010307]/60 font-medium italic lowercase max-w-3xl mx-auto leading-relaxed">
                   a curated gallery of nepal's most intentional creators. from hand-made ceramics to ethical fashion, this is the crew building the future.
                 </p>
               </div>
               
               {brands.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-12">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-12">
                   {brands.map((brand) => (
-                    <div key={brand.id} className="group relative flex flex-col items-center gap-6 transition-all duration-300 hover-lift">
-                      <div className="w-40 h-40 md:w-56 md:h-56 bg-white rounded-[3rem] border border-[#FE7F2D]/5 flex items-center justify-center p-10 overflow-hidden shadow-2xl group-hover:shadow-[#FE7F2D]/10 transition-all">
+                    <div key={brand.id} className="group relative flex flex-col items-center gap-4 sm:gap-6 transition-all duration-300 hover-lift">
+                      <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-56 md:h-56 bg-white rounded-[2rem] sm:rounded-[3rem] border border-[#FE7F2D]/5 flex items-center justify-center p-6 sm:p-10 overflow-hidden shadow-2xl group-hover:shadow-[#FE7F2D]/10 transition-all">
                         {brand.logo_url ? (
                           <Image
                             src={brand.logo_url}
@@ -617,7 +613,7 @@ export default function LandingPage() {
                         )}
                       </div>
                       <div className="text-center space-y-2">
-                        <h3 className="text-2xl font-black lowercase italic text-[#010307] group-hover:text-[#FE7F2D] transition-colors">{brand.business_name}</h3>
+                        <h3 className="text-lg sm:text-2xl font-black lowercase italic text-[#010307] group-hover:text-[#FE7F2D] transition-colors">{brand.business_name}</h3>
                         {brand.instagram_handle && (
                           <div className="flex items-center justify-center gap-2 bg-black/5 px-4 py-1.5 rounded-full group-hover:bg-[#FE7F2D]/10 group-hover:text-[#FE7F2D] transition-all">
                              <Instagram className="w-3 h-3" />
@@ -636,12 +632,12 @@ export default function LandingPage() {
                 </div>
               )}
 
-              <div className="mt-40 bg-[#010307] text-[#FFFCEB] p-16 rounded-[4rem] flex flex-col items-center text-center space-y-8">
-                 <h4 className="text-4xl font-black lowercase italic tracking-tight">want to see your brand here?</h4>
-                 <p className="text-xl text-[#FFFCEB]/60 max-w-2xl font-medium">we're always looking for real creators doing real things. apply for membership today.</p>
+              <div className="mt-16 sm:mt-40 bg-[#010307] text-[#FFFCEB] p-8 sm:p-16 rounded-[2rem] sm:rounded-[4rem] flex flex-col items-center text-center space-y-6 sm:space-y-8">
+                 <h4 className="text-2xl sm:text-4xl font-black lowercase italic tracking-tight">want to see your brand here?</h4>
+                 <p className="text-base sm:text-xl text-[#FFFCEB]/60 max-w-2xl font-medium">we're always looking for real creators doing real things. apply for membership today.</p>
                  <Button 
                     onClick={() => setAuthView("signup")}
-                    className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-black lowercase italic tracking-widest px-12 py-8 rounded-3xl text-xl shadow-2xl shadow-orange-500/20"
+                    className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-black lowercase italic tracking-widest px-8 sm:px-12 py-6 sm:py-8 rounded-2xl sm:rounded-3xl text-base sm:text-xl shadow-2xl shadow-orange-500/20"
                  >
                     join the collective
                  </Button>
@@ -652,9 +648,9 @@ export default function LandingPage() {
       )}
 
       {/* Footer */}
-      <footer className="py-32 bg-[#FFFCEB] border-t border-[#FE7F2D]/10">
-        <div className="container mx-auto px-6">
-          <div className="max-w-4xl mx-auto text-center space-y-16">
+      <footer className="py-16 sm:py-32 bg-[#FFFCEB] border-t border-[#FE7F2D]/10 safe-bottom">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="max-w-4xl mx-auto text-center space-y-10 sm:space-y-16">
             <div className="flex flex-col items-center gap-10">
               <div className="flex items-center gap-8">
                 <Image
@@ -683,7 +679,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-12 text-left bg-white/40 backdrop-blur-sm p-12 rounded-[3rem] border border-[#FE7F2D]/5">
+            <div className="grid md:grid-cols-2 gap-8 sm:gap-12 text-left bg-white/40 backdrop-blur-sm p-6 sm:p-12 rounded-[2rem] sm:rounded-[3rem] border border-[#FE7F2D]/5">
               <div className="space-y-6">
                 <h4 className="text-[#FE7F2D] font-black lowercase italic text-xl">membership process</h4>
                 <ul className="space-y-4 text-[#010307]/60 font-medium lowercase italic leading-relaxed">

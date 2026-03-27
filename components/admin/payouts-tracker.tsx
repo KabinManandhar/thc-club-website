@@ -510,48 +510,48 @@ export function PayoutsTracker() {
       </div>
 
       {/* Stats */}
-      <div className="grid md:grid-cols-3 gap-8">
-        <Card className="border-none shadow-xl rounded-[2.5rem] bg-white p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
-          <div className="flex justify-between items-start mb-6">
-            <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-[#FE7F2D]" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <Card className="border-none shadow-xl rounded-[2rem] sm:rounded-[2.5rem] bg-white p-6 sm:p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
+          <div className="flex justify-between items-start mb-4 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-50 rounded-xl sm:rounded-2xl flex items-center justify-center">
+              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-[#FE7F2D]" />
             </div>
-            <Badge className="bg-orange-100 text-orange-700 border-none font-black uppercase text-[8px] px-3 tracking-widest">Live Flow</Badge>
+            <Badge className="bg-orange-100 text-orange-700 border-none font-black uppercase text-[8px] px-2 sm:px-3 tracking-widest leading-relaxed">Live Flow</Badge>
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Current Month Flux</p>
-          <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalMonthGross.toLocaleString()}</h3>
+          <p className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Current Month Flux</p>
+          <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalMonthGross.toLocaleString()}</h3>
         </Card>
 
-        <Card className="border-none shadow-xl rounded-[2.5rem] bg-white p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
-          <div className="flex justify-between items-start mb-6">
-            <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center">
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
+        <Card className="border-none shadow-xl rounded-[2rem] sm:rounded-[2.5rem] bg-white p-6 sm:p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
+          <div className="flex justify-between items-start mb-4 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-50 rounded-xl sm:rounded-2xl flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
             </div>
-            <Badge className="bg-green-100 text-green-700 border-none font-black uppercase text-[8px] px-3 tracking-widest">Estimated Payout</Badge>
+            <Badge className="bg-green-100 text-green-700 border-none font-black uppercase text-[8px] px-2 sm:px-3 tracking-widest leading-relaxed">Est. Payout</Badge>
           </div>
-          <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Net Brand Revenue Due</p>
-          <h3 className="text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalLiveDue.toLocaleString()}</h3>
+          <p className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Net Brand Revenue</p>
+          <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalLiveDue.toLocaleString()}</h3>
         </Card>
 
-        <Card className="border-none shadow-xl rounded-[2.5rem] bg-black text-white p-8 group hover:scale-[1.02] transition-transform">
-          <div className="flex justify-between items-start mb-6">
-            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
-              <ArrowUpRight className="w-6 h-6 text-[#FE7F2D]" />
+        <Card className="border-none shadow-xl rounded-[2rem] sm:rounded-[2.5rem] bg-black text-white p-6 sm:p-8 group hover:scale-[1.02] transition-transform">
+          <div className="flex justify-between items-start mb-4 sm:mb-6">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center">
+              <ArrowUpRight className="w-5 h-5 sm:w-6 sm:h-6 text-[#FE7F2D]" />
             </div>
-            <Badge className="bg-[#FE7F2D] text-white border-none font-black uppercase text-[8px] px-3 tracking-widest">Club Profit</Badge>
+            <Badge className="bg-[#FE7F2D] text-white border-none font-black uppercase text-[8px] px-2 sm:px-3 tracking-widest leading-relaxed">Club Profit</Badge>
           </div>
-          <p className="text-[10px] font-black uppercase text-white/40 tracking-widest mb-1 font-mono">PPF Stream</p>
-          <h3 className="text-3xl font-black text-white tracking-tighter italic">NPR {(totalLiveGross - totalLiveDue).toLocaleString()}</h3>
+          <p className="text-[9px] sm:text-[10px] font-black uppercase text-white/40 tracking-widest mb-1 font-mono">PPF Stream</p>
+          <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tighter italic">NPR {(totalLiveGross - totalLiveDue).toLocaleString()}</h3>
         </Card>
       </div>
 
       {/* ── Tabs Navigation ── */}
       <Tabs defaultValue="pending" className="w-full">
-        <TabsList className="bg-white/50 backdrop-blur-md p-1 rounded-2xl h-14 w-full md:w-auto border border-black/5 shadow-sm mb-8 gap-2">
-          <TabsTrigger value="pending" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-8 data-[state=active]:bg-black data-[state=active]:text-white transition-all h-full">
+        <TabsList className="bg-white/50 backdrop-blur-md p-1 rounded-2xl h-auto flex flex-col sm:flex-row w-full md:w-fit border border-black/5 shadow-sm mb-8 gap-2">
+          <TabsTrigger value="pending" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-4 sm:px-8 py-3 w-full sm:w-auto data-[state=active]:bg-black data-[state=active]:text-white transition-all">
             <Clock className="w-4 h-4 mr-2" /> Pending Settlements
           </TabsTrigger>
-          <TabsTrigger value="ledger" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-8 data-[state=active]:bg-[#FE7F2D] data-[state=active]:text-white transition-all h-full">
+          <TabsTrigger value="ledger" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-4 sm:px-8 py-3 w-full sm:w-auto data-[state=active]:bg-[#FE7F2D] data-[state=active]:text-white transition-all">
             <ShieldCheck className="w-4 h-4 mr-2" /> Finalized Ledger
           </TabsTrigger>
         </TabsList>
@@ -562,12 +562,165 @@ export function PayoutsTracker() {
             <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-gray-400" /> Pending Settlements (Live)
             </h3>
-            <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-gray-50">
+            <Card className="border-none shadow-2xl rounded-[2rem] sm:rounded-[3rem] bg-white overflow-hidden border border-gray-50">
+              <div className="table-responsive">
+                <Table>
+                  <TableHeader className="bg-gray-50/50">
+                  <TableRow className="border-none whitespace-nowrap">
+                    <TableHead className="px-6 sm:px-10 py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Brand Partner</TableHead>
+                    <TableHead className="py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Gross Sales</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">PPF (Fee)</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Net Due</TableHead>
+                    <TableHead className="px-10 py-6 text-right" />
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-50">
+                  {liveSales.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-24 text-gray-300 italic font-medium">
+                        No sales recorded for the current cycle.
+                      </TableCell>
+                    </TableRow>
+                  ) : liveSales.map(sale => (
+                    <TableRow key={sale.id} className="group hover:bg-gray-50/30 transition-colors">
+                      <TableCell className="px-6 sm:px-10 py-4 sm:py-6">
+                          <div className="flex items-center gap-3 sm:gap-4">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-[10px] sm:rounded-xl flex items-center justify-center font-black text-gray-400 font-mono tracking-tighter">
+                              {sale.brands?.business_name?.substring(0, 2).toUpperCase() || "XX"}
+                            </div>
+                            <div>
+                              <div className="font-black text-gray-900 text-xs sm:text-sm">{sale.brands?.business_name}</div>
+                              <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Id: {sale.brand_id.substring(0, 8)}</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 sm:py-6">
+                          <Badge className="bg-black text-white font-black uppercase text-[8px] sm:text-[9px] rounded-lg tracking-widest border-none px-2 sm:px-3">
+                            {sale.month}/{sale.year}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-4 sm:py-6 text-gray-900 font-bold whitespace-nowrap text-xs sm:text-sm">NPR {(sale.gross_sales || 0).toLocaleString()}</TableCell>
+                        <TableCell className="py-4 sm:py-6">
+                           <div className="flex items-center gap-1.5 sm:gap-2">
+                             <div className="px-1.5 sm:px-2 py-0.5 bg-red-50 text-red-600 rounded text-[9px] sm:text-[10px] font-black italic border border-red-100/50">
+                                {sale.ppf_rate}% PPF
+                             </div>
+                             <span className="text-red-500 font-bold whitespace-nowrap text-xs sm:text-sm">-NPR {Math.round(sale.ppf_amount || 0).toLocaleString()}</span>
+                           </div>
+                        </TableCell>
+                        <TableCell className="text-right px-6 sm:px-10 py-4 sm:py-6">
+                                <div className="flex items-center justify-end">
+                                  <Button 
+                                    className="bg-black text-white hover:bg-black/90 font-black uppercase text-[9px] sm:text-[10px] tracking-widest px-4 sm:px-6 h-10 w-full rounded-xl transition-all active:scale-95 group/btn overflow-visible"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setFlowSale(sale);
+                                      setFlowStep("report");
+                                    }}
+                                  >
+                                    <span className="text-base sm:text-lg italic tracking-tighter shrink-0">Settle</span>
+                                    <div className="flex flex-col items-end leading-none ml-2">
+                                       <span className="text-[8px] text-white/50 w-full text-right truncate">NPR {Math.round((sale.gross_sales || 0) - (sale.ppf_amount || 0)).toLocaleString()}</span>
+                                    </div>
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </Card>
+                </div>
+            </TabsContent>
+  
+            <TabsContent value="ledger" className="space-y-12 animate-in fade-in slide-in-from-right-4 duration-500">
+              {/* ── Finalized Payouts ── */}
+              <div className="space-y-6">
+                 <div className="flex justify-between items-center">
+                   <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
+                     <ShieldCheck className="w-5 h-5 text-green-500" /> Settled Treasury Ledger
+                   </h3>
+                   <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                     Historical Records
+                   </div>
+                 </div>
+                 <Card className="border-none shadow-xl rounded-[2rem] sm:rounded-[3rem] bg-white overflow-hidden border border-gray-100">
+                    <div className="table-responsive">
+                      <Table>
+                      <TableHeader className="bg-gray-50/50">
+                        <TableRow className="border-none whitespace-nowrap">
+                          <TableHead className="px-6 sm:px-10 py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Brand Partner</TableHead>
+                          <TableHead className="py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Record Info</TableHead>
+                          <TableHead className="text-right px-6 sm:px-10 py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Ledger Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {payouts.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center py-16 sm:py-24">
+                              <span className="text-gray-300 italic font-medium">Treasury archive is currently empty.</span>
+                            </TableCell>
+                          </TableRow>
+                        ) : payouts.filter(p => p.status === 'paid').map(po => (
+                          <TableRow key={po.id} className="group hover:bg-gray-50/30 transition-colors">
+                            <TableCell className="px-6 sm:px-10 py-4 sm:py-6">
+                              <div className="flex items-center gap-3 sm:gap-4">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gray-100 rounded-[10px] sm:rounded-xl flex items-center justify-center font-black text-gray-400 font-mono tracking-tighter">
+                                  {po.brands?.business_name?.substring(0, 2).toUpperCase() || "XX"}
+                                </div>
+                                <div>
+                                  <div className="font-black text-gray-900 text-xs sm:text-sm">{po.brands?.business_name}</div>
+                                  <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Id: {po.brand_id.substring(0, 8)}</div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="py-4 sm:py-6">
+                              <div className="flex flex-col">
+                                <Badge className="bg-green-500 text-white font-black uppercase text-[8px] sm:text-[9px] rounded-lg tracking-widest border-none px-2 sm:px-3 w-fit">
+                                  {po.month}/{po.year}
+                                </Badge>
+                                <div className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-2">
+                                  Settled: {new Date(po.paid_at!).toLocaleDateString()}
+                                </div>
+                                <div className="text-sm font-black text-green-700 italic mt-1">
+                                  NPR {po.net_payout.toLocaleString()}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right px-6 sm:px-10 py-4 sm:py-6">
+                              <div className="flex items-center justify-end gap-2">
+                                <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full bg-gray-50 hover:bg-gray-100"
+                                  onClick={() => setViewPayout(po)} title="View Statement">
+                                  <Receipt className="w-4 h-4 text-[#010307]/40 hover:text-[#010307]" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="w-9 h-9 rounded-full hover:text-red-500"
+                                  onClick={() => handleUndoSettlement(po.id)} title="Undo Settlement">
+                                  <RefreshCcw className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Card>
+                </div>
+              </TabsContent>
+        <TabsContent value="pending" className="space-y-12 animate-in fade-in slide-in-from-left-4 duration-500">
+           {/* ── Pending Settlements (Live) ── */}
+           <div className="space-y-6">
+            <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-gray-400" /> Pending Settlements (Live)
+            </h3>
+            <Card className="border-none shadow-2xl rounded-[2rem] sm:rounded-[3rem] bg-white overflow-hidden border border-gray-50 table-responsive">
               <Table>
                 <TableHeader className="bg-gray-50/50">
-                  <TableRow className="border-none">
-                    <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Brand Partner</TableHead>
-                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
+                  <TableRow className="border-none whitespace-nowrap">
+                    <TableHead className="px-6 sm:px-10 py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Brand Partner</TableHead>
+                    <TableHead className="py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
                     <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Gross Sales</TableHead>
                     <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">PPF (Fee)</TableHead>
                     <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Net Due</TableHead>
@@ -676,19 +829,22 @@ export function PayoutsTracker() {
               <Receipt className="w-5 h-5 text-gray-400" /> Recent Store Activity
             </h3>
             <Card className="border-none shadow-xl rounded-[2.5rem] bg-white/40 overflow-hidden border border-white/60">
-              <Table>
+              <div className="table-responsive">
+                <Table>
                 <TableHeader>
-                  <TableRow className="border-none">
+                  <TableRow className="border-none whitespace-nowrap">
                     <TableHead className="px-10 py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Timestamp</TableHead>
                     <TableHead className="py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Partner</TableHead>
                     <TableHead className="py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Invoice</TableHead>
-                    <TableHead className="py-5 font-black text-[9px] uppercase tracking-widest text-gray-400 text-right pr-10">Amount</TableHead>
+                    <TableHead className="text-right px-6 sm:px-10 py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Net Due</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentInvoices.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center py-10 text-gray-300 italic text-xs">No recent transactions synced.</TableCell>
+                      <TableCell colSpan={5} className="text-center py-16 sm:py-24">
+                        <span className="text-gray-300 italic text-xs">No recent transactions synced.</span>
+                      </TableCell>
                     </TableRow>
                   ) : recentInvoices.map(inv => (
                     <TableRow key={inv.id} className="border-0">
@@ -702,7 +858,8 @@ export function PayoutsTracker() {
                   ))}
                 </TableBody>
               </Table>
-            </Card>
+            </div>
+          </Card>
             <p className="text-[10px] text-gray-400 font-medium italic text-center">showing last 10 live invoices across all brand partners.</p>
           </div>
         </TabsContent>
@@ -918,7 +1075,7 @@ export function PayoutsTracker() {
                 </div>
               </div>
 
-              {completedPayout && <StatementView payout={completedPayout} printRef={printRef} />}
+              {completedPayout && <StatementView payout={completedPayout!} printRef={printRef} />}
 
               <div className="flex gap-4 pt-8 border-t border-gray-100">
                 <Button onClick={() => handlePrint(printRef)}
@@ -950,7 +1107,7 @@ export function PayoutsTracker() {
             </Button>
           </div>
           <div className="p-10">
-            {viewPayout && <StatementView payout={viewPayout} printRef={printRef2} />}
+            {viewPayout && <StatementView payout={viewPayout!} printRef={printRef2} />}
             <div className="flex gap-4 pt-8 border-t border-gray-100">
               <Button onClick={() => handlePrint(printRef2)}
                 className="flex-1 h-14 bg-[#FE7F2D] text-white hover:bg-black rounded-2xl font-black lowercase italic tracking-widest shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2 transition-all">

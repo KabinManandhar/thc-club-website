@@ -222,24 +222,24 @@ export function ShelfSlotsManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <h1 className="text-3xl font-black">Shelf Slots Management</h1>
-        <div className="flex gap-2">
-          <Button onClick={() => setIsCreateShelfOpen(true)} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold mr-4">
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        <h1 className="text-2xl sm:text-3xl font-black">Shelf Slots Management</h1>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <Button onClick={() => setIsCreateShelfOpen(true)} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold w-full sm:w-auto mb-2 sm:mb-0 sm:mr-4">
             <Plus className="w-4 h-4 mr-2" />
             Add New Shelf
           </Button>
-          <div className="relative">
+          <div className="relative flex-1 min-w-[140px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               placeholder="Search slots..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-48"
+              className="pl-10 w-full"
             />
           </div>
           <Select value={shelfTypeFilter} onValueChange={setShelfTypeFilter}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-full sm:w-32 flex-1 min-w-[120px]">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue />
             </SelectTrigger>
@@ -251,7 +251,7 @@ export function ShelfSlotsManagement() {
             </SelectContent>
           </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-full sm:w-32 flex-1 min-w-[120px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>

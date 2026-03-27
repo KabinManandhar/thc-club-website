@@ -1,17 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Search, Printer, Eye, Receipt, FileText, Download } from "lucide-react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { supabase } from "@/lib/supabase"
+import { Printer, Receipt, Search } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { ReceiptPrinter } from "./receipt-printer"
-import { useRef } from "react"
 
 export function InvoiceList() {
   const [invoices, setInvoices] = useState<any[]>([])
@@ -79,13 +77,13 @@ export function InvoiceList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black tracking-tighter flex items-center gap-3">
-            <Receipt className="w-7 h-7 text-[#FE7F2D]" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h2 className="text-xl sm:text-2xl font-black tracking-tighter flex items-center gap-3">
+            <Receipt className="w-6 h-6 sm:w-7 sm:h-7 text-[#FE7F2D]" />
             Sales History & Invoices
           </h2>
-          <p className="text-gray-500 font-medium text-sm">View and print standard 80mm thermal bills for all transactions.</p>
+          <p className="text-gray-500 font-medium text-xs sm:text-sm">View and print standard 80mm thermal bills for all transactions.</p>
         </div>
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -99,30 +97,31 @@ export function InvoiceList() {
       </div>
 
       <Card className="border-gray-100 shadow-xl rounded-2xl overflow-hidden">
-        <Table>
-          <TableHeader className="bg-gray-50/50">
-            <TableRow>
-              <TableHead className="font-black text-[10px] uppercase tracking-widest">Inv #</TableHead>
-              <TableHead className="font-black text-[10px] uppercase tracking-widest">Brand</TableHead>
-              <TableHead className="font-black text-[10px] uppercase tracking-widest">Total</TableHead>
-              <TableHead className="font-black text-[10px] uppercase tracking-widest text-center">Fee</TableHead>
-              <TableHead className="font-black text-[10px] uppercase tracking-widest text-right">Date</TableHead>
-              <TableHead className="font-black text-[10px] uppercase tracking-widest text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
+        <div className="table-responsive">
+          <Table>
+            <TableHeader className="bg-gray-50/50">
+              <TableRow className="whitespace-nowrap">
+                <TableHead className="font-black text-[10px] uppercase tracking-widest px-4 sm:px-6">Inv #</TableHead>
+                <TableHead className="font-black text-[10px] uppercase tracking-widest">Brand</TableHead>
+                <TableHead className="font-black text-[10px] uppercase tracking-widest">Total</TableHead>
+                <TableHead className="font-black text-[10px] uppercase tracking-widest text-center">Fee</TableHead>
+                <TableHead className="font-black text-[10px] uppercase tracking-widest text-right">Date</TableHead>
+                <TableHead className="font-black text-[10px] uppercase tracking-widest text-right px-4 sm:px-6">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
           <TableBody>
             {filteredInvoices.map((inv) => (
               <TableRow key={inv.id} className="hover:bg-gray-50/50 transition-colors">
-                <TableCell className="font-bold">{inv.invoice_number}</TableCell>
-                <TableCell className="font-medium">{inv.brands?.business_name}</TableCell>
-                <TableCell className="font-black">NPR {inv.total_amount.toLocaleString()}</TableCell>
+                <TableCell className="font-bold px-4 sm:px-6">{inv.invoice_number}</TableCell>
+                <TableCell className="font-medium whitespace-nowrap">{inv.brands?.business_name}</TableCell>
+                <TableCell className="font-black whitespace-nowrap">NPR {inv.total_amount.toLocaleString()}</TableCell>
                 <TableCell className="text-center">
-                  <Badge variant="outline" className="text-blue-600 border-blue-100 bg-blue-50/30">NPR {inv.ppf_amount?.toLocaleString() || '0'}</Badge>
+                  <Badge variant="outline" className="text-blue-600 border-blue-100 bg-blue-50/30 whitespace-nowrap">NPR {inv.ppf_amount?.toLocaleString() || '0'}</Badge>
                 </TableCell>
-                <TableCell className="text-right text-gray-500 tabular-nums text-xs">
+                <TableCell className="text-right text-gray-500 tabular-nums text-xs whitespace-nowrap">
                   {new Date(inv.created_at).toLocaleDateString()}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right px-4 sm:px-6">
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="ghost" size="sm" className="rounded-xl h-8 px-3 font-black text-[10px] uppercase" onClick={() => setSelectedInvoice(inv)}>
@@ -154,45 +153,44 @@ export function InvoiceList() {
                             </div>
 
                             <div className="space-y-6">
-                              <div className="flex justify-between items-start">
+                              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                                 <div>
-                                  <DialogTitle className="text-3xl font-black italic uppercase">THC Club</DialogTitle>
+                                  <DialogTitle className="text-2xl sm:text-3xl font-black italic uppercase">THC Club</DialogTitle>
                                   <DialogDescription className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-1">Store Terminal 01</DialogDescription>
                                 </div>
-                                <div className="text-right">
-                                  <p className="font-black text-xl italic text-[#FE7F2D]">{inv.invoice_number}</p>
+                                <div className="text-left sm:text-right">
+                                  <p className="font-black text-lg sm:text-xl italic text-[#FE7F2D]">{inv.invoice_number}</p>
                                   <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">{new Date(inv.created_at).toLocaleDateString("en-NP")}</p>
                                 </div>
                               </div>
-
-                              <div className="grid grid-cols-2 gap-8 py-4 border-y border-dashed border-gray-100">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 py-4 border-y border-dashed border-gray-100">
                                 <div className="space-y-1">
                                   <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Partner Brand</p>
                                   <p className="font-black italic text-lg">{inv.brands?.business_name}</p>
                                 </div>
-                                <div className="space-y-1 text-right">
+                                <div className="space-y-1 sm:text-right">
                                   <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Customer</p>
-                                  <p className="font-black italic text-lg">{inv.customer_name || "Walk-in"}</p>
+                                  <p className="font-black italic text-base sm:text-lg">{inv.customer_name || "Walk-in"}</p>
                                 </div>
                               </div>
 
-                              <div className="max-h-64 overflow-y-auto">
+                              <div className="max-h-64 overflow-y-auto w-full table-responsive">
                                 <Table>
                                   <TableHeader className="bg-gray-50/50">
-                                    <TableRow className="border-none">
+                                    <TableRow className="border-none whitespace-nowrap">
                                       <TableHead className="font-black text-[8px] uppercase tracking-widest h-10">Product Name</TableHead>
-                                      <TableHead className="text-right font-black text-[8px] uppercase tracking-widest h-10">Qty</TableHead>
-                                      <TableHead className="text-right font-black text-[8px] uppercase tracking-widest h-10">Price</TableHead>
+                                      <TableHead className="text-right font-black text-[8px] uppercase tracking-widest h-10 px-4">Qty</TableHead>
+                                      <TableHead className="text-right font-black text-[8px] uppercase tracking-widest h-10 px-4">Price</TableHead>
                                       <TableHead className="text-right font-black text-[8px] uppercase tracking-widest h-10">Total</TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
                                     {inv.invoice_line_items?.map((item: any, i: number) => (
                                       <TableRow key={i} className="border-gray-50 py-4">
-                                        <TableCell className="font-black text-xs uppercase italic">{item.product_name}</TableCell>
-                                        <TableCell className="text-right font-mono text-xs">{item.quantity}</TableCell>
-                                        <TableCell className="text-right font-mono text-xs">{item.unit_price.toLocaleString()}</TableCell>
-                                        <TableCell className="text-right font-black text-sm italic">NPR {item.line_total.toLocaleString()}</TableCell>
+                                        <TableCell className="font-black text-[10px] sm:text-xs uppercase italic whitespace-nowrap">{item.product_name}</TableCell>
+                                        <TableCell className="text-right font-mono text-[10px] sm:text-xs px-4">{item.quantity}</TableCell>
+                                        <TableCell className="text-right font-mono text-[10px] sm:text-xs px-4">{item.unit_price.toLocaleString()}</TableCell>
+                                        <TableCell className="text-right font-black text-xs sm:text-sm italic whitespace-nowrap">NPR {item.line_total.toLocaleString()}</TableCell>
                                       </TableRow>
                                     ))}
                                   </TableBody>
@@ -237,6 +235,7 @@ export function InvoiceList() {
             ))}
           </TableBody>
         </Table>
+        </div>
       </Card>
       
       {filteredInvoices.length === 0 && (
