@@ -305,9 +305,9 @@ export default function LandingPage() {
                 <div className="relative fade-in flex justify-center lg:justify-end">
                   <div className="relative w-full max-w-sm sm:max-w-md aspect-square bg-[#FFFCEB] rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-10 border border-[#FE7F2D]/10 shadow-2xl group overflow-visible">
                     {/* Minimal background deco with its own overflow clipping */}
-                    <div className="absolute inset-0 rounded-[3rem] overflow-visible pointer-events-none">
+                    {/* <div className="absolute inset-0 rounded-[3rem] overflow-visible pointer-events-none">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-[#FE7F2D]/5 rounded-full -mr-16 -mt-16 transition-transform group-hover:scale-150 duration-700" />
-                    </div>
+                    </div> */}
                     
                     <div className="relative z-10 w-full h-full flex flex-col items-center justify-center space-y-12">
                       <div className="relative">
