@@ -29,45 +29,24 @@ export function BrandSalesReport({ brandId }: BrandSalesReportProps) {
   }, [brandId])
 
   const fetchSalesReport = async () => {
+    setLoading(true)
     try {
-      // 1. Fetch products
-      const { data: products } = await supabase
-        .from("brand_products")
-        .select("*")
-        .eq("brand_id", brandId)
+      const { data, error } = await supabase
+        .rpc("get_product_performance_secure", { p_brand_id: brandId })
 
-      if (!products) return
+      if (error) {
+         if (error.code === 'P0001' || error.code === '42883') {
+            const { data: products } = await supabase.from("brand_products").select("*").eq("brand_id", brandId)
+            setProductSales(products?.map(p => ({ ...p, sold: 0, revenue: 0 })) || [])
+            return
+         }
+         throw error
+      }
 
-      // 2. Fetch all unique sales items
-      const { data: lineItems } = await supabase
-        .from("invoice_line_items")
-        .select("product_id, quantity, line_total")
-        .in("product_id", products.map(p => p.id))
-
-      if (lineItems) {
-        const stats: Record<string, { qty: number, revenue: number }> = {}
-        let gross = 0
-        let qty = 0
-
-        lineItems.forEach(item => {
-          if (!stats[item.product_id]) stats[item.product_id] = { qty: 0, revenue: 0 }
-          stats[item.product_id].qty += item.quantity
-          stats[item.product_id].revenue += (item.line_total || 0)
-          gross += (item.line_total || 0)
-          qty += item.quantity
-        })
-
-        const prepared = products
-          .map(p => ({
-            ...p,
-            sold: stats[p.id]?.qty || 0,
-            revenue: stats[p.id]?.revenue || 0
-          }))
-          .sort((a, b) => b.revenue - a.revenue)
-
-        setProductSales(prepared)
-        setTotalGross(gross)
-        setTotalQuantity(qty)
+      if (data) {
+        setProductSales(data)
+        setTotalGross(data.reduce((sum: number, p: any) => sum + (p.revenue || 0), 0))
+        setTotalQuantity(data.reduce((sum: number, p: any) => sum + (p.sold || 0), 0))
       }
     } catch (err) {
       console.error("Sales report error:", err)

@@ -11,6 +11,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import { generateSKU } from "@/lib/utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-black text-white",
@@ -50,6 +61,27 @@ export function BrandManagement() {
   useEffect(() => {
     fetchBrands()
   }, [])
+
+  const handleDeleteBrand = async () => {
+    if (!selectedBrand) return
+    setProcessingId(selectedBrand.id)
+    try {
+      const { error } = await supabase.rpc('delete_brand_entirely', { 
+        p_brand_id: selectedBrand.id 
+      })
+      if (error) throw error
+      
+      toast.success("Brand footprint wiped successfully.")
+      setView("list")
+      setSelectedBrand(null)
+      fetchBrands()
+    } catch (err: any) {
+      console.error("Deletion error:", err)
+      toast.error(err.message || "Failed to delete brand.")
+    } finally {
+      setProcessingId(null)
+    }
+  }
 
   const fetchBrands = async () => {
     const { data } = await supabase
@@ -253,6 +285,7 @@ export function BrandManagement() {
                   { id: 'contracts', label: 'Legal' },
                   { id: 'crm', label: 'CRM (Admin)' },
                   { id: 'enquiries', label: 'Enquiries', count: enquiries.length },
+                  { id: 'danger', label: 'Danger Zone' },
                 ].map(tab => (
                   <TabsTrigger 
                     key={tab.id}
@@ -619,6 +652,58 @@ export function BrandManagement() {
                       </Card>
                     ))}
                   </TabsContent>
+
+                  <TabsContent value="danger" className="mt-0 outline-none">
+                      <div className="bg-red-50 border-2 border-dashed border-red-200 rounded-[3rem] p-16 text-center space-y-8 animate-in zoom-in-95 duration-500">
+                         <div className="w-24 h-24 bg-red-500 rounded-full flex items-center justify-center text-white mx-auto shadow-2xl shadow-red-500/20">
+                            <Trash2 className="w-12 h-12" />
+                         </div>
+                         <div className="space-y-4 max-w-lg mx-auto">
+                            <h3 className="text-3xl font-black tracking-tighter lowercase italic text-red-900 leading-none">nuclear deletion</h3>
+                            <p className="text-red-700/60 font-medium italic text-lg leading-relaxed">
+                               You are about to permanently wipe <span className="font-black text-red-800 underline decoration-red-800/20">{selectedBrand.business_name}</span>. 
+                               This will erase all sales history, invoices, shelf allotments, and inventory records. <span className="font-black">This action is IRREVERSIBLE.</span>
+                            </p>
+                         </div>
+                         
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                               <Button 
+                                  variant="destructive"
+                                  className="h-20 px-16 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[12px] shadow-2xl shadow-red-500/30 hover:scale-105 transition-all active:scale-95 bg-red-600"
+                               >
+                                  Confirm Total Wipe
+                               </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="rounded-[2.5rem] p-10 border-red-100 shadow-2xl">
+                               <AlertDialogHeader className="space-y-4">
+                                  <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 mb-2">
+                                     <AlertCircle className="w-8 h-8" />
+                                  </div>
+                                  <AlertDialogTitle className="text-2xl font-black lowercase italic tracking-tight">Final Authorization Required</AlertDialogTitle>
+                                  <AlertDialogDescription className="text-gray-500 font-medium leading-relaxed italic text-lg">
+                                     This will trigger a cascading database wipe. All cloud synchronization and POS associations for this brand will be severed immediately.
+                                  </AlertDialogDescription>
+                               </AlertDialogHeader>
+                               <AlertDialogFooter className="mt-10 gap-4">
+                                  <AlertDialogCancel className="h-14 px-10 rounded-2xl font-bold lowercase tracking-widest text-[11px] border-none bg-gray-50">abort mission</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                     onClick={handleDeleteBrand}
+                                     className="h-14 px-10 rounded-2xl font-black lowercase tracking-widest text-[11px] bg-red-600 hover:bg-red-700 text-white shadow-xl shadow-red-500/20"
+                                  >
+                                     confirm execution
+                                  </AlertDialogAction>
+                               </AlertDialogFooter>
+                            </AlertDialogContent>
+                         </AlertDialog>
+
+                         <div className="pt-8 flex flex-wrap justify-center gap-3">
+                            <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">cascading wipe enabled</Badge>
+                            <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">pos link termination</Badge>
+                            <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">financial record purge</Badge>
+                         </div>
+                      </div>
+                   </TabsContent>
                 </>
               )}
             </div>

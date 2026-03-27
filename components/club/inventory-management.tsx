@@ -88,6 +88,18 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
       setFormError("Product name and price are required.")
       return
     }
+
+    const price = parseFloat(form.price)
+    if (isNaN(price) || price < 0) {
+      setFormError("Price must be a valid positive number.")
+      return
+    }
+
+    const stock = parseInt(form.stock_quantity)
+    if (!isNaN(stock) && stock < 0) {
+      setFormError("Initial stock cannot be negative.")
+      return
+    }
     setSaving(true)
     setFormError(null)
 

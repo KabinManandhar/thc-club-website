@@ -5,6 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { supabase } from "@/lib/supabase"
+import { toast } from "sonner"
 
 const PRICING = {
   quarterly: { low: 1100, eye: 1500, top: 1350 },
@@ -15,12 +17,44 @@ const PRICING = {
 export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: string, isFirstTime?: boolean, onComplete?: () => void }) {
   const [tier, setTier] = useState<"low" | "eye" | "top">("eye")
   const [duration, setDuration] = useState<"quarterly" | "half_yearly" | "yearly">("quarterly")
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const currentPrice = PRICING[duration][tier]
   const months = duration === "quarterly" ? 3 : duration === "half_yearly" ? 6 : 12
   const rentTotal = currentPrice * months
   const registrationFee = isFirstTime ? 800 : 0
   const totalAmount = rentTotal + registrationFee
+
+  const handleBooking = async () => {
+    if (!brandId) {
+      toast.error("You must be logged in to book a slot.")
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const { error } = await supabase.from("shelf_bookings").insert({
+        brand_id: brandId,
+        tier: tier === 'low' ? 'bottom' : (tier === 'eye' ? 'eye_level' : 'top_level'),
+        duration,
+        monthly_rate: currentPrice,
+        registration_fee: registrationFee,
+        total_amount: totalAmount,
+        status: "pending",
+        notes: `Alpha Portal Booking - ${tier} for ${duration}`
+      })
+
+      if (error) throw error
+
+      toast.success("Application submitted. The club team will verify your brand and assign a slot shortly.")
+      if (onComplete) onComplete()
+    } catch (err: any) {
+      console.error("Booking submission error:", err)
+      toast.error(err.message || "Failed to submit booking.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -92,8 +126,13 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
               <span className="text-3xl font-black text-[#FE7F2D]">NPR {totalAmount.toLocaleString()}</span>
             </div>
 
-            <Button className="w-full bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white mt-4" size="lg">
-              Proceed to Booking
+            <Button 
+               className="w-full bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white mt-4 h-14 rounded-2xl font-bold lowercase tracking-widest text-[11px] shadow-xl shadow-orange-500/20 active:scale-95 transition-all" 
+               size="lg"
+               onClick={handleBooking}
+               disabled={isSubmitting}
+            >
+              {isSubmitting ? "Processing Application..." : "Proceed to Booking"}
             </Button>
             {duration === "yearly" && (
               <p className="text-center text-sm text-green-600 font-medium">✨ You are getting the best value rates!</p>
