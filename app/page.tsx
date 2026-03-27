@@ -123,7 +123,7 @@ export default function LandingPage() {
       <div className="fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-3 overflow-hidden border-b border-[#FE7F2D]/20">
         <div className="animate-marquee whitespace-nowrap">
           {[1, 2, 3, 4].map((i) => (
-            <span key={i} className="inline-block px-12 text-sm font-bold tracking-wide lowercase">
+            <span key={i} className="inline-block px-12 text-sm font-bold tracking-wide ">
               the first rule of <span className="thc-highlight">THC Club</span> is you talk about{" "}
               <span className="thc-highlight">THC Club</span>. the second rule of{" "}
               <span className="thc-highlight">THC Club</span> is you TALK ABOUT{" "}
