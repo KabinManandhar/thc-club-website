@@ -27,7 +27,7 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
         supabase.from("shelf_sections").select("*"),
         supabase.from("shelf_pricing_tiers").select("*")
       ])
-      
+
       if (s) {
         setSections(s)
         setSelectedSection(s[0] || null)
@@ -107,8 +107,8 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/60 ml-1">The Collective Zone</label>
-              <Select 
-                value={selectedSection?.id} 
+              <Select
+                value={selectedSection?.id}
                 onValueChange={(id) => setSelectedSection(sections.find(s => s.id === id))}
               >
                 <SelectTrigger className="h-14 rounded-2xl border-gray-100 bg-gray-50/50 font-bold shadow-none focus:ring-orange-500/10">
@@ -188,17 +188,9 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
               <span className="text-4xl font-black text-[#FE7F2D]">NPR {totalAmount.toLocaleString()}</span>
             </div>
 
-            <button
-              onClick={handleBooking}
-              disabled={isSubmitting || !selectedSection}
-              className="w-full bg-[#FE7F2D] text-white hover:bg-[#010307] disabled:opacity-50 h-16 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all shadow-xl shadow-orange-500/20 active:scale-[0.98] mt-4"
-            >
-              {isSubmitting ? "Processing..." : "Submit Booking Request"}
-            </button>
-            
-            <p className="text-[10px] text-center text-[#010307]/40 font-bold uppercase tracking-widest leading-relaxed">
-              By submitting, you agree to THC Club protocols and shelf management maintenance guidelines.
-            </p>
+
+
+
           </CardContent>
         </Card>
       </div>

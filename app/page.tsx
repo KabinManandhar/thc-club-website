@@ -2,7 +2,6 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { ArrowRight, BarChart3, Eye, Heart, Instagram, Lock, LogIn, Package, ShieldCheck, Users, Zap } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useState } from "react"
@@ -18,9 +17,9 @@ import { UserSignupForm } from "@/components/user-signup-form"
 import { supabase, type Brand } from "@/lib/supabase"
 import { userAuth } from "@/lib/user-auth"
 
-function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, origins }: { 
-  brands: Brand[], 
-  isAuthenticated: boolean, 
+function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, origins }: {
+  brands: Brand[],
+  isAuthenticated: boolean,
   setAuthView: (view: "none" | "login" | "signup") => void,
   setActiveTab: (tab: "home" | "members" | "origins") => void,
   origins?: string
@@ -66,7 +65,7 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-white/20 text-white hover:bg-white hover:text-black font-black lowercase italic tracking-widest text-base sm:text-lg px-10 py-8 rounded-2xl h-auto transition-all"
+                  className="border-white/20 text-black hover:bg-white hover:text-black font-black lowercase italic tracking-widest text-base sm:text-lg px-10 py-8 rounded-2xl h-auto transition-all"
                   onClick={() => setAuthView("login")}
                 >
                   <LogIn className="mr-3 h-5 w-5" />
@@ -170,7 +169,7 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
       <section className="py-24 sm:py-40 bg-[#010307] text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#FE7F2D]/10 rounded-full blur-[120px] -mr-48 -mt-48" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-[#FE7F2D]/10 rounded-full blur-[120px] -ml-48 -mb-48" />
-        
+
         <div className="container mx-auto px-4 sm:px-6 text-center relative z-10">
           <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12">
             <h2 className="text-4xl sm:text-7xl lg:text-8xl font-black lowercase italic tracking-tighter leading-tight italic">
@@ -194,7 +193,7 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-white/20 text-white hover:bg-white hover:text-black font-black lowercase italic tracking-widest text-lg sm:text-2xl px-12 sm:px-20 py-10 rounded-[2rem] transition-all h-auto"
+                  className="border-white/20 text-black hover:bg-white hover:text-black font-black lowercase italic tracking-widest text-lg sm:text-2xl px-12 sm:px-20 py-10 rounded-[2rem] transition-all h-auto"
                   onClick={() => setAuthView("login")}
                 >
                   <Lock className="mr-4 h-6 w-6" />
@@ -386,7 +385,7 @@ export default function LandingPage() {
                   className="bg-[#FE7F2D] hover:bg-black text-white font-black lowercase italic tracking-widest shadow-lg rounded-xl h-8 sm:h-10 px-3 sm:px-8 text-[10px] sm:text-sm transition-all active:scale-95"
                   onClick={() => setAuthView("signup")}
                 >
-                  apply <span className="hidden sm:inline ml-1">now</span>
+                  apply now
                 </Button>
                 {!isAuthenticated && (
                   <Button

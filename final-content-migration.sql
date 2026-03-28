@@ -71,7 +71,8 @@ simple.',
       ]
     }
   ]'::jsonb,
-  terms_conditions = 'THE HIDDEN COLLECTIVE CLUB (THC CLUB)
+  terms_conditions = '
+  THE HIDDEN COLLECTIVE CLUB (THC CLUB)
 PARTNERSHIP TERMS & CONDITIONS
 v1.0 • Effective 2026
 

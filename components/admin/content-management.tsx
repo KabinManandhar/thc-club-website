@@ -54,22 +54,23 @@ export function ContentManagement() {
     setSaving(true)
     try {
       const user = await adminAuth.getCurrentUser()
-      const { error } = await supabase.from("platform_content").upsert({
-        id: 1,
-        contract_template: contractTemplate,
-        terms_conditions: terms,
-        faqs,
-        protocols,
-        origins,
-        updated_at: new Date().toISOString(),
-        updated_by: user?.name || "Admin",
+      
+      const { error } = await supabase.rpc("update_platform_content", {
+        p_id: 1,
+        p_contract_template: contractTemplate,
+        p_terms_conditions: terms,
+        p_faqs: faqs,
+        p_protocols: protocols,
+        p_origins: origins,
+        p_updated_by: user?.name || "Admin",
       })
 
       if (error) throw error
       toast.success("Platform content updated successfully")
       fetchContent()
     } catch (err: any) {
-      toast.error(err.message)
+      console.error("Content update error:", err)
+      toast.error(err.message || "Failed to update content")
     } finally {
       setSaving(false)
     }
