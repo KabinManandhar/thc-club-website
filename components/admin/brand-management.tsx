@@ -295,6 +295,7 @@ export function BrandManagement() {
                   { id: 'payouts', label: 'EOM Payouts' },
                   { id: 'transactions', label: 'Shelf Ledger' },
                   { id: 'crm', label: 'CRM (Admin)' },
+                  { id: 'contracts', label: 'Contracts', count: contracts.length },
                   { id: 'enquiries', label: 'Enquiries', count: enquiries.length },
                   { id: 'danger', label: 'Danger Zone' },
                 ].map(tab => (
@@ -774,6 +775,152 @@ export function BrandManagement() {
                       </Card>
                     ))}
                   </TabsContent>
+
+                   <TabsContent value="crm" className="mt-0 outline-none space-y-6">
+                     <Card className="border-gray-100 shadow-sm rounded-[2rem] overflow-hidden">
+                        <div className="p-8 space-y-8">
+                           <div className="flex justify-between items-start">
+                              <div>
+                                 <h3 className="text-xl font-black lowercase italic tracking-tight text-gray-900 flex items-center gap-3">
+                                    <ShieldCheck className="w-6 h-6 text-[#FE7F2D]" />
+                                    Internal CRM Controls
+                                 </h3>
+                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Manage brand access and administrative lifecycle.</p>
+                              </div>
+                           </div>
+
+                           <div className="grid md:grid-cols-2 gap-8">
+                              <div className="space-y-4">
+                                 <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Onboarding Vibe</label>
+                                 <div className="grid grid-cols-2 gap-2">
+                                    {['pending', 'slot_selected', 'active', 'rejected'].map((status) => (
+                                       <Button
+                                          key={status}
+                                          variant="outline"
+                                          onClick={() => updateBrandCRM({ onboarding_status: status as any })}
+                                          className={`rounded-xl h-12 font-black lowercase italic tracking-widest text-xs transition-all ${
+                                             selectedBrand.onboarding_status === status 
+                                             ? 'bg-black text-white border-black scale-[1.02]' 
+                                             : 'text-gray-400 border-gray-100 hover:border-black/20'
+                                          }`}
+                                       >
+                                          {status.replace("_", " ")}
+                                       </Button>
+                                    ))}
+                                 </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                 <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Member Status</label>
+                                 <div className="flex gap-3">
+                                    <Button
+                                       variant="outline"
+                                       onClick={() => updateBrandCRM({ is_active: true })}
+                                       className={`flex-1 rounded-xl h-12 font-black uppercase text-[10px] tracking-widest ${selectedBrand.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'text-gray-400'}`}
+                                    >
+                                       <Check className="w-4 h-4 mr-2" /> Active
+                                    </Button>
+                                    <Button
+                                       variant="outline"
+                                       onClick={() => updateBrandCRM({ is_active: false })}
+                                       className={`flex-1 rounded-xl h-12 font-black uppercase text-[10px] tracking-widest ${!selectedBrand.is_active ? 'bg-red-50 text-red-700 border-red-200' : 'text-gray-400'}`}
+                                    >
+                                       <CloseX className="w-4 h-4 mr-2" /> Blocked
+                                    </Button>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div className="space-y-4">
+                              <div className="flex items-center justify-between">
+                                 <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1 flex items-center gap-2">
+                                    <StickyNote className="w-3.5 h-3.5" />
+                                    Private Admin Notes
+                                 </label>
+                                 <Badge className="bg-orange-100 text-orange-700 border-none font-bold italic lowercase text-[10px] px-3 py-1">Visible to Admins Only</Badge>
+                              </div>
+                              <Textarea 
+                                 placeholder="Internal notes about the brand..."
+                                 value={selectedBrand.admin_notes || ""}
+                                 onChange={(e) => setSelectedBrand({...selectedBrand, admin_notes: e.target.value})}
+                                 onBlur={() => updateBrandCRM({ admin_notes: selectedBrand.admin_notes })}
+                                 className="min-h-[200px] border-gray-100 bg-gray-50/30 rounded-2xl p-6 italic font-medium text-gray-700 focus:ring-[#FE7F2D]/20 focus:border-[#FE7F2D]/30"
+                              />
+                           </div>
+                        </div>
+                     </Card>
+                   </TabsContent>
+
+                   <TabsContent value="contracts" className="mt-0 outline-none space-y-6">
+                     <div className="flex justify-between items-center bg-gray-50/50 border border-black/5 p-8 rounded-[2.5rem]">
+                        <div>
+                           <h3 className="text-xl font-black lowercase italic tracking-tight text-gray-900 flex items-center gap-3">
+                              <FileText className="w-6 h-6 text-[#FE7F2D]" />
+                              legal & contracts
+                           </h3>
+                           <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1 italic">manage signed agreements and partnership documents.</p>
+                        </div>
+                        <div className="relative group">
+                          <input
+                            type="file"
+                            id="contract-upload"
+                            className="hidden"
+                            onChange={uploadContract}
+                            accept=".pdf,.doc,.docx,.jpg,.png"
+                          />
+                          <Button 
+                            asChild
+                            className="bg-[#FE7F2D] text-white hover:bg-black rounded-xl font-black uppercase text-[10px] tracking-widest h-12 px-8 shadow-xl shadow-orange-500/20 active:scale-95 transition-all"
+                          >
+                            <label htmlFor="contract-upload" className="cursor-pointer flex items-center">
+                              <ImageIcon className="w-4 h-4 mr-2" /> Upload Manual Contract
+                            </label>
+                          </Button>
+                        </div>
+                     </div>
+
+                     <div className="grid gap-4">
+                        {contracts.map((contract) => (
+                           <Card key={contract.id} className="p-6 border-gray-100 hover:border-[#FE7F2D]/30 transition-all rounded-[1.5rem] group bg-white">
+                              <div className="flex items-center justify-between">
+                                 <div className="flex items-center gap-5">
+                                    <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-[#FE7F2D]/10 group-hover:text-[#FE7F2D] transition-colors">
+                                       <FileText className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                       <div className="font-black text-gray-900 lowercase italic tracking-tight text-lg mb-0.5">
+                                          {contract.contract_type?.replace('_', ' ') || 'partnership agreement'}
+                                       </div>
+                                       <div className="flex items-center gap-3">
+                                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Added {new Date(contract.created_at).toLocaleDateString()}</span>
+                                          <Badge className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 bg-gray-50 text-gray-500 border-none`}>
+                                             {contract.status || 'active'}
+                                          </Badge>
+                                       </div>
+                                    </div>
+                                 </div>
+                                 <div className="flex items-center gap-3">
+                                    <Button 
+                                       variant="ghost" 
+                                       className="rounded-xl h-10 px-5 font-black uppercase text-[9px] tracking-widest border border-gray-100 hover:bg-black hover:text-white"
+                                       asChild
+                                    >
+                                       <a href={contract.file_url} target="_blank" rel="noopener noreferrer">View Doc</a>
+                                    </Button>
+                                 </div>
+                              </div>
+                           </Card>
+                        ))}
+
+                        {contracts.length === 0 && (
+                           <div className="text-center py-20 bg-gray-50/50 rounded-[3rem] border-2 border-dashed border-gray-100 italic font-medium text-gray-400">
+                              <ShieldCheck className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                              <p className="font-black lowercase tracking-tight text-lg">no legal documents staged</p>
+                              <p className="text-[10px] uppercase font-bold tracking-[0.2em] mt-2">upload manual scans or wait for e-signature sync</p>
+                           </div>
+                        )}
+                     </div>
+                   </TabsContent>
 
                   <TabsContent value="danger" className="mt-0 outline-none">
                       <div className="bg-red-50 border-2 border-dashed border-red-200 rounded-[3rem] p-16 text-center space-y-8 animate-in zoom-in-95 duration-500">

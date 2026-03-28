@@ -113,6 +113,7 @@ export interface Brand {
   onboarding_status: "pending" | "slot_selected" | "confirmed" | "active" | "rejected"
   admin_notes?: string
   bank_account_details?: any
+  is_active: boolean
   last_interaction_at?: string
   created_at: string
   updated_at: string
