@@ -17,6 +17,7 @@ import {
   Package,
   Receipt,
   Settings,
+  TrendingUp,
   Users,
   X
 } from "lucide-react";
@@ -61,9 +62,9 @@ export function AdminLayout({
     { id: "invoice-list", label: "Sales History", icon: FileText },
     { id: "payouts", label: "Payouts Tracker", icon: DollarSign },
     { id: "pricing-offers", label: "Pricing & Economics", icon: BadgeDollarSign },
-
+    { id: "shelf-revenue", label: "Shelf Revenue", icon: TrendingUp },
     { id: "slots", label: "Shelf Slot Management", icon: Package },
-    { id: "settings", label: "Settings", icon: Settings },
+    { id: "settings", label: "Content Settings", icon: Settings },
   ];
 
   return (

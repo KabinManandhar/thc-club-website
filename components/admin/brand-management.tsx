@@ -1,16 +1,3 @@
-import { useState, useEffect } from "react"
-import { supabase, type Brand, type BrandProduct, type ShelfBooking, type Invoice, type Enquiry, type VisitRequest, type BrandChangeRequest, type BrandContract } from "@/lib/supabase"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Search, Users, Phone, Mail, Instagram, Package, Receipt, Calendar, Info, BarChart3, ChevronRight, LayoutGrid, MessageSquare, MapPin, ArrowLeft, Check, X as CloseX, AlertCircle, Clock, Trash2, Image as ImageIcon, ShieldCheck, FileText, StickyNote, DollarSign, Plus } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { toast } from "sonner"
-import { generateSKU } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +9,21 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { ShelfTransactions } from "@/components/shared/shelf-transactions"
+import { SimplifiedPayoutTracker } from "@/components/shared/simplified-payout-tracker"
+import { BrandSalesReport } from "@/components/club/brand-sales-report"
+import { supabase, type Brand, type BrandChangeRequest, type BrandContract, type BrandProduct, type Enquiry, type Invoice, type ShelfBooking, type VisitRequest } from "@/lib/supabase"
+import { generateSKU } from "@/lib/utils"
+import { AlertCircle, ArrowLeft, BarChart3, Calendar, Check, ChevronRight, Clock, X as CloseX, DollarSign, FileText, Image as ImageIcon, Info, Instagram, LayoutGrid, Mail, MessageSquare, Package, Phone, Search, ShieldCheck, StickyNote, Trash2, Users } from "lucide-react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-black text-white",
@@ -171,13 +173,20 @@ export function BrandManagement() {
   const updateBrandCRM = async (data: Partial<Brand>) => {
     if (!selectedBrand) return
     try {
-      const { error } = await supabase.from('brands').update(data).eq('id', selectedBrand.id)
+      const { error } = await supabase
+        .from('brands')
+        .update({
+          admin_notes: data.admin_notes !== undefined ? data.admin_notes : selectedBrand.admin_notes,
+          onboarding_status: data.onboarding_status !== undefined ? data.onboarding_status : selectedBrand.onboarding_status,
+        })
+        .eq('id', selectedBrand.id)
+
       if (error) throw error
       setSelectedBrand({...selectedBrand, ...data})
-      toast.success('CRM Record Updated')
-      fetchBrands()
+      toast.success('CRM Record Updated Successfully')
+      fetchBrands() // refresh the list
     } catch (err: any) {
-      toast.error(err.message)
+      toast.error(err.message || 'Failed to update CRM data')
     }
   }
 
@@ -281,8 +290,10 @@ export function BrandManagement() {
                   { id: 'info', label: 'Brand Profile' },
                   { id: 'changes', label: `Requests`, count: changeRequests.length },
                   { id: 'products', label: 'Inventory', count: products.length },
-                  { id: 'sales', label: 'Sales History', count: invoices.length },
-                  { id: 'contracts', label: 'Legal' },
+                  { id: 'sales_history', label: 'Sales History', count: invoices.length },
+                  { id: 'performance_analysis', label: 'Performance Report' },
+                  { id: 'payouts', label: 'EOM Payouts' },
+                  { id: 'transactions', label: 'Shelf Ledger' },
                   { id: 'crm', label: 'CRM (Admin)' },
                   { id: 'enquiries', label: 'Enquiries', count: enquiries.length },
                   { id: 'danger', label: 'Danger Zone' },
@@ -510,7 +521,7 @@ export function BrandManagement() {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="sales" className="mt-0 outline-none">
+                  <TabsContent value="sales_history" className="mt-0 outline-none">
                     <div className="table-responsive">
                       <Table>
                         <TableHeader>
@@ -537,48 +548,132 @@ export function BrandManagement() {
 
                   <TabsContent value="contracts" className="mt-0 outline-none space-y-6">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-black tracking-tight">Active Contracts & Legal</h3>
-                      <div className="relative">
-                        <input 
-                          type="file" 
-                          id="contract-upload" 
-                          className="hidden" 
-                          onChange={uploadContract}
-                          accept=".pdf,.doc,.docx" 
-                        />
-                        <Button 
-                          onClick={() => document.getElementById('contract-upload')?.click()}
-                          className="bg-[#FE7F2D] text-white rounded-xl font-black uppercase text-[10px] tracking-widest px-6"
-                        >
-                          <Plus className="w-4 h-4 mr-2" /> Upload New Version
-                        </Button>
+                      <div>
+                        <h3 className="text-xl font-black tracking-tight">Partnership Agreement</h3>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">In-app digital contract status for {selectedBrand.business_name}</p>
                       </div>
+                      {contracts.length > 0 && contracts[0]?.status === 'signed' ? (
+                        <Badge className="bg-green-50 text-green-700 border-green-200 border font-black uppercase text-[10px] tracking-widest px-4 py-2 rounded-full flex items-center gap-2">
+                          <Check className="w-3.5 h-3.5" /> Agreement Signed
+                        </Badge>
+                      ) : (
+                        <Badge className="bg-orange-50 text-orange-600 border-orange-200 border font-black uppercase text-[10px] tracking-widest px-4 py-2 rounded-full flex items-center gap-2">
+                          <Clock className="w-3.5 h-3.5" /> Awaiting Brand Signature
+                        </Badge>
+                      )}
                     </div>
 
                     {contracts.length === 0 ? (
-                      <div className="bg-gray-50 rounded-3xl p-16 text-center border-2 border-dashed border-gray-100 italic font-medium text-gray-400">
-                        No contracts uploaded yet for this brand.
+                      <div className="bg-gray-50 rounded-3xl p-16 text-center border-2 border-dashed border-gray-100 space-y-4">
+                        <FileText className="w-12 h-12 text-gray-200 mx-auto" />
+                        <p className="font-black uppercase tracking-widest text-xs text-gray-300 italic">No contract on record.</p>
+                        <p className="text-xs text-gray-400 font-medium italic max-w-sm mx-auto">The brand must sign the partnership agreement via their portal's Legal & Contracts tab. Once signed, it will appear here.</p>
                       </div>
                     ) : (
                       <div className="grid gap-4">
                         {contracts.map(contract => (
-                          <div key={contract.id} className="bg-white p-6 rounded-2xl border border-gray-100 flex items-center justify-between group hover:border-[#FE7F2D]/30 transition-all shadow-sm">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                                <FileText className="w-6 h-6 text-blue-600" />
+                          <div key={contract.id} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:border-[#FE7F2D]/20 transition-all space-y-6">
+                            {/* Status Header */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${contract.status === 'signed' ? 'bg-green-50' : 'bg-orange-50'}`}>
+                                  <FileText className={`w-7 h-7 ${contract.status === 'signed' ? 'text-green-500' : 'text-orange-400'}`} />
+                                </div>
+                                <div>
+                                  <p className="font-black text-gray-900 tracking-tight">Brand Partnership Agreement v1.0</p>
+                                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider leading-none mt-1">
+                                    {contract.contract_type || 'partnership_v1'} • Created {new Date(contract.created_at).toLocaleDateString()}
+                                  </p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-bold text-gray-900">Brand Partnership Agreement</p>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider leading-none">Uploaded {new Date(contract.created_at).toLocaleDateString()}</p>
-                              </div>
+                              <Badge className={`font-black uppercase text-[9px] tracking-widest px-3 py-1 rounded-full ${
+                                contract.status === 'signed' ? 'bg-green-50 text-green-700 border-green-200 border' :
+                                contract.status === 'active' ? 'bg-black text-white' :
+                                'bg-orange-50 text-orange-600 border-orange-200 border'
+                              }`}>
+                                {contract.status?.replace('_', ' ')}
+                              </Badge>
                             </div>
-                            <Button variant="ghost" className="text-[#FE7F2D] font-black uppercase text-[10px] tracking-widest" asChild>
-                              <a href={contract.file_url} target="_blank" rel="noopener noreferrer">View Document</a>
-                            </Button>
+
+                            {/* Signature Details */}
+                            {contract.signed_by && (
+                              <div className="grid sm:grid-cols-3 gap-4">
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                  <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1">Signed By</p>
+                                  <p className="font-black text-gray-900 italic" style={{ fontFamily: 'Georgia, serif' }}>{contract.signed_by}</p>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                  <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1">Date Executed</p>
+                                  <p className="font-bold text-gray-900">{contract.signed_at ? new Date(contract.signed_at).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '---'}</p>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                  <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1">Stamp / Reg No.</p>
+                                  <p className="font-bold text-gray-900">{contract.stamp_number || 'Not Provided'}</p>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Note */}
+                            {contract.ip_note && (
+                              <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex items-start gap-3">
+                                <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                                <p className="text-xs font-bold text-blue-700 italic">{contract.ip_note}</p>
+                              </div>
+                            )}
+
+                            {/* Admin Actions */}
+                            <div className="flex gap-3 pt-2 border-t border-gray-50">
+                              {contract.status !== 'active' && (
+                                <Button
+                                  size="sm"
+                                  onClick={async () => {
+                                    await supabase.from('brand_contracts').update({ status: 'active' }).eq('id', contract.id)
+                                    await supabase.from('brands').update({ onboarding_status: 'active' }).eq('id', selectedBrand.id)
+                                    toast.success('Contract activated & brand approved.')
+                                    if (selectedBrand) handleBrandSelect(selectedBrand)
+                                    fetchBrands()
+                                  }}
+                                  className="bg-[#FE7F2D] text-white hover:bg-black rounded-xl font-black uppercase text-[10px] tracking-widest px-6 flex items-center gap-2"
+                                >
+                                  <Check className="w-3.5 h-3.5" /> Activate & Approve Brand
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  const content = `THC CLUB - BRAND PARTNERSHIP AGREEMENT\n\nBrand: ${selectedBrand.business_name}\nSigned By: ${contract.signed_by || 'N/A'}\nDate: ${contract.signed_at ? new Date(contract.signed_at).toLocaleDateString() : 'N/A'}\nStamp: ${contract.stamp_number || 'N/A'}\nStatus: ${contract.status}\n\n[Contract body accessible via brand portal]`
+                                  const blob = new Blob([content], { type: 'text/plain' })
+                                  const url = URL.createObjectURL(blob)
+                                  const a = document.createElement('a')
+                                  a.href = url
+                                  a.download = `THC_Contract_${selectedBrand.business_name.replace(/\s+/g,'_')}.txt`
+                                  a.click()
+                                  URL.revokeObjectURL(url)
+                                  toast.success('Contract record downloaded.')
+                                }}
+                                className="border-gray-100 text-gray-500 rounded-xl font-black uppercase text-[10px] tracking-widest px-6 flex items-center gap-2"
+                              >
+                                <FileText className="w-3.5 h-3.5" /> Download Record
+                              </Button>
+                            </div>
                           </div>
                         ))}
                       </div>
                     )}
+
+                    {/* Info Note */}
+                    <div className="p-6 bg-blue-50/40 rounded-2xl border border-blue-100 flex items-start gap-4">
+                      <div className="w-9 h-9 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+                        <ShieldCheck className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-black text-blue-800 text-xs uppercase tracking-widest">Admin Note</p>
+                        <p className="text-xs text-blue-700 font-medium italic leading-relaxed">
+                          The digital contract is managed via the brand's portal (Legal & Contracts tab). Once a brand digitally signs, it appears here for admin review and activation. No file uploads required.
+                        </p>
+                      </div>
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="crm" className="mt-0 outline-none space-y-6">
@@ -643,6 +738,18 @@ export function BrandManagement() {
                        </div>
                     </div>
                   </TabsContent>
+
+                  <TabsContent value="payouts" className="mt-0 outline-none">
+                     <SimplifiedPayoutTracker brandId={selectedBrand.id} isAdmin={true} />
+                  </TabsContent>
+
+                  <TabsContent value="performance_analysis" className="mt-0 outline-none">
+                     <BrandSalesReport brandId={selectedBrand.id} />
+                  </TabsContent>
+
+                  <TabsContent value="transactions" className="mt-0 outline-none">
+                     <ShelfTransactions brandId={selectedBrand.id} isAdmin={true} />
+                   </TabsContent>
 
                   <TabsContent value="enquiries" className="mt-0 outline-none space-y-4">
                     {enquiries.map((enq) => (
@@ -844,4 +951,3 @@ export function BrandManagement() {
     </div>
   )
 }
-

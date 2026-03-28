@@ -1,25 +1,55 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { supabase } from "@/lib/supabase"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
-
-const PRICING = {
-  quarterly: { low: 1100, eye: 1500, top: 1350 },
-  half_yearly: { low: 1000, eye: 1350, top: 1100 },
-  yearly: { low: 900, eye: 1200, top: 1000 },
-}
 
 export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: string, isFirstTime?: boolean, onComplete?: () => void }) {
   const [tier, setTier] = useState<"low" | "eye" | "top">("eye")
   const [duration, setDuration] = useState<"quarterly" | "half_yearly" | "yearly">("quarterly")
+  const [sections, setSections] = useState<any[]>([])
+  const [selectedSection, setSelectedSection] = useState<any>(null)
+  const [pricingTiers, setPricingTiers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const currentPrice = PRICING[duration][tier]
+  useEffect(() => {
+    fetchBookingConfig()
+  }, [])
+
+  const fetchBookingConfig = async () => {
+    setLoading(true)
+    try {
+      const [{ data: s }, { data: p }] = await Promise.all([
+        supabase.from("shelf_sections").select("*"),
+        supabase.from("shelf_pricing_tiers").select("*")
+      ])
+      
+      if (s) {
+        setSections(s)
+        setSelectedSection(s[0] || null)
+      }
+      if (p) setPricingTiers(p)
+    } catch (err) {
+      console.error("Failed to fetch booking config", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getPrice = (t: string, d: string, st: string) => {
+    const pricing = pricingTiers.find(p => p.duration === d && p.section_tier === st)
+    if (!pricing) return 0
+    if (t === "low") return pricing.bottom_price
+    if (t === "eye") return pricing.eye_level_price
+    if (t === "top") return pricing.top_level_price
+    return 0
+  }
+
+  const currentPrice = selectedSection ? getPrice(tier, duration, selectedSection.section_tier) : 0
   const months = duration === "quarterly" ? 3 : duration === "half_yearly" ? 6 : 12
   const rentTotal = currentPrice * months
   const registrationFee = isFirstTime ? 800 : 0
@@ -33,15 +63,17 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
 
     setIsSubmitting(true)
     try {
+      // Use correct column names from schema: shelf_type instead of tier, monthly_rent instead of monthly_rate
       const { error } = await supabase.from("shelf_bookings").insert({
         brand_id: brandId,
-        tier: tier === 'low' ? 'bottom' : (tier === 'eye' ? 'eye_level' : 'top_level'),
+        shelf_type: tier === 'low' ? 'bottom' : (tier === 'eye' ? 'eye_level' : 'top_level'),
         duration,
-        monthly_rate: currentPrice,
-        registration_fee: registrationFee,
+        monthly_rent: currentPrice, // correctly uses monthly_rent from schema
         total_amount: totalAmount,
         status: "pending",
-        notes: `Alpha Portal Booking - ${tier} for ${duration}`
+        section: selectedSection?.name,
+        section_tier: selectedSection?.section_tier,
+        notes: `Alpha Portal Booking - ${selectedSection?.name} (${tier}) for ${duration}`
       })
 
       if (error) throw error
@@ -56,36 +88,66 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
     }
   }
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#FE7F2D]"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="grid md:grid-cols-2 gap-8">
-        <Card className="border-[#FE7F2D]/20">
+        <Card className="border-[#FE7F2D]/20 shadow-none bg-white p-2">
           <CardHeader>
-            <CardTitle>Book a Shelf Slot</CardTitle>
-            <CardDescription>Select your preferred tier and duration</CardDescription>
+            <CardTitle className="text-2xl font-black lowercase italic tracking-tighter">book your slot</CardTitle>
+            <CardDescription className="text-xs uppercase font-bold tracking-widest text-[#010307]/40">select your preferred zone and duration</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Shelf Tier</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/60 ml-1">The Collective Zone</label>
+              <Select 
+                value={selectedSection?.id} 
+                onValueChange={(id) => setSelectedSection(sections.find(s => s.id === id))}
+              >
+                <SelectTrigger className="h-14 rounded-2xl border-gray-100 bg-gray-50/50 font-bold shadow-none focus:ring-orange-500/10">
+                  <SelectValue placeholder="Select Section" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-gray-100">
+                  {sections.map(s => (
+                    <SelectItem key={s.id} value={s.id} className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {s.name}
+                        {s.section_tier === 'premium' && <Badge className="scale-75 bg-orange-100 text-[#FE7F2D] border-none shadow-none uppercase font-black text-[9px]">Premium</Badge>}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/60 ml-1">Shelf Tier</label>
               <Select value={tier} onValueChange={(v: any) => setTier(v)}>
-                <SelectTrigger>
+                <SelectTrigger className="h-14 rounded-2xl border-gray-100 bg-gray-50/50 font-bold shadow-none focus:ring-orange-500/10">
                   <SelectValue placeholder="Select Tier" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl border-gray-100">
                   <SelectItem value="top">Top Level (Premium)</SelectItem>
                   <SelectItem value="eye">Eye-Level (Best Visibility)</SelectItem>
                   <SelectItem value="low">Low Level (Standard)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="space-y-2">
-              <label className="text-sm font-medium">Duration</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-[#010307]/60 ml-1">Commitment Period</label>
               <Select value={duration} onValueChange={(v: any) => setDuration(v)}>
-                <SelectTrigger>
+                <SelectTrigger className="h-14 rounded-2xl border-gray-100 bg-gray-50/50 font-bold shadow-none focus:ring-orange-500/10">
                   <SelectValue placeholder="Select Duration" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl border-gray-100">
                   <SelectItem value="quarterly">Quarterly (3 Months)</SelectItem>
                   <SelectItem value="half_yearly">Half-Yearly (6 Months)</SelectItem>
                   <SelectItem value="yearly">Yearly (12 Months)</SelectItem>
@@ -95,89 +157,80 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
           </CardContent>
         </Card>
 
-        <Card className="border-[#FE7F2D] bg-orange-50/50">
+        <Card className="border-[#FE7F2D] bg-orange-50/30 shadow-none p-2">
           <CardHeader>
-            <CardTitle>Pricing Summary</CardTitle>
-            <CardDescription>Transparent pricing based on your selection</CardDescription>
+            <CardTitle className="text-2xl font-black lowercase italic tracking-tighter">pricing summary</CardTitle>
+            <CardDescription className="text-xs uppercase font-bold tracking-widest text-orange-600/60">transparent fee structure</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex justify-between items-center border-b border-orange-200 pb-4">
-              <span className="text-gray-600">Monthly Rate</span>
-              <span className="text-2xl font-bold">NPR {currentPrice.toLocaleString()} / mo</span>
+            <div className="flex justify-between items-center border-b border-orange-100 pb-4">
+              <span className="text-[#010307]/60 font-medium italic lowercase">monthly rate</span>
+              <span className="text-2xl font-black text-[#010307]">NPR {currentPrice.toLocaleString()}</span>
             </div>
-            
-            <div className="flex justify-between items-center border-b border-orange-200 pb-4">
-              <span className="text-gray-600">Total Duration</span>
-              <span className="font-semibold">{months} Months</span>
+
+            <div className="flex justify-between items-center border-b border-orange-100 pb-4">
+              <span className="text-[#010307]/60 font-medium italic lowercase">duration</span>
+              <span className="font-black text-[#010307]">{months} Months</span>
             </div>
 
             {isFirstTime && (
-               <div className="flex justify-between items-center border-b border-orange-200 pb-4">
-                 <div className="flex flex-col">
-                   <span className="text-gray-600">Registration Fee</span>
-                   <span className="text-[10px] text-[#FE7F2D] font-bold uppercase italic">One-time security deposit</span>
-                 </div>
-                 <span className="font-semibold">NPR {registrationFee.toLocaleString()}</span>
-               </div>
+              <div className="flex justify-between items-center border-b border-orange-100 pb-4">
+                <div className="flex flex-col">
+                  <span className="text-[#010307]/60 font-medium italic lowercase">registration fee</span>
+                  <span className="text-[9px] text-[#FE7F2D] font-black uppercase tracking-tighter">one-time identity onboarding</span>
+                </div>
+                <span className="font-black text-[#010307]">NPR {registrationFee.toLocaleString()}</span>
+              </div>
             )}
 
             <div className="flex justify-between items-center pt-2">
-              <span className="font-bold text-lg">Total Amount</span>
-              <span className="text-3xl font-black text-[#FE7F2D]">NPR {totalAmount.toLocaleString()}</span>
+              <span className="font-black text-lg lowercase italic">total amount</span>
+              <span className="text-4xl font-black text-[#FE7F2D]">NPR {totalAmount.toLocaleString()}</span>
             </div>
 
-            <Button 
-               className="w-full bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white mt-4 h-14 rounded-2xl font-bold lowercase tracking-widest text-[11px] shadow-xl shadow-orange-500/20 active:scale-95 transition-all" 
-               size="lg"
-               onClick={handleBooking}
-               disabled={isSubmitting}
+            <button
+              onClick={handleBooking}
+              disabled={isSubmitting || !selectedSection}
+              className="w-full bg-[#FE7F2D] text-white hover:bg-[#010307] disabled:opacity-50 h-16 rounded-[2rem] font-black uppercase text-[10px] tracking-widest transition-all shadow-xl shadow-orange-500/20 active:scale-[0.98] mt-4"
             >
-              {isSubmitting ? "Processing Application..." : "Proceed to Booking"}
-            </Button>
-            {duration === "yearly" && (
-              <p className="text-center text-sm text-green-600 font-medium">✨ You are getting the best value rates!</p>
-            )}
+              {isSubmitting ? "Processing..." : "Submit Booking Request"}
+            </button>
+            
+            <p className="text-[10px] text-center text-[#010307]/40 font-bold uppercase tracking-widest leading-relaxed">
+              By submitting, you agree to THC Club protocols and shelf management maintenance guidelines.
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="border-[#FE7F2D]/20">
+      <Card className="border-gray-100 shadow-none bg-white p-2">
         <CardHeader>
-          <CardTitle>Pricing Matrix</CardTitle>
-          <CardDescription>Compare our full pricing structure</CardDescription>
+          <CardTitle className="text-lg font-black lowercase italic tracking-tight">pricing matrix ({selectedSection?.name || 'Loading...'})</CardTitle>
+          <CardDescription className="text-[9px] uppercase font-bold tracking-widest">rates vary based on zone tier and shelf height</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b">
-                  <th className="py-3 font-semibold">Duration</th>
-                  <th className="py-3 font-semibold">Low Level</th>
-                  <th className="py-3 font-semibold">Eye-Level</th>
-                  <th className="py-3 font-semibold">Top Level</th>
+                <tr className="border-b border-gray-50">
+                  <th className="py-4 text-[10px] uppercase font-black tracking-widest text-gray-400">Duration</th>
+                  <th className="py-4 text-[10px] uppercase font-black tracking-widest text-gray-400 text-center">Low Level</th>
+                  <th className="py-4 text-[10px] uppercase font-black tracking-widest text-gray-400 text-center">Eye-Level</th>
+                  <th className="py-4 text-[10px] uppercase font-black tracking-widest text-gray-400 text-center">Top Level</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                <tr className={duration === "quarterly" ? "bg-orange-50/50" : ""}>
-                  <td className="py-3 font-medium">Quarterly</td>
-                  <td className="py-3">NPR 1,100/mo</td>
-                  <td className="py-3">NPR 1,500/mo</td>
-                  <td className="py-3">NPR 1,350/mo</td>
-                </tr>
-                <tr className={duration === "half_yearly" ? "bg-orange-50/50" : ""}>
-                  <td className="py-3 font-medium">Half-Yearly</td>
-                  <td className="py-3">NPR 1,000/mo</td>
-                  <td className="py-3">NPR 1,350/mo</td>
-                  <td className="py-3">NPR 1,100/mo</td>
-                </tr>
-                <tr className={duration === "yearly" ? "bg-[#FE7F2D]/10" : ""}>
-                  <td className="py-3 font-medium">
-                    Yearly <Badge className="ml-2 bg-[#FE7F2D] text-white">Best Value</Badge>
-                  </td>
-                  <td className="py-3 font-bold">NPR 900/mo</td>
-                  <td className="py-3 font-bold">NPR 1,200/mo</td>
-                  <td className="py-3 font-bold">NPR 1,000/mo</td>
-                </tr>
+              <tbody className="divide-y divide-gray-50">
+                {['quarterly', 'half_yearly', 'yearly'].map(d => {
+                  const pricing = pricingTiers.find(p => p.duration === d && p.section_tier === selectedSection?.section_tier)
+                  return (
+                    <tr key={d} className={duration === d ? "bg-orange-50/40" : ""}>
+                      <td className="py-5 font-black lowercase italic text-sm">{d.replace('_', ' ')}</td>
+                      <td className="py-5 text-center font-bold text-gray-600">NPR {pricing?.bottom_price || '0'}/mo</td>
+                      <td className="py-5 text-center font-bold text-gray-600">NPR {pricing?.eye_level_price || '0'}/mo</td>
+                      <td className="py-5 text-center font-bold text-gray-600">NPR {pricing?.top_level_price || '0'}/mo</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

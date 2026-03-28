@@ -1,3 +1,9 @@
+-- =============================================================================
+-- THC CLUB • ECOSYSTEM UNIFIED DEPLOYMENT (v1.0 Alpha)
+-- Consolidated for Supabase Production | Generated 2026
+-- Includes: Base Schema, CRM, Payouts, Shelf System, and Platform Content
+-- =============================================================================
+
 
 
 
@@ -1647,4 +1653,611 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TAB
 
 
 
+
+
+-- ============================================================
+-- THC CLUB • SUPPLEMENTARY MIGRATIONS (V2 TIERED & SECURITY)
+-- ============================================================
+
+-- 1. ADMIN USER INJECTION (BCRYPT)
+INSERT INTO public.admin_users (email, password_hash, name, role, is_active)
+VALUES ('admin@theclub.com', '$2a$10$v9BqS.iJX98V18oVMkm/xu0BGenDZJGaY7g6hLgMhGIp9C.zOUXwC', 'Club Admin', 'super_admin', true)
+ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
+
+-- 2. SHELF BOOKINGS - TIERED COLUMNS
+ALTER TABLE public.shelf_bookings ADD COLUMN IF NOT EXISTS section TEXT;
+ALTER TABLE public.shelf_bookings ADD COLUMN IF NOT EXISTS section_tier TEXT DEFAULT 'regular';
+
+-- 3. UPGRADE SECTIONS (Add Tiering)
+ALTER TABLE public.shelf_sections 
+ADD COLUMN IF NOT EXISTS section_tier TEXT DEFAULT 'regular' 
+CHECK (section_tier IN ('premium', 'regular'));
+
+UPDATE public.shelf_sections SET section_tier = 'premium' WHERE name = 'Cafe Section';
+UPDATE public.shelf_sections SET section_tier = 'regular' WHERE name IN ('Room One', 'Room Two', 'Corridor Wall');
+
+-- 4. UPGRADE PRICING (Make Tier-Aware)
+ALTER TABLE public.shelf_pricing_tiers DROP CONSTRAINT IF EXISTS shelf_pricing_tiers_duration_key;
+ALTER TABLE public.shelf_pricing_tiers ADD COLUMN IF NOT EXISTS section_tier TEXT DEFAULT 'regular';
+ALTER TABLE public.shelf_pricing_tiers ADD CONSTRAINT uniq_duration_tier UNIQUE (duration, section_tier);
+
+-- 5. THE "SMART PRICE" CALCULATOR
+CREATE OR REPLACE FUNCTION get_dynamic_price(p_shelf_id UUID, p_duration TEXT)
+RETURNS NUMERIC AS $$
+DECLARE
+    v_tier TEXT;
+    v_type TEXT;
+    v_price NUMERIC;
+BEGIN
+    SELECT s.section_tier, sh.shelf_type INTO v_tier, v_type
+    FROM shelves sh 
+    JOIN shelf_sections s ON sh.section_id = s.id 
+    WHERE sh.id = p_shelf_id;
+
+    SELECT 
+        CASE 
+            WHEN v_type = 'bottom' THEN bottom_price
+            WHEN v_type = 'eye_level' THEN eye_level_price
+            WHEN v_type = 'top_level' THEN top_level_price
+            ELSE eye_level_price
+        END INTO v_price
+    FROM shelf_pricing_tiers
+    WHERE duration = p_duration AND section_tier = v_tier;
+
+    RETURN v_price;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- 6. THE OFFER REPAIR (Automatic Counter)
+CREATE OR REPLACE FUNCTION public.apply_slot_offer(p_slot_id UUID, p_offer_id UUID)
+RETURNS VOID AS $$
+BEGIN
+    UPDATE public.shelf_slots SET applied_promo_id = p_offer_id WHERE id = p_slot_id;
+    UPDATE public.promotional_offers SET current_uses = current_uses + 1 WHERE id = p_offer_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 7. SECTION & PRICING SEED
+INSERT INTO public.shelf_pricing_tiers (duration, section_tier, bottom_price, eye_level_price, top_level_price)
+VALUES
+  ('quarterly',   'regular', 1100, 1500, 1350),
+  ('half_yearly', 'regular', 1000, 1350, 1100),
+  ('yearly',       'regular', 900, 1200, 1000),
+  ('quarterly',   'premium', 1600, 2200, 1900),
+  ('half_yearly', 'premium', 1500, 2000, 1750),
+  ('yearly',       'premium', 1350, 1800, 1600)
+ON CONFLICT (duration, section_tier) DO UPDATE SET
+  bottom_price = EXCLUDED.bottom_price,
+  eye_level_price = EXCLUDED.eye_level_price,
+  top_level_price = EXCLUDED.top_level_price;
+
+-- 8. PPF & PROMO DATA
+INSERT INTO public.ppf_tiers (tier_name, min_sales_amount, ppf_rate, rent_waiver_percent)
+VALUES
+  ('Starter',    0,      3,   0),
+  ('Silver',     10000,  5,   0),
+  ('Gold',       50000,  7,   50),
+  ('Platinum',   100000, 10,  100)
+ON CONFLICT (min_sales_amount) DO NOTHING;
+
+INSERT INTO public.promotional_offers (name, promo_code, discount_type, discount_value, target_limit, current_uses, is_active)
+VALUES
+  ('Welcome Collective', 'THC2026', 'percentage', 10, 50, 0, true),
+  ('Founder Special',    'MARCH15', 'fixed', 1500, 20, 0, true)
+ON CONFLICT (promo_code) DO NOTHING;
+
+-- 9. SHELF & SLOT AUTO-SEED
+DO $$
+DECLARE
+    section_cafe_id UUID;
+    section_room1_id UUID;
+    section_room2_id UUID;
+    section_corridor_id UUID;
+    v_shelf_record RECORD;
+    i INTEGER;
+BEGIN
+    SELECT id INTO section_cafe_id FROM shelf_sections WHERE name = 'Cafe Section';
+    SELECT id INTO section_room1_id FROM shelf_sections WHERE name = 'Room One';
+    SELECT id INTO section_room2_id FROM shelf_sections WHERE name = 'Room Two';
+    SELECT id INTO section_corridor_id FROM shelf_sections WHERE name = 'Corridor Wall';
+
+    INSERT INTO shelves (name, section_id, total_slots, shelf_type) VALUES
+    ('Shelf 1', section_cafe_id, 6, 'mixed'),
+    ('Shelf 2', section_cafe_id, 6, 'mixed'),
+    ('Shelf 3', section_room1_id, 6, 'mixed'),
+    ('Shelf 4', section_room2_id, 6, 'mixed'),
+    ('Wall Shelf 1', section_corridor_id, 4, 'eye_level')
+    ON CONFLICT DO NOTHING;
+
+    FOR v_shelf_record IN (SELECT id, total_slots, shelf_type FROM shelves)
+    LOOP
+        FOR i IN 1..v_shelf_record.total_slots
+        LOOP
+            INSERT INTO shelf_slots (shelf_id, slot_number, shelf_type, status)
+            VALUES (
+                v_shelf_record.id, 
+                ((SELECT COALESCE(MAX(slot_number), 0) FROM shelf_slots) + 1), 
+                CASE 
+                    WHEN v_shelf_record.shelf_type = 'mixed' THEN 
+                        CASE WHEN i <= 2 THEN 'eye_level' WHEN i <= 4 THEN 'top_level' ELSE 'bottom' END
+                    ELSE v_shelf_record.shelf_type
+                END,
+                'available'
+            ) ON CONFLICT DO NOTHING;
+        END LOOP;
+    END LOOP;
+END;
+$$;
+
+REFRESH MATERIALIZED VIEW IF EXISTS public.brand_sales;
+NOTIFY pgrst, 'reload schema';
+-- =============================================================================
+-- THC Club: Editable Content Management
+-- Table to store terms & conditions, FAQs, and contract templates
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS platform_content (
+  id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  contract_template TEXT,
+  terms_conditions TEXT,
+  faqs JSONB DEFAULT '[]'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  updated_by TEXT
+);
+
+-- Insert default row
+INSERT INTO platform_content (id, contract_template, terms_conditions, faqs)
+VALUES (
+  1,
+  'BRAND PARTNERSHIP AGREEMENT
+The Hidden Collective Club (THC Club)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THIS PARTNERSHIP AGREEMENT ("Agreement") is entered into as of the date of digital acceptance between:
+THE HIDDEN COLLECTIVE CLUB
+Kathmandu, Nepal
+(hereinafter "THC Club")
+AND
+{{BRAND_NAME}}
+Email: {{BRAND_EMAIL}}
+Phone: {{BRAND_PHONE}}
+(hereinafter "Brand Partner")
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. SHELF ALLOTMENT & PLACEMENT
+   The Brand Partner acknowledges that specific shelf slot assignment is determined exclusively by THC Club.
+
+2. FINANCIAL TERMS
+   2.1 One-Time Registration Fee: NPR 800.
+   2.2 Monthly Shelf Rent: As per the selected zone tier.
+   2.3 Platform Partnership Fee (PPF): Performance-based fee of 3%-10%.
+   2.4 Payments are settled in-person.
+
+3. PERFORMANCE & CONDUCT
+   Brand Partners must maintain minimum stock levels and submit products for approval.
+
+4. EXCLUSIVITY & BRAND STANDARDS
+   Products must be original. Counterfeit goods are strictly prohibited.
+
+5. TERMINATION
+   30 days written notice for termination.
+
+6. GOVERNING LAW
+   This Agreement shall be governed by the laws of Nepal.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BY DIGITALLY SIGNING THIS AGREEMENT, BOTH PARTIES CONFIRM THEY HAVE READ, UNDERSTOOD, AND AGREE TO THE TERMS AND CONDITIONS ABOVE.',
+  '# The Hidden Collective terms and conditions
+Welcome to THC Club. By registering as a Brand Partner you agree to our policies.',
+  '[]'::jsonb
+) ON CONFLICT (id) DO NOTHING;
+
+-- Policies
+ALTER TABLE platform_content ENABLE ROW LEVEL SECURITY;
+
+-- Anyone authenticated can read it
+DROP POLICY IF EXISTS "Anyone can read content" ON platform_content;
+CREATE POLICY "Anyone can read content" ON platform_content
+  FOR SELECT USING (true);
+
+-- Only admins can update
+DROP POLICY IF EXISTS "Admins can update content" ON platform_content;
+CREATE POLICY "Admins can update content" ON platform_content
+  FOR UPDATE USING (
+    (SELECT role FROM admin_users WHERE email = auth.email()) IN ('super_admin', 'manager')
+  );
+
+NOTIFY pgrst, 'reload schema';
+-- =============================================================================
+-- THC Club: Payment Tracking & Admin CRM Fixes
+-- Run this migration in your Supabase SQL Editor
+-- =============================================================================
+
+-- 1. Create table for tracking individual installment/payment transactions
+CREATE TABLE IF NOT EXISTS shelf_booking_payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    booking_id UUID REFERENCES shelf_bookings(id) ON DELETE CASCADE,
+    brand_id UUID REFERENCES brands(id) ON DELETE CASCADE,
+    amount_paid NUMERIC NOT NULL,
+    payment_date TIMESTAMPTZ DEFAULT now(),
+    payment_method TEXT DEFAULT 'in_person' CHECK (payment_method IN ('in_person', 'bank_transfer', 'qr_scan', 'other')),
+    notes TEXT,
+    confirmed_by TEXT, -- Admin name who confirmed it
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 2. Add summary columns to shelf_bookings
+ALTER TABLE shelf_bookings 
+  ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'pending' CHECK (payment_status IN ('pending', 'partial', 'paid')),
+  ADD COLUMN IF NOT EXISTS amount_paid NUMERIC DEFAULT 0;
+
+-- 3. Create or replace RPC to allow Admins (who use custom auth) to update brand CRM notes.
+-- Bypasses RLS utilizing SECURITY DEFINER.
+CREATE OR REPLACE FUNCTION admin_update_brand_crm(
+    p_brand_id UUID,
+    p_admin_notes TEXT DEFAULT NULL,
+    p_onboarding_status TEXT DEFAULT NULL
+) RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE brands 
+  SET 
+    admin_notes = COALESCE(p_admin_notes, admin_notes),
+    onboarding_status = COALESCE(p_onboarding_status, onboarding_status),
+    updated_at = now()
+  WHERE id = p_brand_id;
+END;
+$$;
+
+-- 4. Set clear RLS for the payments table
+ALTER TABLE shelf_booking_payments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "brands view their own payments" ON shelf_booking_payments;
+CREATE POLICY "brands view their own payments"
+  ON shelf_booking_payments FOR SELECT
+  USING (
+    brand_id IN (SELECT id FROM brands WHERE email = auth.email())
+  );
+
+DROP POLICY IF EXISTS "public insert payments" ON shelf_booking_payments;
+CREATE POLICY "public insert payments" ON shelf_booking_payments FOR ALL USING (true); -- Since admins need to insert/read without formal Supabase Auth.
+
+NOTIFY pgrst, 'reload schema';
+-- =============================================================================
+-- THC Club: Monthly Settlements & Payouts Architecture
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS brand_settlements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_id UUID REFERENCES brands(id) ON DELETE CASCADE,
+    period_year INT NOT NULL,
+    period_month INT NOT NULL, -- 1-12
+    total_sales NUMERIC DEFAULT 0,
+    ppf_deduction NUMERIC DEFAULT 0,
+    net_payout NUMERIC DEFAULT 0,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'paid')),
+    paid_at TIMESTAMPTZ,
+    bank_reference TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ DEFAULT now(),
+    UNIQUE(brand_id, period_year, period_month)
+);
+
+ALTER TABLE brand_settlements ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "brands view own settlements" ON brand_settlements;
+CREATE POLICY "brands view own settlements"
+  ON brand_settlements FOR SELECT
+  USING (brand_id IN (SELECT id FROM brands WHERE email = auth.email()));
+
+-- Admin read/write policies (accessible via custom unauthed route for admins or via anon if open, 
+-- but we usually enforce true for internal tools relying on Next.js/RPC checks).
+DROP POLICY IF EXISTS "public read/write settlements" ON brand_settlements;
+CREATE POLICY "public read/write settlements" ON brand_settlements FOR ALL USING (true);
+
+
+-- Helper RPC function to automatically sync or upsert a settlement record from invoices
+CREATE OR REPLACE FUNCTION generate_monthly_settlement(p_brand_id UUID, p_year INT, p_month INT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_gross NUMERIC;
+  v_ppf NUMERIC;
+BEGIN
+  -- Sum up paid invoices for that month
+  SELECT COALESCE(SUM(total_amount), 0), COALESCE(SUM(ppf_amount), 0)
+  INTO v_gross, v_ppf
+  FROM invoices
+  WHERE brand_id = p_brand_id
+    AND status = 'paid'
+    AND EXTRACT(YEAR FROM created_at) = p_year
+    AND EXTRACT(MONTH FROM created_at) = p_month;
+
+  -- Upsert
+  INSERT INTO brand_settlements (brand_id, period_year, period_month, total_sales, ppf_deduction, net_payout, status)
+  VALUES (p_brand_id, p_year, p_month, v_gross, v_ppf, (v_gross - v_ppf), 'pending')
+  ON CONFLICT (brand_id, period_year, period_month)
+  DO UPDATE SET
+    total_sales = EXCLUDED.total_sales,
+    ppf_deduction = EXCLUDED.ppf_deduction,
+    net_payout = EXCLUDED.net_payout,
+    updated_at = now()
+  WHERE brand_settlements.status = 'pending'; -- do not recalculate if already paid/processing
+END;
+$$;
+
+NOTIFY pgrst, 'reload schema';
+-- =============================================================================
+-- THC Club: Contract System & Brand Contract Table Migration
+-- Run this on your Supabase SQL editor to add e-signature fields
+-- =============================================================================
+
+-- 1. Add new e-signature fields to brand_contracts table
+ALTER TABLE brand_contracts
+  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'pending' 
+    CHECK (status IN ('pending', 'signed', 'active', 'expired')),
+  ADD COLUMN IF NOT EXISTS contract_type TEXT DEFAULT 'partnership_v1',
+  ADD COLUMN IF NOT EXISTS signed_by TEXT,
+  ADD COLUMN IF NOT EXISTS signed_at TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS stamp_number TEXT,
+  ADD COLUMN IF NOT EXISTS ip_note TEXT;
+
+-- 2. Add index for faster brand contract lookups
+CREATE INDEX IF NOT EXISTS idx_brand_contracts_brand_id ON brand_contracts(brand_id);
+CREATE INDEX IF NOT EXISTS idx_brand_contracts_status ON brand_contracts(status);
+
+-- 3. Make file_url nullable (digital contracts don't need a file)
+ALTER TABLE brand_contracts ALTER COLUMN file_url DROP NOT NULL;
+
+-- 4. Add signed_by and stamp fields to brand_contracts per brand readable note
+COMMENT ON COLUMN brand_contracts.signed_by IS 'Full legal name of the authorized signatory';
+COMMENT ON COLUMN brand_contracts.stamp_number IS 'Optional company stamp or registration number';
+COMMENT ON COLUMN brand_contracts.ip_note IS 'Audit trail note (e.g. signed via portal)';
+COMMENT ON COLUMN brand_contracts.contract_type IS 'Version/type of the contract template used';
+
+-- 5. RLS: Brands can view their own contracts, admins see all
+ALTER TABLE brand_contracts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "brands_view_own_contracts" ON brand_contracts;
+CREATE POLICY "brands_view_own_contracts"
+  ON brand_contracts FOR SELECT
+  USING (
+    brand_id IN (
+      SELECT id FROM brands WHERE email = auth.email()
+    )
+  );
+
+DROP POLICY IF EXISTS "brands_insert_own_contracts" ON brand_contracts;
+CREATE POLICY "brands_insert_own_contracts"
+  ON brand_contracts FOR INSERT
+  WITH CHECK (
+    brand_id IN (
+      SELECT id FROM brands WHERE email = auth.email()
+    )
+  );
+
+DROP POLICY IF EXISTS "brands_update_own_unsigned_contracts" ON brand_contracts;
+CREATE POLICY "brands_update_own_unsigned_contracts"
+  ON brand_contracts FOR UPDATE
+  USING (
+    brand_id IN (
+      SELECT id FROM brands WHERE email = auth.email()
+    )
+    AND status IN ('pending', 'signed')
+  );
+
+-- 6. Admin service-role bypass (service_role bypasses RLS automatically)
+-- No extra policy needed if using service_role key in admin actions.
+
+SELECT 'Contract system migration complete.' AS result;
+-- =============================================================================
+-- THC Club: Add Zone Tracking columns to shelf_bookings
+-- Run this on your Supabase SQL editor to add the missing columns
+-- =============================================================================
+
+ALTER TABLE shelf_bookings
+  ADD COLUMN IF NOT EXISTS section TEXT,
+  ADD COLUMN IF NOT EXISTS section_tier TEXT;
+
+-- Reload PostgREST schema cache so the API recognizes the new columns immediately
+NOTIFY pgrst, 'reload schema';
+-- Ensure schema is fully extended for narrative, protocols, and tracking
+ALTER TABLE platform_content ADD COLUMN IF NOT EXISTS protocols JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE platform_content ADD COLUMN IF NOT EXISTS origins TEXT;
+
+-- (Intermediate narrative update removed in favor of consolidated final refresh below)
+
+-- ============================================================
+-- THC CLUB • ECONOMICS & PRICING SEED (V2 TIERED)
+-- ============================================================
+
+-- 1. INITIALIZE SECTION TIERS
+------------------------------------------------------------
+-- Premium: High visibility, high footfall (Cafe)
+-- Regular: Specialized zones, rooms, and corridors
+UPDATE public.shelf_sections SET section_tier = 'premium' WHERE name = 'Cafe Section';
+UPDATE public.shelf_sections SET section_tier = 'regular' WHERE name IN ('Room One', 'Room Two', 'Corridor Wall');
+
+-- 2. LAYERED SHELF PRICING (NPR/mo)
+------------------------------------------------------------
+-- REGULAR ZONES (Standard pricing)
+INSERT INTO public.shelf_pricing_tiers (duration, section_tier, bottom_price, eye_level_price, top_level_price)
+VALUES
+  ('quarterly',   'regular', 1100, 1500, 1350),
+  ('half_yearly', 'regular', 1000, 1350, 1100),
+  ('yearly',       'regular', 900, 1200, 1000)
+ON CONFLICT (duration, section_tier) DO UPDATE SET
+  bottom_price = EXCLUDED.bottom_price,
+  eye_level_price = EXCLUDED.eye_level_price,
+  top_level_price = EXCLUDED.top_level_price;
+
+-- PREMIUM ZONES (Higher visibility, ~30-40% premium)
+INSERT INTO public.shelf_pricing_tiers (duration, section_tier, bottom_price, eye_level_price, top_level_price)
+VALUES
+  ('quarterly',   'premium', 1600, 2200, 1900),
+  ('half_yearly', 'premium', 1500, 2000, 1750),
+  ('yearly',       'premium', 1350, 1800, 1600)
+ON CONFLICT (duration, section_tier) DO UPDATE SET
+  bottom_price = EXCLUDED.bottom_price,
+  eye_level_price = EXCLUDED.eye_level_price,
+  top_level_price = EXCLUDED.top_level_price;
+
+-- 3. PLATFORM PARTNERSHIP FEES (PPF)
+------------------------------------------------------------
+INSERT INTO public.ppf_tiers (tier_name, min_sales_amount, ppf_rate, rent_waiver_percent)
+VALUES
+  ('Starter',    0,      3,   0),   -- 0-10k: 3% Fee, No Waiver
+  ('Silver',     10000,  5,   0),   -- 10-50k: 5% Fee, No Waiver
+  ('Gold',       50000,  7,   50),  -- 50-100k: 7% Fee, 50% Rent Waiver
+  ('Platinum',   100000, 10,  100)  -- 100k+: 10% Fee, 100% Rent Waiver
+ON CONFLICT (min_sales_amount) DO NOTHING;
+
+-- 4. INITIAL PROMOTIONS
+------------------------------------------------------------
+INSERT INTO public.promotional_offers (name, promo_code, discount_type, discount_value, target_limit, current_uses, is_active)
+VALUES
+  ('Welcome Collective', 'THC2026', 'percentage', 10, 50, 0, true),
+  ('Founder Special',    'MARCH15', 'fixed', 1500, 20, 0, true)
+ON CONFLICT (promo_code) DO NOTHING;
+
+-- REFRESH
+NOTIFY pgrst, 'reload schema';
+-- =============================================================================
+-- THC CLUB • FINAL PLATFORM CONTENT CONSOLIDATION
+-- =============================================================================
+UPDATE platform_content 
+SET 
+  origins = '# our origins
+
+this didn’t start as an idea. it started as frustration.
+
+before thc club, we were on the other side of the counter—trying to sell our own products.
+what we found was simple: visibility wasn’t earned, it was taxed.
+
+most stores asked for 20% to 35% commission.
+at that point, they weren’t just a platform—they were silent partners without the risk, without the paperwork.
+
+we tried a different approach.
+we asked for something smaller. a fixed space. lower commission. room to experiment.
+
+no one agreed.
+
+so we stopped asking.
+
+kathmandu is full of creators building genuinely great products—out of bedrooms, small kitchens, late nights.
+but getting discovered? that’s a different game entirely. expensive shelves, algorithm dependency, or both.
+
+that gap—between creating and being seen—is where most brands die.
+
+the hidden collective club was built to close that gap.
+
+not by taking a bigger cut, but by changing the model entirely.
+
+we offer space, visibility, shared footfall, and real-world presence—without turning creators into margin for someone else.
+
+you bring the product.
+we make sure it gets seen.
+
+simple.',
+
+  protocols = '[
+    {
+      "title": "01. economics",
+      "items": [
+        "a one-time registration fee of rs. 800 covers identity onboarding and physical slot setup.",
+        "shelf rent is fixed based on your selected tier (low, eye, or top) and commitment period (quarterly, half-yearly, or yearly).",
+        "performance-based processing fees range from 3% to 10% based on monthly sales volume.",
+        "high-performance brands (rs. 50k+ sales) qualify for 50% to 100% rent waivers for that month."
+      ]
+    },
+    {
+      "title": "02. payouts & data",
+      "items": [
+        "payouts are currently processed monthly, with goals to implement bill-based cycles as the collective scales.",
+        "sales data and footfall insights will be provided via the brand dashboard as we refine our tracking systems.",
+        "brands taking multiple shelves are eligible for custom fruitfull collaboration discounts."
+      ]
+    },
+    {
+      "title": "03. physical space",
+      "items": [
+        "location: bijeshwori, swyambhu. the club spans 3 rooms with 108 curated shelf spaces.",
+        "shelf maintenance: brands must refresh stock at least once every 21 days to ensure the collective vibe remains fresh.",
+        "cross-selling: brands acknowledge and benefit from footfall generated by sayummys cafe visitors.",
+        "merchandising: we work together on placement and shelf design to optimize for customer behavior."
+      ]
+    },
+    {
+      "title": "04. liability & legal",
+      "items": [
+        "shopwear: given the high-traffic cafe environment, the club is not liable for minor damages from customer handling.",
+        "curation: we gatekeep energy, not money. the club reserves the right to curate and select brands that fit the \"cool stuff\" mission.",
+        "jurisdiction: this partnership and all digital/physical interactions are governed by the laws of kathmandu, nepal."
+      ]
+    }
+  ]'::jsonb,
+
+  terms_conditions = 'THE HIDDEN COLLECTIVE CLUB (THC CLUB)
+PARTNERSHIP TERMS & CONDITIONS
+v1.0 • Effective 2026
+
+1. REGISTRATION & ONBOARDING
+1.1 A one-time registration fee of NPR 800 is required upon acceptance into the collective.
+1.2 This fee covers digital identity verification, administrative onboarding, and the physical preparation of the allotted shelf space. 
+1.3 Acceptance is at the sole discretion of the THC Club curation team, focusing on brand alignment and product quality.
+
+2. SHELF RENTAL & PLACEMENT
+2.1 Monthly rent is determined by the selected tier (Top, Eye, or Low level) and the commitment cycle (Quarterly, Half-Yearly, or Yearly).
+2.2 Specific shelf slot assignments within a selected tier are determined by THC Club to ensure optimal collective merchandising.
+2.3 Rent is payable in advance according to the agreed payment schedule (Bank Transfer, QR, or Cash).
+
+3. PERFORMANCE-BASED PROCESSING FEES (PPF)
+3.1 In addition to rent, a performance-based processing fee (PPF) ranging from 3% to 10% of gross sales is applied.
+3.2 High-performance incentive: Brands achieving gross monthly sales of NPR 50,000 or more are eligible for the Rent Waiver program, where a portion or all of the following month s rent may be waived.
+
+4. PAYOUTS & FINANCIAL RECONCILIATION
+4.1 Sales are tracked through the THC Club POS system.
+4.2 Payouts of net sales (Gross Sales minus PPF and any outstanding fees) are currently processed on a monthly cycle.
+4.3 Brands can monitor real-time sales estimates via the THC Club Brand Portal.
+
+5. PHYSICAL SPACE & MAINTENANCE
+5.1 Brands are responsible for maintaining their stock levels. A minimum stock refresh is required at least once every 21 days.
+5.2 THC Club provides the shared footfall and physical visibility, including exposure from neighboring Sayummys Cafe.
+5.3 Brands must adhere to the merchandising standards of the collective.
+
+6. LIABILITY & LIMITATIONS
+6.1 In the event of minor damage or wear caused by customer handling (shopwear), THC Club shall not be held liable, given the high-traffic nature of the environment.
+6.2 THC Club reserves the right to re-curate or terminate partnerships if brand standards are not maintained, with a 30-day notice period.
+
+7. LEGAL JURISDICTION
+7.1 This partnership is governed by the laws of Kathmandu, Nepal.
+7.2 Digital acceptance of these terms constitutes a binding agreement between the Brand Partner and The Hidden Collective Club.',
+
+  faqs = '[
+    {
+      "question": "why do you charge both rent and a processing fee?",
+      "answer": "to keep entry costs low while sharing the upside. traditional models take 35% commission regardless. we provide a fixed space for visibility, and our performance fee only scales if your sales do. it ensures we are both invested in your brand s success."
+    },
+    {
+      "question": "how often should i refresh my stock?",
+      "answer": "we recommend a refresh at least once every 21 days. this keeps the collective vibe fresh for our regulars and ensures your display always looks its best. you can coordinate stock drops directly through your dashboard."
+    },
+    {
+      "question": "what is the rent waiver program?",
+      "answer": "we reward high-performing brands. if your monthly sales cross rs. 50,000, we waive 50% to 100% of your next month s rent. it s our way of saying keep up the great work."
+    },
+    {
+      "question": "what does the registration fee cover?",
+      "answer": "the one-time rs. 800 fee covers your digital onboarding, physical shelf setup, and initial identity verification. it ensures every brand in the collective meets our curation standards."
+    },
+    {
+      "question": "how are payouts handled?",
+      "answer": "currently, payouts are processed monthly. you can track your estimated net payout in real-time via the payouts tab in your dashboard."
+    }
+  ]'::jsonb,
+  updated_at = now()
+WHERE id = 1;
+
+NOTIFY pgrst, 'reload schema';
 

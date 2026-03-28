@@ -35,12 +35,10 @@ export function BrandSalesReport({ brandId }: BrandSalesReportProps) {
         .rpc("get_product_performance_secure", { p_brand_id: brandId })
 
       if (error) {
-         if (error.code === 'P0001' || error.code === '42883') {
-            const { data: products } = await supabase.from("brand_products").select("*").eq("brand_id", brandId)
-            setProductSales(products?.map(p => ({ ...p, sold: 0, revenue: 0 })) || [])
-            return
-         }
-         throw error
+         console.warn("RPC get_product_performance_secure failed:", error)
+         const { data: products } = await supabase.from("brand_products").select("*").eq("brand_id", brandId)
+         setProductSales(products?.map(p => ({ ...p, sold: 0, revenue: 0 })) || [])
+         return
       }
 
       if (data) {

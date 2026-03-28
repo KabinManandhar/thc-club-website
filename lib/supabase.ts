@@ -8,7 +8,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // ============================================================
 // Existing Types
 // ============================================================
-
+export interface PlatformContent {
+  id: number
+  contract_template: string
+  terms_conditions: string
+  origins: string
+  faqs: any[]
+  protocols: any[]
+  updated_at: string
+  updated_by?: string
+}
 
 
 export interface Enquiry {
@@ -116,6 +125,13 @@ export interface BrandContract {
   valid_from?: string
   valid_to?: string
   created_at: string
+  // Digital e-signature fields
+  status?: "pending" | "signed" | "active" | "expired"
+  contract_type?: string
+  signed_by?: string
+  signed_at?: string
+  stamp_number?: string
+  ip_note?: string
 }
 
 export interface ShelfBooking {
@@ -134,11 +150,25 @@ export interface ShelfBooking {
   status: "pending" | "approved" | "rejected" | "active" | "expired"
   admin_notes?: string
   brand_agreement_accepted: boolean
+  payment_status?: "pending" | "partial" | "paid"
+  amount_paid?: number
   payment_method?: "bank_transfer" | "qr_payment" | "cash" | "card" | "other"
   created_at: string
   updated_at: string
   // joined
   brands?: Brand
+}
+
+export interface ShelfBookingPayment {
+  id: string
+  booking_id: string
+  brand_id: string
+  amount_paid: number
+  payment_date: string
+  payment_method: string
+  notes?: string
+  confirmed_by?: string
+  created_at: string
 }
 
 export interface BrandProduct {
@@ -201,6 +231,21 @@ export interface BrandSales {
   ppf_rate?: number
   ppf_amount?: number
   rent_waiver_percent?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface BrandSettlement {
+  id: string
+  brand_id: string
+  period_year: number
+  period_month: number
+  total_sales: number
+  ppf_deduction: number
+  net_payout: number
+  status: "pending" | "processing" | "paid"
+  paid_at?: string
+  bank_reference?: string
   created_at: string
   updated_at: string
 }

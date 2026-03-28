@@ -3,18 +3,22 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ShelfTransactions } from "@/components/shared/shelf-transactions"
 import { supabase } from "@/lib/supabase"
 import {
-   Clock,
    LayoutGrid,
    Package,
    Zap,
-   TrendingUp,
-   MapPin,
-   DollarSign,
+   Plus,
+   Calculator,
+   Clock,
+   ArrowLeft
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import { OnboardingWizard } from "@/components/club/onboarding-wizard"
 
 interface BrandShelfInfoProps {
   brandId: string
@@ -46,13 +50,17 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
   const [brandSectionTier, setBrandSectionTier] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // New Slot Request states
+  const [showWizard, setShowWizard] = useState(false)
+  const [brandName, setBrandName] = useState("")
+
   useEffect(() => {
     fetchShelfInfo()
   }, [brandId])
 
   const fetchShelfInfo = async () => {
     setLoading(true)
-    const [bookingsRes, slotsRes, pricingRes] = await Promise.all([
+    const [bookingsRes, slotsRes, pricingRes, brandRes] = await Promise.all([
       supabase
         .from("shelf_bookings")
         .select("*")
@@ -68,7 +76,16 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
         .select("*")
         .order("section_tier")
         .order("duration"),
+      supabase
+        .from("brands")
+        .select("business_name")
+        .eq("id", brandId)
+        .single()
     ])
+
+    if (brandRes.data) {
+       setBrandName(brandRes.data.business_name)
+    }
 
     if (slotsRes.data) {
       setShelfData(slotsRes.data)
@@ -90,10 +107,33 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
 
   const getPriceForSlotType = (dur: string, slotType: string, tier: string) => {
     const p = pricingTiers.find(t => t.duration === dur && t.section_tier === tier)
-    if (!p) return null
+    if (!p) return 0 // Default fallback
     if (slotType === "eye_level") return p.eye_level_price
     if (slotType === "top_level") return p.top_level_price
     return p.bottom_price
+  }
+
+  if (showWizard) {
+    return (
+      <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
+        <Button 
+          variant="outline" 
+          onClick={() => setShowWizard(false)} 
+          className="mb-4 rounded-xl font-black uppercase text-[10px] tracking-widest border-gray-100 hover:bg-gray-50"
+        >
+           <ArrowLeft className="w-4 h-4 mr-2" /> Cancel Request
+        </Button>
+        <OnboardingWizard 
+          brandId={brandId} 
+          businessName={brandName} 
+          isSecondary={true} 
+          onComplete={() => {
+            setShowWizard(false)
+            fetchShelfInfo()
+          }} 
+        />
+      </div>
+    )
   }
 
   if (loading) return (
@@ -117,11 +157,19 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
           </h2>
           <p className="text-[#010307]/40 font-medium italic mt-1 text-sm lowercase">real-time allotment, placement sync &amp; zone pricing.</p>
         </div>
-        {displayTier && (
-          <Badge className={`font-black uppercase text-[10px] tracking-widest px-4 py-2 rounded-full border ${TIER_COLORS[displayTier] || TIER_COLORS.regular}`}>
-            {displayTier} zone member
-          </Badge>
-        )}
+        <div className="flex items-center gap-3">
+          {displayTier && (
+            <Badge className={`font-black uppercase text-[10px] tracking-widest px-4 py-2 rounded-full border ${TIER_COLORS[displayTier] || TIER_COLORS.regular}`}>
+              {displayTier} zone member
+            </Badge>
+          )}
+          <Button 
+            onClick={() => setShowWizard(true)}
+            className="bg-[#FE7F2D] text-white hover:bg-[#010307] font-black tracking-widest uppercase text-[10px] rounded-xl h-10 shadow-xl shadow-orange-500/20"
+          >
+            <Plus className="w-4 h-4 mr-2" /> Request Space
+          </Button>
+        </div>
       </div>
 
       {/* Pending Requests Section */}
@@ -253,42 +301,10 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
         </div>
       )}
 
-      {/* Live Pricing Reference */}
-      {tierPricingRows.length > 0 && (
-        <div className="space-y-6">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="w-5 h-5 text-[#FE7F2D]" />
-            <h3 className="text-xl font-black italic lowercase tracking-tight">your zone pricing</h3>
-            <Badge className={`text-[9px] font-black uppercase tracking-widest px-3 border rounded-full ${TIER_COLORS[displayTier] || TIER_COLORS.regular}`}>
-              {displayTier} rates
-            </Badge>
-          </div>
-          <Card className="border border-black/5 shadow-sm rounded-3xl overflow-hidden bg-white">
-            <div className="p-8">
-              <div className="grid grid-cols-4 gap-4 text-[10px] font-black uppercase tracking-widest text-gray-300 pb-4 border-b border-gray-50 mb-4">
-                <span>Duration</span>
-                <span className="text-center">Bottom</span>
-                <span className="text-center">Eye Level</span>
-                <span className="text-center">Top Level</span>
-              </div>
-              {tierPricingRows.map((row) => (
-                <div key={row.id} className="grid grid-cols-4 gap-4 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50/50 rounded-2xl px-2 transition-colors">
-                  <span className="font-black text-sm lowercase italic text-[#010307]">{DURATION_LABELS[row.duration] || row.duration}</span>
-                  <span className="text-center font-bold text-gray-700 text-sm">NPR {row.bottom_price?.toLocaleString()}<span className="text-[9px] text-gray-300">/mo</span></span>
-                  <span className="text-center font-black text-[#FE7F2D] text-sm">NPR {row.eye_level_price?.toLocaleString()}<span className="text-[9px] text-gray-300">/mo</span></span>
-                  <span className="text-center font-bold text-gray-700 text-sm">NPR {row.top_level_price?.toLocaleString()}<span className="text-[9px] text-gray-300">/mo</span></span>
-                </div>
-              ))}
-            </div>
-            <div className="px-8 pb-6">
-              <p className="text-[9px] font-black uppercase tracking-widest text-gray-200 flex items-center gap-2">
-                <MapPin className="w-3 h-3" />
-                prices are per month, settled in-person. registration fee NPR 800 applies on first booking.
-              </p>
-            </div>
-          </Card>
-        </div>
-      )}
+      {/* Transactions & Ledger */}
+      <div className="pt-8 border-t border-gray-100">
+        <ShelfTransactions brandId={brandId} />
+      </div>
     </div>
   )
 }

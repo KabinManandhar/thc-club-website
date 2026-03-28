@@ -7,11 +7,13 @@ import { DashboardOverview } from "@/components/admin/dashboard-overview";
 import { InvoiceGenerator } from "@/components/admin/invoice-generator";
 import { InvoiceList } from "@/components/admin/invoice-list";
 
-import { LoginForm } from "@/components/admin/login-form";
-import { ShelfSlotsManagement } from "@/components/admin/shelf-slots-management";
 import { InboxManagement } from "@/components/admin/inbox-management";
+import { LoginForm } from "@/components/admin/login-form";
 import { PayoutsTracker } from "@/components/admin/payouts-tracker";
 import { PricingOffersManagement } from "@/components/admin/pricing-offers-management";
+import { ShelfRentalRevenueMetrics } from "@/components/admin/shelf-rental-metrics";
+import { ShelfSlotsManagement } from "@/components/admin/shelf-slots-management";
+import { ContentManagement } from "@/components/admin/content-management";
 import { adminAuth } from "@/lib/auth";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -68,18 +70,12 @@ function AdminDashboardContent() {
         return <PayoutsTracker />;
       case "pricing-offers":
         return <PricingOffersManagement />;
-
+      case "shelf-revenue":
+        return <ShelfRentalRevenueMetrics />;
       case "slots":
         return <ShelfSlotsManagement />;
       case "settings":
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold mb-4">Settings</h2>
-            <p className="text-gray-600">
-              Coming Soon - System configuration and preferences
-            </p>
-          </div>
-        );
+        return <ContentManagement />;
       default:
         return <DashboardOverview onTabChange={setActiveTab} />;
     }

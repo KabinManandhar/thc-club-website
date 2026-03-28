@@ -15,6 +15,7 @@ interface OnboardingWizardProps {
   brandId: string
   businessName: string
   onComplete: () => void
+  isSecondary?: boolean
 }
 
 const STEPS = ["choose zone", "shelf level", "duration", "club protocols", "finalization", "review", "submitted"]
@@ -43,7 +44,7 @@ const DURATION_INFO: Record<Duration, { label: string; months: number }> = {
   yearly: { label: "yearly (best value)", months: 12 },
 }
 
-export function OnboardingWizard({ brandId, businessName, onComplete }: OnboardingWizardProps) {
+export function OnboardingWizard({ brandId, businessName, onComplete, isSecondary = false }: OnboardingWizardProps) {
   const [step, setStep] = useState(0)
   const [sections, setSections] = useState<ShelfSection[]>([])
   const [selectedSection, setSelectedSection] = useState<ShelfSection | null>(null)
@@ -62,15 +63,18 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
     eye_level: "37–72",
     bottom: "1–36",
   })
+  const [dynamicProtocols, setDynamicProtocols] = useState<{ title: string; items: string[] }[]>([])
 
   useEffect(() => {
     Promise.all([
       supabase.from("shelf_sections").select("*"),
       supabase.from("shelf_pricing_tiers").select("*"),
-      supabase.from("shelf_slots").select("shelf_type, slot_number")
-    ]).then(([secRes, priceRes, slotsRes]) => {
+      supabase.from("shelf_slots").select("shelf_type, slot_number"),
+      supabase.from("platform_content").select("protocols").eq("id", 1).single()
+    ]).then(([secRes, priceRes, slotsRes, protRes]) => {
       setSections(secRes.data || [])
       setPricingTiers(priceRes.data || [])
+      if (protRes.data) setDynamicProtocols(protRes.data.protocols || [])
 
       if (slotsRes.data) {
         const ranges: Record<string, { min: number; max: number }> = {}
@@ -163,7 +167,9 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
          await supabase.rpc('increment_offer_uses', { offer_id: activeOffer.id })
       }
 
-      await supabase.from("brands").update({ onboarding_status: "slot_selected" }).eq("id", brandId)
+      if (!isSecondary) {
+        await supabase.from("brands").update({ onboarding_status: "slot_selected" }).eq("id", brandId)
+      }
       setStep(6)
     } catch (err: any) {
       setError(err.message || "Failed to submit booking")
@@ -276,49 +282,19 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
               </div>
 
               <div className="grid md:grid-cols-2 gap-12 text-left">
-                {/* Column 1: Financials & Operations */}
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D]">01. economics</h4>
+                {dynamicProtocols.map((p, idx) => (
+                  <div key={idx} className="space-y-4">
+                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D]">{p.title}</h4>
                     <ul className="space-y-4 text-[13px] text-[#010307]/60 font-medium lowercase italic leading-relaxed">
-                      <li>• a one-time registration fee of rs. 800 covers identity onboarding and physical slot setup.</li>
-                      <li>• shelf rent is fixed based on your selected tier (low, eye, or top) and commitment period (quarterly, half-yearly, or yearly).</li>
-                      <li>• performance-based processing fees range from 3% to 10% based on monthly sales volume.</li>
-                      <li>• high-performance brands (rs. 50k+ sales) qualify for 50% to 100% rent waivers for that month.</li>
+                      {p.items.map((item, i) => (
+                        <li key={i}>• {item}</li>
+                      ))}
                     </ul>
                   </div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D]">02. payouts & data</h4>
-                    <ul className="space-y-4 text-[13px] text-[#010307]/60 font-medium lowercase italic leading-relaxed">
-                      <li>• payouts are currently processed monthly, with goals to implement bill-based cycles as the collective scales.</li>
-                      <li>• sales data and footfall insights will be provided via the brand dashboard as we refine our tracking systems.</li>
-                      <li>• brands taking multiple shelves are eligible for custom fruitfull collaboration discounts.</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Column 2: The "Safety" Clauses */}
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D]">03. physical space</h4>
-                    <ul className="space-y-4 text-[13px] text-[#010307]/60 font-medium lowercase italic leading-relaxed">
-                      <li>• location: bijeshwori, swyambhu. the club spans 3 rooms with 108 curated shelf spaces.</li>
-                      <li>• shelf maintenance: brands must refresh stock at least once every 21 days to ensure the collective vibe remains fresh.</li>
-                      <li>• cross-selling: brands acknowledge and benefit from footfall generated by sayummys cafe visitors.</li>
-                      <li>• merchandising: we work together on placement and shelf design to optimize for customer behavior.</li>
-                    </ul>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D]">04. liability & legal</h4>
-                    <ul className="space-y-4 text-[13px] text-[#010307]/60 font-medium lowercase italic leading-relaxed">
-                      <li>• shopwear: given the high-traffic cafe environment, the club is not liable for minor damages from customer handling.</li>
-                      <li>• curation: we gatekeep energy, not money. the club reserves the right to curate and select brands that fit the "cool stuff" mission.</li>
-                      <li>• jurisdiction: this partnership and all digital/physical interactions are governed by the laws of kathmandu, nepal.</li>
-                    </ul>
-                  </div>
-                </div>
+                ))}
+                {dynamicProtocols.length === 0 && (
+                  <p className="col-span-2 text-center text-gray-400 italic">Protocols configuration pending...</p>
+                )}
               </div>
 
               {/* Contact Footer */}
