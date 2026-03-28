@@ -141,35 +141,79 @@ export function PricingOffersManagement() {
                <Save className="w-4 h-4 mr-2" /> Save Pricing
             </Button>
          </CardHeader>
-         <CardContent className="p-8 space-y-8">
-            <div className="grid md:grid-cols-3 gap-6">
-               {pricingTiers.map(tier => (
-                 <div key={tier.id} className="space-y-4 border border-gray-100 p-6 rounded-2xl bg-gray-50/30">
-                    <Badge className="bg-gray-200 text-gray-700 font-black uppercase tracking-widest border-none px-4 py-1 text-[10px]">
-                      {tier.duration.replace("_", " ")}
-                    </Badge>
-                    <div className="space-y-4 pt-2">
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Top Level (NPR/mo)</Label>
-                          <Input type="number" value={tier.top_level_price} 
-                             onChange={(e) => setPricingTiers(pt => pt.map(t => t.id === tier.id ? { ...t, top_level_price: Number(e.target.value) } : t))} 
-                             className="h-12 rounded-xl font-bold bg-white" />
-                       </div>
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Eye Level (NPR/mo) - <span className="text-orange-500">Premium</span></Label>
-                          <Input type="number" value={tier.eye_level_price} 
-                             onChange={(e) => setPricingTiers(pt => pt.map(t => t.id === tier.id ? { ...t, eye_level_price: Number(e.target.value) } : t))} 
-                             className="h-12 rounded-xl font-black text-[#FE7F2D] border-orange-200 bg-orange-50/30" />
-                       </div>
-                       <div className="space-y-2">
-                          <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Bottom Level (NPR/mo)</Label>
-                          <Input type="number" value={tier.bottom_price} 
-                             onChange={(e) => setPricingTiers(pt => pt.map(t => t.id === tier.id ? { ...t, bottom_price: Number(e.target.value) } : t))} 
-                             className="h-12 rounded-xl font-bold bg-white" />
+         <CardContent className="p-8 space-y-12">
+            {/* Premium Section Pricing */}
+            <div className="space-y-6">
+               <div className="flex items-center gap-3 border-b border-black/5 pb-4">
+                  <Badge className="bg-orange-500 text-white font-black uppercase tracking-widest px-4 py-1 text-[10px]">Premium Sections</Badge>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">(e.g. Cafe, Main entrance high-visibility zones)</p>
+               </div>
+               <div className="grid md:grid-cols-3 gap-6">
+                  {pricingTiers.filter(t => t.section_tier === 'premium').map(tier => (
+                    <div key={tier.id} className="space-y-4 border border-orange-100 p-6 rounded-2xl bg-orange-50/20">
+                       <Badge variant="outline" className="border-orange-200 text-orange-600 font-black uppercase tracking-widest px-4 py-1 text-[10px]">
+                         {tier.duration.replace("_", " ")}
+                       </Badge>
+                       <div className="space-y-4 pt-2">
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Top Level</Label>
+                             <Input type="number" value={tier.top_level_price} 
+                                onChange={(e) => setPricingTiers(pt => pt.map(t => t.id === tier.id ? { ...t, top_level_price: Number(e.target.value) } : t))} 
+                                className="h-12 rounded-xl font-bold bg-white" />
+                          </div>
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Eye Level</Label>
+                             <Input type="number" value={tier.eye_level_price} 
+                                onChange={(e) => setPricingTiers(pt => pt.map(t => t.id === tier.id ? { ...t, eye_level_price: Number(e.target.value) } : t))} 
+                                className="h-12 rounded-xl font-black text-[#FE7F2D] border-orange-200 bg-white" />
+                          </div>
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Bottom Level</Label>
+                             <Input type="number" value={tier.bottom_price} 
+                                onChange={(e) => setPricingTiers(pt => pt.map(t => t.id === tier.id ? { ...t, bottom_price: Number(e.target.value) } : t))} 
+                                className="h-12 rounded-xl font-bold bg-white" />
+                          </div>
                        </div>
                     </div>
-                 </div>
-               ))}
+                  ))}
+               </div>
+            </div>
+
+            {/* Regular Section Pricing */}
+            <div className="space-y-6">
+               <div className="flex items-center gap-3 border-b border-black/5 pb-4">
+                  <Badge className="bg-gray-500 text-white font-black uppercase tracking-widest px-4 py-1 text-[10px]">Regular Sections</Badge>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">(e.g. Corridor, Specialized Room zones)</p>
+               </div>
+               <div className="grid md:grid-cols-3 gap-6">
+                  {pricingTiers.filter(t => t.section_tier === 'regular').map(tier => (
+                    <div key={tier.id} className="space-y-4 border border-gray-100 p-6 rounded-2xl bg-gray-50/30">
+                       <Badge variant="outline" className="border-gray-200 text-gray-500 font-black uppercase tracking-widest px-4 py-1 text-[10px]">
+                         {tier.duration.replace("_", " ")}
+                       </Badge>
+                       <div className="space-y-4 pt-2">
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Top Level</Label>
+                             <Input type="number" value={tier.top_level_price} 
+                                onChange={(e) => setPricingTiers(pt => pt.map(t => t.id === tier.id ? { ...t, top_level_price: Number(e.target.value) } : t))} 
+                                className="h-12 rounded-xl font-bold bg-white" />
+                          </div>
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Eye Level</Label>
+                             <Input type="number" value={tier.eye_level_price} 
+                                onChange={(e) => setPricingTiers(pt => pt.map(t => t.id === tier.id ? { ...t, eye_level_price: Number(e.target.value) } : t))} 
+                                className="h-12 rounded-xl font-black text-gray-700 border-gray-200 bg-white" />
+                          </div>
+                          <div className="space-y-2">
+                             <Label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Bottom Level</Label>
+                             <Input type="number" value={tier.bottom_price} 
+                                onChange={(e) => setPricingTiers(pt => pt.map(t => t.id === tier.id ? { ...t, bottom_price: Number(e.target.value) } : t))} 
+                                className="h-12 rounded-xl font-bold bg-white" />
+                          </div>
+                       </div>
+                    </div>
+                  ))}
+               </div>
             </div>
          </CardContent>
       </Card>

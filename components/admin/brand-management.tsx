@@ -417,12 +417,27 @@ export function BrandManagement() {
                                       </Badge>
                                       <span className="text-[10px] text-gray-400 font-bold">{new Date(request.created_at).toLocaleString()}</span>
                                    </div>
-                                   <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                                      <pre className="text-xs font-mono text-gray-700 whitespace-pre-wrap">
-                                        {JSON.stringify(request.new_data, null, 2)}
-                                      </pre>
-                                   </div>
-                                </div>
+                                    <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                                       <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                          {Object.entries(request.new_data || {}).map(([key, value]) => {
+                                             if (key === 'image_url' && value) {
+                                                return (
+                                                   <div key={key} className="col-span-2 flex items-center gap-4 py-2 border-b border-gray-100">
+                                                      <span className="text-[10px] font-black uppercase text-gray-400 w-24">Image</span>
+                                                      <img src={value as string} alt="preview" className="w-16 h-16 rounded-xl object-cover border" />
+                                                   </div>
+                                                )
+                                             }
+                                             return (
+                                                <div key={key} className="flex flex-col gap-1 py-2 border-b border-gray-100">
+                                                   <span className="text-[10px] font-black uppercase text-gray-400">{key.replace('_', ' ')}</span>
+                                                   <span className="text-sm font-bold text-gray-900">{String(value)}</span>
+                                                </div>
+                                             )
+                                          })}
+                                       </div>
+                                    </div>
+                                 </div>
                                 <div className="p-5 w-full md:w-48 flex md:flex-col justify-center gap-3 bg-gray-50/30">
                                    <Button 
                                       className="w-full bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] h-11 rounded-xl"

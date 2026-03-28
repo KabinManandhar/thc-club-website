@@ -44,7 +44,7 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
         supabase.from("brand_products").select("*").eq("brand_id", brandId),
         supabase.from("brand_sales").select("*").eq("brand_id", brandId).order("year", { ascending: false }).order("month", { ascending: false }),
         supabase.from("shelf_bookings").select("*").eq("brand_id", brandId).eq("status", "active").maybeSingle(),
-        supabase.from("shelf_slots").select("*, shelves(*)").eq("brand_id", brandId)
+        supabase.from("shelf_slots").select("*, shelves(*, shelf_sections(*))").eq("brand_id", brandId)
       ])
 
       const products = productsRes.data || []
@@ -216,8 +216,13 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
                                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]"></div>
                                     <p className="text-[8px] font-black text-[#FE7F2D] uppercase tracking-[0.3em]">certified slot</p>
                                  </div>
-                                 <h4 className="font-black text-2xl text-white lowercase italic leading-none truncate max-w-[200px]">{slot.shelf_name || (slot.shelves?.name) || 'Collective'}</h4>
-                                 <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{slot.section || (slot.shelves?.section) || 'Premium Hallway'}</p>
+                                  <h4 className="font-black text-2xl text-white lowercase italic leading-none truncate max-w-[200px]">{slot.shelf_name || (slot.shelves?.name) || 'Collective'}</h4>
+                                 <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{slot.section || 'Gallery'}</p>
+                                    <Badge variant="outline" className="border-white/10 text-white/30 text-[8px] font-black uppercase tracking-widest px-2 py-0 h-fit">
+                                       {slot.shelves?.shelf_sections?.section_tier || 'standard'} zone
+                                    </Badge>
+                                 </div>
                               </div>
                               <div className="flex flex-col items-center">
                                  <div className="h-16 w-16 bg-[#FE7F2D] rounded-2xl flex flex-col items-center justify-center text-[#010307] shadow-2xl shadow-[#FE7F2D]/40 border-2 border-white/10 group-hover:scale-105 transition-transform">

@@ -1,14 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { supabase, DURATION_MONTHS, type ShelfPricingTier, type ShelfType, type Duration, type PromotionalOffer } from "@/lib/supabase"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { CheckCircle2, ArrowRight, ArrowLeft, Clock, Package, CreditCard, Banknote, QrCode, Tag, Ticket } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { DURATION_MONTHS, supabase, type Duration, type PromotionalOffer, type ShelfPricingTier, type ShelfType, type ShelfSection } from "@/lib/supabase"
+import { ArrowLeft, ArrowRight, Banknote, CheckCircle2, Clock, Info, Layout, Package, QrCode, Tag, Ticket, Users } from "lucide-react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 interface OnboardingWizardProps {
@@ -17,25 +17,22 @@ interface OnboardingWizardProps {
   onComplete: () => void
 }
 
-const STEPS = ["choose shelf", "duration & pricing", "payment method", "confirm", "submitted"]
+const STEPS = ["choose zone", "shelf level", "duration", "club protocols", "finalization", "review", "submitted"]
 
-const SHELF_INFO = {
+const LEVEL_INFO = {
   top_level: {
     label: "top level",
     description: "maximum visibility — above eye line. premium placement for standout brands.",
-    color: "purple",
     slots: "73–108",
   },
   eye_level: {
     label: "eye level",
     description: "best conversion — directly in the shopper's line of sight.",
-    color: "orange",
     slots: "37–72",
   },
   bottom: {
     label: "bottom / low level",
     description: "budget-friendly standard placement. great for heavy or large items.",
-    color: "blue",
     slots: "1–36",
   },
 }
@@ -48,17 +45,60 @@ const DURATION_INFO: Record<Duration, { label: string; months: number }> = {
 
 export function OnboardingWizard({ brandId, businessName, onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState(0)
+  const [sections, setSections] = useState<ShelfSection[]>([])
+  const [selectedSection, setSelectedSection] = useState<ShelfSection | null>(null)
   const [shelfType, setShelfType] = useState<ShelfType | null>(null)
   const [duration, setDuration] = useState<Duration | null>(null)
   const [pricingTiers, setPricingTiers] = useState<ShelfPricingTier[]>([])
   const [activeOffer, setActiveOffer] = useState<PromotionalOffer | null>(null)
   const [promoCode, setPromoCode] = useState("")
   const [isValidating, setIsValidating] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
+  const [agreed, setAgreed] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [slotRanges, setSlotRanges] = useState<Record<string, string>>({
+    top_level: "73–108",
+    eye_level: "37–72",
+    bottom: "1–36",
+  })
 
-  // Fetch Pricing Tiers
   useEffect(() => {
-    supabase.from("shelf_pricing_tiers").select("*").then(({ data }) => setPricingTiers(data || []))
+    Promise.all([
+      supabase.from("shelf_sections").select("*"),
+      supabase.from("shelf_pricing_tiers").select("*"),
+      supabase.from("shelf_slots").select("shelf_type, slot_number")
+    ]).then(([secRes, priceRes, slotsRes]) => {
+      setSections(secRes.data || [])
+      setPricingTiers(priceRes.data || [])
+
+      if (slotsRes.data) {
+        const ranges: Record<string, { min: number; max: number }> = {}
+        slotsRes.data.forEach(s => {
+          const type = s.shelf_type || 'mixed'
+          if (type === 'mixed') return
+          if (!ranges[type]) {
+            ranges[type] = { min: s.slot_number, max: s.slot_number }
+          } else {
+            ranges[type].min = Math.min(ranges[type].min, s.slot_number)
+            ranges[type].max = Math.max(ranges[type].max, s.slot_number)
+          }
+        })
+        const newRanges: Record<string, string> = {}
+        Object.entries(ranges).forEach(([k, v]) => {
+          newRanges[k] = `${v.min}–${v.max}`
+        })
+        setSlotRanges(prev => ({ ...prev, ...newRanges }))
+      }
+    })
   }, [])
+
+  const getPrice = (d: Duration, type: ShelfType, tierOverride?: string) => {
+    const tier = tierOverride || selectedSection?.section_tier || 'regular'
+    const pricing = pricingTiers.find(t => t.duration === d && t.section_tier === tier)
+    if (!pricing) return 0
+    return type === "bottom" ? pricing.bottom_price : type === "eye_level" ? pricing.eye_level_price : pricing.top_level_price
+  }
 
   const handleValidateCode = async () => {
     if (!promoCode.trim()) return
@@ -88,29 +128,14 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
     }
   }
 
-  const getPrice = (d: Duration, type: ShelfType) => {
-    const tier = pricingTiers.find(t => t.duration === d)
-    if (!tier) return 0
-    return type === "bottom" ? tier.bottom_price : type === "eye_level" ? tier.eye_level_price : tier.top_level_price
-  }
-  const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
-  const [agreed, setAgreed] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
   const monthlyRent = shelfType && duration ? getPrice(duration, shelfType) : 0
-  const months = duration ? DURATION_MONTHS[duration] : 0
-  let baseTotal = monthlyRent * months
-  
+  const baseTotal = monthlyRent * (duration ? DURATION_MONTHS[duration] : 0)
   let discountAmount = 0
   if (activeOffer) {
-    if (activeOffer.discount_type === "percentage") {
-      discountAmount = baseTotal * (activeOffer.discount_value / 100)
-    } else {
-      discountAmount = activeOffer.discount_value
-    }
+    discountAmount = activeOffer.discount_type === "percentage" 
+      ? baseTotal * (activeOffer.discount_value / 100) 
+      : activeOffer.discount_value
   }
-  
   const totalAmount = Math.max(0, baseTotal - discountAmount)
 
   const handleSubmitBooking = async () => {
@@ -128,22 +153,18 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
         brand_agreement_accepted: true,
         status: "pending",
         payment_method: paymentMethod as any,
-        admin_notes: activeOffer ? `Applied Offer: ${activeOffer.name} (-${discountAmount} NPR)` : undefined
+        section: selectedSection?.name,
+        section_tier: selectedSection?.section_tier,
+        admin_notes: `Requested Zone: ${selectedSection?.name}. ${activeOffer ? `Applied Offer: ${activeOffer.name}` : ''}`
       })
 
       if (bookingError) throw bookingError
-      
       if (activeOffer) {
-         const { error: rpcErr } = await supabase.rpc('increment_offer_uses', { offer_id: activeOffer.id })
-         if (rpcErr) console.error("Failed to increment offer uses:", rpcErr)
+         await supabase.rpc('increment_offer_uses', { offer_id: activeOffer.id })
       }
 
-      await supabase
-        .from("brands")
-        .update({ onboarding_status: "slot_selected" })
-        .eq("id", brandId)
-
-      setStep(4)
+      await supabase.from("brands").update({ onboarding_status: "slot_selected" }).eq("id", brandId)
+      setStep(6)
     } catch (err: any) {
       setError(err.message || "Failed to submit booking")
     } finally {
@@ -153,307 +174,235 @@ export function OnboardingWizard({ brandId, businessName, onComplete }: Onboardi
 
   return (
     <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-12">
-      {/* Progress Bar */}
       <div className="w-full max-w-2xl mb-10">
         <div className="flex items-center justify-between mb-3">
           {STEPS.map((s, i) => (
             <div key={s} className="flex items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                  i < step
-                    ? "bg-green-500 text-white"
-                    : i === step
-                    ? "bg-[#FE7F2D] text-white"
-                    : "bg-gray-200 text-gray-500"
-                }`}
-              >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${i < step ? "bg-green-500 text-white" : i === step ? "bg-[#FE7F2D] text-white" : "bg-gray-200 text-gray-500"}`}>
                 {i < step ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
               </div>
-              {i < STEPS.length - 1 && (
-                <div className={`h-0.5 w-16 sm:w-24 mx-1 transition-all ${i < step ? "bg-green-500" : "bg-gray-200"}`} />
-              )}
+              {i < STEPS.length - 1 && <div className={`h-0.5 w-10 sm:w-16 mx-1 transition-all ${i < step ? "bg-green-500" : "bg-gray-200"}`} />}
             </div>
           ))}
         </div>
-        <div className="text-center">
-          <p className="text-sm text-[#010307]/40 font-bold lowercase tracking-wide">step {step + 1} of {STEPS.length}: <strong className="text-[#FE7F2D]">{STEPS[step]}</strong></p>
-        </div>
+        <div className="text-center"><p className="text-[10px] text-[#010307]/40 font-bold lowercase tracking-widest uppercase">step {step + 1} of {STEPS.length}: <strong className="text-[#FE7F2D]">{STEPS[step]}</strong></p></div>
       </div>
 
-      {/* --- Step 0: Choose Shelf --- */}
+      {/* --- Step 0: Choose Zone --- */}
       {step === 0 && (
         <div className="w-full max-w-3xl space-y-4">
-          <h2 className="text-3xl font-black text-center mb-8 lowercase italic">select your shelf tier</h2>
-          {(["top_level", "eye_level", "bottom"] as ShelfType[]).map((type) => {
-            const info = SHELF_INFO[type]
-            return (
-              <div
-                key={type}
-                onClick={() => setShelfType(type)}
-                className={`border-2 rounded-2xl p-6 cursor-pointer transition-all hover:shadow-md flex items-start gap-4 ${
-                  shelfType === type
-                    ? "border-[#FE7F2D] bg-[#FE7F2D]/5"
-                    : "border-[#010307]/5 hover:border-[#FE7F2D]/30"
-                }`}
-              >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-[#FE7F2D]/10 flex-shrink-0`}>
-                   <Package className={`text-[#FE7F2D] w-6 h-6`} />
-                </div>
+          <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic">select your collective zone</h2><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">premium zones offer higher footfall exposure</p></div>
+          <div className="grid grid-cols-1 gap-4">
+            {sections.map(sec => (
+              <div key={sec.id} onClick={() => setSelectedSection(sec)} className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex items-start gap-4 ${selectedSection?.id === sec.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
+                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center"><Layout className="w-6 h-6 text-[#FE7F2D]" /></div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-bold lowercase italic">{info.label}</h3>
-                    <Badge variant="outline" className="text-[10px] lowercase font-bold border-[#010307]/10">slots {info.slots}</Badge>
-                    {type === "eye_level" && <Badge className="bg-[#FE7F2D] text-white text-[10px] lowercase font-bold">most popular</Badge>}
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-bold lowercase italic text-lg">{sec.name}</h3>
+                    {sec.section_tier === 'premium' && <Badge className="bg-orange-500 text-white text-[8px] font-black uppercase tracking-widest">Premium Zone</Badge>}
                   </div>
-                  <p className="text-sm text-[#010307]/60 lowercase italic">{info.description}</p>
-                  <p className="text-sm font-bold text-[#FE7F2D] mt-2 lowercase italic">
-                    from npr {getPrice('yearly', type).toLocaleString()}/mo (yearly)
-                  </p>
+                  <p className="text-sm text-gray-400 lowercase italic">{sec.description}</p>
                 </div>
-                {shelfType === type && <CheckCircle2 className="text-[#FE7F2D] w-6 h-6 flex-shrink-0" />}
-              </div>
-            )
-          })}
-          <div className="flex justify-end pt-4">
-            <Button
-              disabled={!shelfType}
-              onClick={() => setStep(1)}
-              className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white px-8"
-            >
-              Next <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* --- Step 1: Duration & Pricing --- */}
-      {step === 1 && shelfType && (
-        <div className="w-full max-w-3xl space-y-4">
-          <h2 className="text-3xl font-black text-center mb-8">Choose Duration</h2>
-          {(["quarterly", "half_yearly", "yearly"] as Duration[]).map((d) => {
-            const dInfo = DURATION_INFO[d]
-            const price = getPrice(d, shelfType)
-            const total = price * dInfo.months
-            return (
-              <div
-                key={d}
-                onClick={() => setDuration(d)}
-                className={`border-2 rounded-xl p-6 cursor-pointer transition-all hover:shadow-md ${
-                  duration === d ? "border-[#FE7F2D] bg-orange-50/50" : "border-gray-200 hover:border-[#FE7F2D]/50"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                      {dInfo.label}
-                      {d === "yearly" && <Badge className="bg-green-600 text-white text-xs">Best Value</Badge>}
-                    </h3>
-                    <p className="text-sm text-gray-500">{dInfo.months} months</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-black">NPR {price.toLocaleString()}<span className="text-base font-normal text-gray-500">/mo</span></p>
-                    <p className="text-sm text-gray-600">Total: <strong>NPR {total.toLocaleString()}</strong></p>
-                  </div>
-                  {duration === d && <CheckCircle2 className="text-[#FE7F2D] w-6 h-6 ml-4 flex-shrink-0" />}
-                </div>
-              </div>
-            )
-          })}
-          <div className="flex justify-between pt-4">
-            <Button variant="outline" onClick={() => setStep(0)}>
-              <ArrowLeft className="mr-2 w-4 h-4" /> Back
-            </Button>
-            <Button disabled={!duration} onClick={() => setStep(2)} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white px-8">
-              Payment <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* --- Step 2: Payment Method --- */}
-      {step === 2 && (
-        <div className="w-full max-w-3xl space-y-4">
-          <h2 className="text-3xl font-black text-center mb-8">Select Payment Mode</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {[
-              { id: "bank_transfer", label: "bank transfer", icon: Banknote, desc: "direct transfer to club account" },
-              { id: "qr_payment", label: "qr payment", icon: QrCode, desc: "scan and pay via fonepay/khalti" },
-              { id: "cash", label: "cash at club", icon: Package, desc: "pay in person at kathmandu hq" },
-              { id: "card", label: "debit/credit card", icon: CreditCard, desc: "swipe at the club access point" }
-            ].map((pm) => (
-              <div
-                key={pm.id}
-                onClick={() => setPaymentMethod(pm.id)}
-                className={`border-2 rounded-2xl p-6 cursor-pointer transition-all hover:shadow-md flex items-center gap-4 ${
-                  paymentMethod === pm.id ? "border-[#FE7F2D] bg-orange-50/50" : "border-gray-200 hover:border-[#FE7F2D]/50"
-                }`}
-              >
-                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600">
-                  <pm.icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold">{pm.label}</h3>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">{pm.desc}</p>
-                </div>
-                {paymentMethod === pm.id && <CheckCircle2 className="text-[#FE7F2D] w-5 h-5 ml-auto" />}
+                {selectedSection?.id === sec.id && <CheckCircle2 className="w-6 h-6 text-[#FE7F2D]" />}
               </div>
             ))}
           </div>
-          <div className="flex justify-between pt-4">
-            <Button variant="outline" onClick={() => setStep(1)}>
-              <ArrowLeft className="mr-2 w-4 h-4" /> Back
-            </Button>
-            <Button disabled={!paymentMethod} onClick={() => setStep(3)} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white px-8">
-              Review <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </div>
+          <div className="flex justify-end pt-4"><Button disabled={!selectedSection} onClick={() => setStep(1)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Next Zone <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
         </div>
       )}
 
-      {/* --- Step 3: Confirm Booking --- */}
-      {step === 3 && shelfType && duration && (
-        <div className="w-full max-w-2xl space-y-6">
-          <h2 className="text-3xl font-black text-center mb-8">Review & Confirm</h2>
-          <Card className="border-[#FE7F2D]">
-            <CardHeader>
-              <CardTitle>Booking Summary</CardTitle>
-              <CardDescription>for {businessName}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Shelf Tier</span>
-                <span className="font-semibold">{SHELF_INFO[shelfType].label}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Duration</span>
-                <span className="font-semibold">{DURATION_INFO[duration].label}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Payment Mode</span>
-                <span className="font-semibold uppercase text-xs tracking-widest">{paymentMethod?.replace('_', ' ')}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b">
-                <span className="text-gray-600">Monthly Rate</span>
-                <span className="font-semibold">NPR {monthlyRent.toLocaleString()}</span>
-              </div>
-              {activeOffer && (
-                <div className="flex justify-between py-2 border-b text-green-600">
-                  <span className="font-semibold flex items-center gap-2"><Tag className="w-4 h-4" /> Offer: {activeOffer.name}</span>
-                  <span className="font-semibold">- NPR {discountAmount.toLocaleString()}</span>
+      {/* --- Step 1: Choose Level --- */}
+      {step === 1 && (
+        <div className="w-full max-w-3xl space-y-4">
+          <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic text-[#010307]">choose shelf level</h2></div>
+          <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex gap-3 items-start mb-6">
+            <Info className="w-5 h-5 text-blue-500 mt-0.5" /><p className="text-xs text-blue-700 italic lowercase font-medium">note: the thc team allots the specific shelf slot within your chosen level based on category fit and best visual placement for your products.</p>
+          </div>
+          {(["top_level", "eye_level", "bottom"] as ShelfType[]).map((type) => {
+            const info = LEVEL_INFO[type]
+            return (
+              <div key={type} onClick={() => setShelfType(type)} className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex items-start gap-4 ${shelfType === type ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
+                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center"><Package className="w-6 h-6 text-[#FE7F2D]" /></div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1"><h3 className="text-lg font-bold lowercase italic">{info.label}</h3></div>
+                  <p className="text-sm text-gray-400 lowercase italic">{info.description}</p>
+                  <div className="flex items-center gap-4 mt-2">
+                    <p className="text-xs font-bold text-[#FE7F2D] italic lowercase tracking-tight">from npr {getPrice('yearly', type).toLocaleString()}/mo ({selectedSection?.section_tier} rate)</p>
+                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-gray-100 text-gray-400">Slots: {slotRanges[type]}</Badge>
+                  </div>
                 </div>
-              )}
-              <div className="flex justify-between py-3">
-                <span className="font-bold text-lg">Total Amount</span>
-                <span className="text-2xl font-black text-[#FE7F2D]">NPR {totalAmount.toLocaleString()}</span>
+                {shelfType === type && <CheckCircle2 className="w-6 h-6 text-[#FE7F2D]" />}
               </div>
-            </CardContent>
-          </Card>
+            )
+          })}
+          <div className="flex justify-between pt-4"><Button variant="outline" onClick={() => setStep(0)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button><Button disabled={!shelfType} onClick={() => setStep(2)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Duration <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
+        </div>
+      )}
 
-          {/* Promo Code Input */}
-          {!activeOffer ? (
-            <div className="flex gap-3 items-center p-6 bg-white border border-[#010307]/5 rounded-3xl shadow-sm">
-              <div className="flex-1 space-y-1">
-                 <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Promotional Offer Code</Label>
-                 <Input 
-                   placeholder="ENTER CODE" 
-                   value={promoCode} 
-                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                   className="h-12 rounded-xl font-black tracking-widest uppercase border-gray-100 placeholder:font-normal placeholder:tracking-normal"
-                 />
-              </div>
-              <Button 
-                onClick={handleValidateCode} 
-                disabled={!promoCode || isValidating}
-                className="mt-5 h-12 bg-[#FE7F2D] text-white hover:bg-black rounded-xl px-6 font-black uppercase text-[10px] tracking-widest transition-all"
-              >
-                {isValidating ? "..." : "Claim Offer"}
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between p-6 bg-green-50 border border-green-100 rounded-3xl animate-in slide-in-from-top-2">
-               <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-green-500 text-white rounded-xl flex items-center justify-center">
-                     <Ticket className="w-5 h-5" />
+      {/* --- Step 2: Duration --- */}
+      {step === 2 && shelfType && (
+        <div className="w-full max-w-3xl space-y-6">
+          <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic">commitment period</h2></div>
+          <div className="grid grid-cols-1 gap-4">
+            {(["quarterly", "half_yearly", "yearly"] as Duration[]).map((d) => {
+              const dInfo = DURATION_INFO[d]; const price = getPrice(d, shelfType)
+              return (
+                <div key={d} onClick={() => setDuration(d)} className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex items-center justify-between ${duration === d ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
+                  <div className="flex items-center gap-4"><div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center"><Clock className="w-5 h-5 text-[#FE7F2D]" /></div><div><h3 className="font-bold lowercase italic">{dInfo.label}</h3><p className="text-[10px] text-gray-400 uppercase tracking-widest">{dInfo.months} months lease</p></div></div>
+                  <div className="text-right">
+                    <p className="text-xl font-black text-[#010307]">NPR {price.toLocaleString()}<span className="text-[10px] font-bold text-gray-400">/mo</span></p>
+                    {d === 'yearly' && <Badge className="bg-green-500 text-white text-[8px] font-black uppercase tracking-widest">Max Value</Badge>}
                   </div>
-                  <div>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-green-700/60">Success! code applied</p>
-                     <p className="font-black italic lowercase tracking-tight">{activeOffer.name}</p>
-                  </div>
-               </div>
-               <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => { setActiveOffer(null); setPromoCode(""); }}
-                  className="text-green-700 hover:bg-green-100 rounded-lg font-black uppercase text-[8px] tracking-widest"
-               >
-                  remove offer
-               </Button>
-            </div>
-          )}
-
-          <Card className="bg-gray-50">
-            <CardContent className="pt-6 text-sm text-gray-600 space-y-2 leading-relaxed">
-              <p className="font-semibold text-[#010307]">Terms & Conditions</p>
-              <p>• Your booking is subject to admin approval and slot assignment. You will be notified within 3-5 business days.</p>
-              <p>• Payment is due upon booking confirmation. Non-payment will result in slot release.</p>
-              <p>• Monthly sales reporting is required. Payment Processing Fees (PPF) apply as per the published tier schedule.</p>
-              <p>• Slot assignments are final and cannot be changed without prior admin approval.</p>
-              <p>• Legal jurisdiction: Kathmandu, Nepal.</p>
-            </CardContent>
-          </Card>
-
-          <div className="flex items-start gap-3 p-4 bg-orange-50 rounded-xl border border-orange-200">
-            <Checkbox
-              id="agree"
-              checked={agreed}
-              onCheckedChange={(c) => setAgreed(!!c)}
-              className="mt-0.5"
-            />
-            <label htmlFor="agree" className="text-sm text-gray-700 cursor-pointer">
-              I have read and agree to the THC Club Terms & Conditions for shelf placement.
-            </label>
+                </div>
+              )
+            })}
           </div>
+          <div className="flex justify-between pt-4"><Button variant="outline" onClick={() => setStep(1)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button><Button disabled={!duration} onClick={() => setStep(3)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Club Protocols <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
+        </div>
+      )}
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg">{error}</div>
-          )}
+      {/* --- Step 3: The Club Protocols --- */}
+      {step === 3 && (
+        <div className="w-full max-w-4xl space-y-8 animate-in fade-in slide-in-from-bottom-4">
+          <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden">
+            <div className="p-8 sm:p-12 space-y-10">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <h2 className="text-4xl font-black tracking-tighter lowercase italic text-[#010307]">
+                  the club <span className="text-[#FE7F2D]">protocols</span>
+                </h2>
+                <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D] text-[10px] lowercase font-bold tracking-widest px-4 py-2 rounded-full">
+                  v1.0 • effective 2026
+                </Badge>
+              </div>
 
-          <div className="flex justify-between pt-2">
-            <Button variant="outline" onClick={() => setStep(2)}>
-              <ArrowLeft className="mr-2 w-4 h-4" /> Back
-            </Button>
-            <Button
-              disabled={!agreed || submitting}
-              onClick={handleSubmitBooking}
-              className="bg-[#010307] hover:bg-[#010307]/90 text-white px-8"
-            >
-              {submitting ? "Submitting..." : "Submit Booking Request"}
-            </Button>
+              <div className="grid md:grid-cols-2 gap-12 text-left">
+                {/* Column 1: Financials & Operations */}
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D]">01. economics</h4>
+                    <ul className="space-y-4 text-[13px] text-[#010307]/60 font-medium lowercase italic leading-relaxed">
+                      <li>• a one-time registration fee of rs. 800 covers identity onboarding and physical slot setup.</li>
+                      <li>• shelf rent is fixed based on your selected tier (low, eye, or top) and commitment period (quarterly, half-yearly, or yearly).</li>
+                      <li>• performance-based processing fees range from 3% to 10% based on monthly sales volume.</li>
+                      <li>• high-performance brands (rs. 50k+ sales) qualify for 50% to 100% rent waivers for that month.</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D]">02. payouts & data</h4>
+                    <ul className="space-y-4 text-[13px] text-[#010307]/60 font-medium lowercase italic leading-relaxed">
+                      <li>• payouts are currently processed monthly, with goals to implement bill-based cycles as the collective scales.</li>
+                      <li>• sales data and footfall insights will be provided via the brand dashboard as we refine our tracking systems.</li>
+                      <li>• brands taking multiple shelves are eligible for custom fruitfull collaboration discounts.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Column 2: The "Safety" Clauses */}
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D]">03. physical space</h4>
+                    <ul className="space-y-4 text-[13px] text-[#010307]/60 font-medium lowercase italic leading-relaxed">
+                      <li>• location: bijeshwori, swyambhu. the club spans 3 rooms with 108 curated shelf spaces.</li>
+                      <li>• shelf maintenance: brands must refresh stock at least once every 21 days to ensure the collective vibe remains fresh.</li>
+                      <li>• cross-selling: brands acknowledge and benefit from footfall generated by sayummys cafe visitors.</li>
+                      <li>• merchandising: we work together on placement and shelf design to optimize for customer behavior.</li>
+                    </ul>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D]">04. liability & legal</h4>
+                    <ul className="space-y-4 text-[13px] text-[#010307]/60 font-medium lowercase italic leading-relaxed">
+                      <li>• shopwear: given the high-traffic cafe environment, the club is not liable for minor damages from customer handling.</li>
+                      <li>• curation: we gatekeep energy, not money. the club reserves the right to curate and select brands that fit the "cool stuff" mission.</li>
+                      <li>• jurisdiction: this partnership and all digital/physical interactions are governed by the laws of kathmandu, nepal.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Footer */}
+              <div className="pt-10 border-t border-[#FE7F2D]/10 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="text-center md:text-left">
+                  <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-[0.2em]">official contact</p>
+                  <p className="text-xs font-black text-[#FE7F2D]">9803904546 • thehiddencollectiveclub@gmail.com</p>
+                </div>
+                
+              </div>
+            </div>
+          </Card>
+          <div className="flex justify-between pt-4">
+            <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button>
+            <Button onClick={() => setStep(4)} className="bg-[#FE7F2D] hover:bg-black text-white px-12 h-12 rounded-2xl font-black italic lowercase transition-all">I Accept the Protocols <ArrowRight className="ml-2 w-4 h-4" /></Button>
           </div>
         </div>
       )}
 
-      {/* --- Step 4: Submitted/Pending --- */}
+      {/* --- Step 4: Payment Modes --- */}
       {step === 4 && (
-        <div className="w-full max-w-lg text-center space-y-6">
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-            <CheckCircle2 className="w-12 h-12 text-green-600" />
-          </div>
-          <h2 className="text-3xl font-black">Booking Submitted!</h2>
-          <p className="text-gray-600 leading-relaxed">
-            Your shelf booking request has been sent to the THC Club team. We'll review it and assign your slot within <strong>3–5 business days</strong>.
-          </p>
-          <Card className="bg-amber-50 border-amber-200">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 text-amber-800">
-                <Clock className="w-5 h-5 flex-shrink-0" />
-                <p className="text-sm">You'll receive confirmation once the admin approves your booking. Your dashboard features will unlock automatically.</p>
+        <div className="w-full max-w-3xl space-y-6">
+          <div className="text-center mb-4"><h2 className="text-3xl font-black lowercase italic">finalization protocol</h2><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">ensuring 100% mutual satisfaction</p></div>
+          <Card className="bg-orange-50 border-orange-200 rounded-3xl p-8 mb-6"><div className="flex gap-4 items-start"><Users className="w-6 h-6 text-[#FE7F2D] mt-1 flex-shrink-0" /><div className="space-y-2"><p className="text-sm font-bold text-orange-950 lowercase">the final payment and formal contractual agreement will be finalized in person at the club.</p><p className="text-[11px] text-orange-800 italic font-medium lowercase leading-relaxed">this ensures you are 100% satisfied with your physical slot placement, lightings, and branding visibility before we go active. no cards needed now.</p></div></div></Card>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[{ id: "bank_transfer", label: "bank transfer", icon: Banknote, desc: "direct wire to club hq" }, { id: "qr_payment", label: "collect via qr", icon: QrCode, desc: "scan and settle in person" }, { id: "cash", label: "cash at club", icon: Package, desc: "physical hand-over finalization" }].map((pm) => (
+              <div key={pm.id} onClick={() => setPaymentMethod(pm.id)} className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex items-center gap-4 ${paymentMethod === pm.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
+                <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-[#FE7F2D]"><pm.icon className="w-5 h-5" /></div>
+                <div><h3 className="font-bold lowercase italic">{pm.label}</h3><p className="text-[10px] text-gray-400 uppercase tracking-widest">{pm.desc}</p></div>
+                {paymentMethod === pm.id && <CheckCircle2 className="w-5 h-5 text-[#FE7F2D] ml-auto" />}
               </div>
+            ))}
+          </div>
+          <div className="flex justify-between pt-4"><Button variant="outline" onClick={() => setStep(3)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button><Button disabled={!paymentMethod} onClick={() => setStep(5)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Review Summary <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
+        </div>
+      )}
+
+      {/* --- Step 5: Final Summary --- */}
+      {step === 5 && shelfType && duration && selectedSection && (
+        <div className="w-full max-w-2xl space-y-6">
+          <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic">the commitment summary</h2></div>
+          <Card className="border-[#FE7F2D] border-2 shadow-2xl rounded-[2rem] overflow-hidden"><CardHeader className="bg-gray-50"><CardTitle className="text-xl font-black lowercase italic">partnership overview</CardTitle></CardHeader>
+            <CardContent className="p-8 space-y-4">
+              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Collective Zone</span><span className="text-[#FE7F2D] font-black uppercase text-[10px] tracking-widest">{selectedSection.name}</span></div>
+              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Zone Tier</span><span className="font-black uppercase text-[10px] tracking-widest">{selectedSection.section_tier} zone</span></div>
+              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Shelf Tier</span><span>{LEVEL_INFO[shelfType].label}</span></div>
+              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Lease Cycle</span><span>{DURATION_INFO[duration].label}</span></div>
+              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Monthly Rent</span><span className="font-black">NPR {monthlyRent.toLocaleString()}</span></div>
+              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Lease Total ({DURATION_INFO[duration].months} mo)</span><span className="font-black">NPR {baseTotal.toLocaleString()}</span></div>
+              {activeOffer && <div className="flex justify-between py-2 border-b text-green-600 text-sm font-black italic"><span className="flex items-center gap-2 uppercase tracking-widest text-[10px]"><Tag className="w-3 h-3" /> Offer applied</span><span>- NPR {discountAmount.toLocaleString()}</span></div>}
+              {/* One-time Registration Fee for first-time brands */}
+              <div className="flex justify-between py-2 border-b text-sm italic font-medium">
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-gray-400">one-time registration fee</span>
+                  <span className="text-[9px] font-black uppercase text-[#FE7F2D]/60 tracking-widest">identity onboarding + slot setup</span>
+                </span>
+                <span className="font-black text-[#FE7F2D]">NPR 800</span>
+              </div>
+              <div className="flex justify-between pt-6"><span className="font-black text-xl lowercase italic">estimated total due</span><span className="text-3xl font-black text-[#FE7F2D] tracking-tighter">NPR {(totalAmount + 800).toLocaleString()}</span></div>
+              <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest text-right">all amounts payable in-person upon confirmation</p>
             </CardContent>
           </Card>
-          <Button onClick={onComplete} className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white px-10">
-            Go to Dashboard
-          </Button>
+          
+          <div className="flex gap-3 items-center p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
+            <div className="flex-1 space-y-1"><Label className="text-[8px] font-black uppercase tracking-widest text-gray-400">Promotional Offer Index</Label><Input placeholder="CODE" value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} className="h-10 rounded-xl font-black uppercase border-gray-100" /></div>
+            <Button onClick={handleValidateCode} disabled={!promoCode || isValidating} className="mt-5 h-10 bg-[#FE7F2D] text-white hover:bg-black rounded-xl">Claim</Button>
+          </div>
+
+          <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
+            <Checkbox id="agree" checked={agreed} onCheckedChange={(c) => setAgreed(!!c)} className="mt-0.5" />
+            <label htmlFor="agree" className="text-xs text-gray-400 italic font-medium lowercase cursor-pointer">i understand that specific slot allotment is handled by the thc club team to ensure the best brand-mix across the collective. all financials including the registration fee are settled in-person.</label>
+          </div>
+
+          <div className="flex justify-between pt-2"><Button variant="outline" onClick={() => setStep(4)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button><Button disabled={!agreed || submitting} onClick={handleSubmitBooking} className="bg-[#010307] hover:bg-[#FE7F2D] text-white px-10 transition-all">{submitting ? "Initiating Protocols..." : "Submit Booking Request"}</Button></div>
+        </div>
+      )}
+
+      {/* --- Step 6: Submitted --- */}
+      {step === 6 && (
+        <div className="w-full max-w-lg text-center space-y-8 py-10">
+          <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto shadow-sm"><CheckCircle2 className="w-12 h-12 text-green-500" /></div>
+          <div className="space-y-2"><h2 className="text-4xl font-black lowercase italic">prototcol initiated</h2><p className="text-sm text-gray-400 italic lowercase leading-relaxed">your request for <span className="text-[#FE7F2D] font-bold">{businessName}</span> is now being reviewed by the collective council.</p></div>
+          <Card className="bg-blue-50/30 border-blue-100 rounded-[2rem] p-6 "><p className="text-xs text-blue-800 italic lowercase leading-relaxed font-medium">our team will contact you within <strong>48-72 hours</strong> to schedule your in-person walkthrough and finalize the contractual handover.</p></Card>
+          <Button onClick={onComplete} className="bg-[#FE7F2D] hover:bg-black text-white px-12 h-12 rounded-2xl font-black italic lowercase transition-all">Go to Dashboard</Button>
         </div>
       )}
     </div>

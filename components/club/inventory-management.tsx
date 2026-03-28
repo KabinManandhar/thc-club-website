@@ -17,8 +17,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { PlusCircle, Search, Edit2, Trash2, AlertTriangle, Package, Image as ImageIcon, Shield, AlertCircle } from "lucide-react"
-import { FileUpload } from "@/components/ui/file-upload"
+import { PlusCircle, Search, Edit2, Trash2, AlertTriangle, Package, Shield, AlertCircle, Clock } from "lucide-react"
 import { toast } from "sonner"
 
 interface InventoryManagementProps {
@@ -32,7 +31,6 @@ const EMPTY_FORM = {
   price: "",
   stock_quantity: "",
   low_stock_threshold: "5",
-  image_url: "",
 }
 
 export function InventoryManagement({ brandId }: InventoryManagementProps) {
@@ -44,18 +42,19 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [pendingRequests, setPendingRequests] = useState<any[]>([])
 
   const [isStockOpen, setIsStockOpen] = useState(false)
   const [stockForm, setStockForm] = useState({ id: "", name: "", stock_quantity: "0" })
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
-    const { data, error } = await supabase
-      .from("brand_products")
-      .select("*")
-      .eq("brand_id", brandId)
-      .order("name")
-    if (!error) setProducts(data || [])
+    const [prodRes, reqRes] = await Promise.all([
+      supabase.from("brand_products").select("*").eq("brand_id", brandId).order("name"),
+      supabase.from("brand_change_requests").select("*").eq("brand_id", brandId).eq("status", "pending").order("created_at", { ascending: false })
+    ])
+    if (!prodRes.error) setProducts(prodRes.data || [])
+    if (!reqRes.error) setPendingRequests(reqRes.data || [])
     setLoading(false)
   }, [brandId])
 
@@ -77,7 +76,6 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
       price: product.price.toString(),
       stock_quantity: product.stock_quantity.toString(),
       low_stock_threshold: product.low_stock_threshold.toString(),
-      image_url: product.image_url || "",
     })
     setFormError(null)
     setIsFormOpen(true)
@@ -110,7 +108,6 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
       price: parseFloat(form.price),
       stock_quantity: parseInt(form.stock_quantity) || 0,
       low_stock_threshold: parseInt(form.low_stock_threshold) || 5,
-      image_url: form.image_url || null,
     }
 
     try {
@@ -186,8 +183,8 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
     return <Badge className="bg-green-50 text-green-700 border-none font-black uppercase tracking-widest text-[8px] px-2 py-0.5">{p.stock_quantity} Units</Badge>
   }
 
-  return (
-    <div className="space-y-8">
+   return (
+    <div className="space-y-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-3xl font-black flex items-center gap-3 tracking-tighter lowercase italic">
@@ -200,6 +197,35 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
           <PlusCircle className="mr-2 h-4 w-4" /> add new product
         </Button>
       </div>
+      
+      {/* Pending Verification Section */}
+      {pendingRequests.length > 0 && (
+        <div className="space-y-4">
+           <div className="flex items-center gap-3">
+              <Shield className="w-5 h-5 text-[#FE7F2D]" />
+              <h3 className="text-xl font-black italic lowercase tracking-tight">Pending Verifications</h3>
+              <Badge className="bg-orange-500 text-white border-none font-black text-[10px] rounded-full px-3">{pendingRequests.length}</Badge>
+           </div>
+           <div className="grid gap-3">
+              {pendingRequests.map((req) => (
+                 <div key={req.id} className="p-5 bg-orange-50/50 border border-orange-100 rounded-3xl flex items-center justify-between group transition-all">
+                    <div className="flex items-center gap-4">
+                       <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-orange-100/50">
+                          <Clock className="w-5 h-5 text-orange-400" />
+                       </div>
+                       <div>
+                          <p className="font-bold text-gray-900 lowercase italic text-sm">
+                             {req.request_type === 'product_add' ? `new product: ${req.new_data.name}` : req.request_type === 'product_update' ? `update: ${req.new_data.name || 'existing item'}` : 'profile change'}
+                          </p>
+                          <p className="text-[9px] font-black uppercase text-orange-400/60 tracking-widest mt-0.5">submitted {new Date(req.created_at).toLocaleDateString()}</p>
+                       </div>
+                    </div>
+                    <Badge variant="outline" className="bg-white border-orange-200 text-orange-600 font-black uppercase text-[8px] tracking-widest px-3 py-1">admin review active</Badge>
+                 </div>
+              ))}
+           </div>
+        </div>
+      )}
 
       <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden">
         <CardHeader className="p-8 pb-4">
@@ -241,13 +267,9 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                   <TableRow key={p.id} className="hover:bg-gray-50/50 border-gray-50 transition-colors">
                     <TableCell className="px-8 py-6">
                       <div className="flex items-center gap-4">
-                         {p.image_url ? (
-                            <img src={p.image_url} alt={p.name} className="w-12 h-12 rounded-2xl object-cover bg-gray-50 border shadow-sm" />
-                         ) : (
-                            <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100">
-                               <ImageIcon className="w-6 h-6 text-gray-300" />
-                            </div>
-                         )}
+                         <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100">
+                            <Package className="w-6 h-6 text-gray-200" />
+                         </div>
                          <div className="flex flex-col">
                            <div className="font-bold text-[#010307] tracking-tight lowercase">{p.name}</div>
                            <div className="text-[10px] font-bold text-[#010307]/20 font-mono tracking-tighter lowercase">{p.id.slice(0, 8)} | active</div>
@@ -317,15 +339,6 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                            className="rounded-2xl h-14 border-gray-100 font-bold"
                         />
                      </div>
-                  </div>
-                  <div>
-                    <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Visual Identity (Image)</Label>
-                    <FileUpload 
-                      bucket="media" 
-                      folder={`brand_${brandId}/products`}
-                      value={form.image_url} 
-                      onChange={(url) => setForm(f => ({ ...f, image_url: url }))} 
-                    />
                   </div>
                </div>
 

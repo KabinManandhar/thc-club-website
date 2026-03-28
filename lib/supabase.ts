@@ -45,6 +45,7 @@ export interface ShelfSection {
   id: string
   name: string
   description?: string
+  section_tier: "premium" | "regular"
   created_at: string
   updated_at: string
 }
@@ -124,6 +125,8 @@ export interface ShelfBooking {
   shelf_type: "bottom" | "eye_level" | "top_level"
   duration: "quarterly" | "half_yearly" | "yearly"
   slot_number?: number
+  section?: string
+  section_tier?: "premium" | "regular"
   monthly_rent: number
   total_amount: number
   start_date?: string
@@ -240,6 +243,7 @@ export interface StockUpdateRequest {
 export interface ShelfPricingTier {
   id: string
   duration: "quarterly" | "half_yearly" | "yearly"
+  section_tier: "premium" | "regular"
   bottom_price: number
   eye_level_price: number
   top_level_price: number

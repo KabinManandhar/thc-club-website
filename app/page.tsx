@@ -58,7 +58,7 @@ export default function LandingPage() {
         .select("id, business_name, logo_url, instagram_handle")
         .eq("onboarding_status", "active")
         .order("business_name", { ascending: true })
-      
+      console.log("brandss",data)
       if (data) setBrands(data as Brand[])
     } catch (error) {
       console.error("Error fetching brands:", error)
@@ -336,7 +336,7 @@ export default function LandingPage() {
                         <div className="flex justify-center gap-6 sm:gap-12">
                           <div className="text-center group/stat">
                             <p className="text-2xl sm:text-3xl font-black italic text-[#FE7F2D] lowercase leading-none transition-transform group-hover/stat:scale-110">
-                              {brands.length || "12"}+
+                              {brands.length || "..."}+
                             </p>
                             <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#010307]/30 mt-2">active brands</p>
                           </div>
@@ -397,6 +397,74 @@ export default function LandingPage() {
                       <p className="text-[#010307]/60">{item.desc}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Our Story Section */}
+          <section className="py-20 sm:py-32 bg-[#FFFCEB] overflow-hidden">
+            <div className="container mx-auto px-4 sm:px-6">
+              <div className="max-w-6xl mx-auto relative">
+                {/* Visual Background Deco */}
+                <div className="absolute -top-20 -right-20 w-80 h-80 bg-[#FE7F2D]/5 rounded-full blur-[100px] pointer-events-none" />
+                <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-[#FE7F2D]/5 rounded-full blur-[100px] pointer-events-none" />
+
+                <div className="grid lg:grid-cols-2 gap-20 items-center">
+                  <div className="relative group">
+                    <div className="aspect-[4/5] bg-white rounded-[3rem] p-8 border border-black/5 shadow-2xl relative overflow-hidden flex flex-col items-center justify-center group-hover:border-[#FE7F2D]/30 transition-all duration-500">
+                      <Image 
+                        src="/logo.png" 
+                        alt="The Origin" 
+                        width={400} 
+                        height={200} 
+                        className="w-full h-auto opacity-10 group-hover:opacity-20 transition-opacity duration-500"
+                      />
+                      <div className="absolute inset-x-8 bottom-12 text-center space-y-4">
+                        <p className="text-4xl font-black italic lowercase tracking-tight text-[#010307]">est. 2026</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#FE7F2D]">the creative genesis</p>
+                      </div>
+                      <Image 
+                        src="/broski.png" 
+                        alt="Mascot" 
+                        width={200} 
+                        height={200} 
+                        className="absolute -top-10 -right-10 w-40 h-40 drop-shadow-2xl rotate-12 group-hover:rotate-0 transition-transform duration-700"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-12">
+                    <div className="space-y-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#FE7F2D]">our origins</p>
+                      <h2 className="text-4xl sm:text-6xl font-black italic lowercase tracking-tighter leading-[0.9]">born from the <span className="text-[#FE7F2D]">hustle</span>.</h2>
+                    </div>
+
+                    <div className="space-y-8 text-lg sm:text-xl text-[#010307]/70 italic lowercase leading-relaxed font-medium">
+                      <p>
+                        it started with a simple observation: kathmandu is overflowing with incredible talent, but the gap between "creating" and "discovering" was a bridge too expensive for most to cross alone.
+                      </p>
+                      <p>
+                        we saw creators building absolute magic in their rooms, only to be hidden by algorithm shadows or crushed by high-street rents. we wanted to change the script.
+                      </p>
+                      <p className="text-[#010307] font-black border-l-4 border-[#FE7F2D] pl-6 py-2">
+                        why should a brand's visibility depend on their bank balance instead of their soul?
+                      </p>
+                      <p>
+                        the hidden collective was born to gatekeep energy, not money. we provided the stage, the lightings, the footfall, and the data—so creators could focus on what they do best: <span className="text-[#FE7F2D] font-bold">creating the cool stuff.</span>
+                      </p>
+                    </div>
+
+                    <div className="pt-6 flex flex-wrap gap-4">
+                       <div className="px-6 py-3 bg-white border border-[#FE7F2D]/20 rounded-2xl shadow-sm">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">the mission</p>
+                          <p className="text-sm font-black italic lowercase">scale local stories</p>
+                       </div>
+                       <div className="px-6 py-1.5 bg-[#FE7F2D] text-white rounded-2xl shadow-xl shadow-orange-500/20 flex items-center justify-center">
+                          <p className="text-[10px] font-black italic lowercase">#thecollective</p>
+                       </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -674,29 +742,29 @@ export default function LandingPage() {
                 <p className="text-2xl font-black lowercase italic tracking-tight">kathmandu, nepal</p>
                 <div className="flex items-center justify-center gap-4">
                    <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D]/60 lowercase font-bold tracking-widest px-4 py-1 rounded-full">outlet 01</Badge>
-                   <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D]/60 lowercase font-bold tracking-widest px-4 py-1 rounded-full">since 2024</Badge>
+                   <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D]/60 lowercase font-bold tracking-widest px-4 py-1 rounded-full">since 2026</Badge>
                 </div>
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8 sm:gap-12 text-left bg-white/40 backdrop-blur-sm p-6 sm:p-12 rounded-[2rem] sm:rounded-[3rem] border border-[#FE7F2D]/5">
-              <div className="space-y-6">
-                <h4 className="text-[#FE7F2D] font-black lowercase italic text-xl">membership process</h4>
-                <ul className="space-y-4 text-[#010307]/60 font-medium lowercase italic leading-relaxed">
-                  <li>• create account for instant pricing access</li>
-                  <li>• select and book your preferred shelf slot</li>
-                  <li>• curation team reviews all applications</li>
-                </ul>
-              </div>
-              <div className="space-y-6">
-                <h4 className="text-[#FE7F2D] font-black lowercase italic text-xl">jurisdiction</h4>
-                <ul className="space-y-4 text-[#010307]/60 font-medium lowercase italic leading-relaxed">
-                  <li>• slots confirmed upon payment & approval</li>
-                  <li>• dedicated dashboard for sales & stock</li>
-                  <li>• legal jurisdiction: kathmandu, nepal</li>
-                </ul>
-              </div>
-            </div>
+          <div className="grid md:grid-cols-2 gap-8 sm:gap-12 text-left bg-white/40 backdrop-blur-sm p-6 sm:p-12 rounded-[2rem] sm:rounded-[3rem] border border-[#FE7F2D]/5">
+  <div className="space-y-6">
+    <h4 className="text-[#FE7F2D] font-black lowercase italic text-xl">membership process</h4>
+    <ul className="space-y-4 text-[#010307]/60 font-medium lowercase italic leading-relaxed">
+      <li>• login to get instant pricing access</li>
+      <li>• select your slot: low, eye, or top level tier and your section</li>
+      <li>• instant access to your brand growth dashboard</li>
+    </ul>
+  </div>
+  <div className="space-y-6">
+    <h4 className="text-[#FE7F2D] font-black lowercase italic text-xl">the club advantage</h4>
+    <ul className="space-y-4 text-[#010307]/60 font-medium lowercase italic leading-relaxed">
+      <li>• free cross-promo via sayummys cafe visitors</li>
+      <li>• performance-based: higher sales = lighter rent</li>
+      <li>• curated community of nepali makers & doers</li>
+    </ul>
+  </div>
+</div>
 
             <div className="space-y-8 pt-8 border-t border-[#FE7F2D]/10">
               <p className="text-[#010307]/20 font-bold lowercase tracking-[0.3em] text-[10px]">

@@ -35,7 +35,7 @@ export function ShelfSlotsManagement() {
   // Section Management State
   const [isSectionManagerOpen, setIsSectionManagerOpen] = useState(false)
   const [isCreateSectionOpen, setIsCreateSectionOpen] = useState(false)
-  const [newSection, setNewSection] = useState({ name: "", description: "" })
+  const [newSection, setNewSection] = useState({ name: "", description: "", section_tier: "regular" as "premium" | "regular" })
   const [editingSection, setEditingSection] = useState<ShelfSection | null>(null)
 
   // Shelf Creation State
@@ -180,7 +180,7 @@ export function ShelfSlotsManagement() {
       const { error } = await supabase.from('shelf_sections').insert(newSection)
       if (error) throw error
       setIsCreateSectionOpen(false)
-      setNewSection({ name: "", description: "" })
+      setNewSection({ name: "", description: "", section_tier: "regular" })
       fetchSlots()
       toast.success("New section added to treasury registry.")
     } catch (e: any) {
@@ -193,7 +193,11 @@ export function ShelfSlotsManagement() {
     try {
       const { error } = await supabase
         .from('shelf_sections')
-        .update({ name: editingSection.name, description: editingSection.description })
+        .update({ 
+           name: editingSection.name, 
+           description: editingSection.description,
+           section_tier: editingSection.section_tier
+        })
         .eq('id', editingSection.id)
       if (error) throw error
       setEditingSection(null)
@@ -918,6 +922,21 @@ export function ShelfSlotsManagement() {
                           className="bg-white rounded-xl"
                        />
                     </div>
+                    <div className="flex gap-4 items-center">
+                        <Label className="text-[10px] uppercase font-black text-gray-400">Sector Tier</Label>
+                        <Select 
+                           value={newSection.section_tier} 
+                           onValueChange={(v: any) => setNewSection({...newSection, section_tier: v})}
+                        >
+                           <SelectTrigger className="w-40 bg-white rounded-xl h-10">
+                              <SelectValue />
+                           </SelectTrigger>
+                           <SelectContent>
+                              <SelectItem value="regular">Regular</SelectItem>
+                              <SelectItem value="premium">Premium</SelectItem>
+                           </SelectContent>
+                        </Select>
+                     </div>
                     <div className="flex gap-2">
                        <Button onClick={handleCreateSection} className="bg-[#FE7F2D] flex-1 h-10 rounded-xl font-bold">Deploy Sector</Button>
                        <Button variant="ghost" onClick={() => setIsCreateSectionOpen(false)} className="h-10">Cancel</Button>
@@ -940,6 +959,21 @@ export function ShelfSlotsManagement() {
                                 onChange={e => setEditingSection({...editingSection, description: e.target.value})}
                                 className="h-10 rounded-xl"
                              />
+                             <div className="flex gap-4 items-center">
+                                 <Label className="text-[10px] uppercase font-black text-gray-400">Tier</Label>
+                                 <Select 
+                                    value={editingSection.section_tier} 
+                                    onValueChange={(v: any) => setEditingSection({...editingSection, section_tier: v})}
+                                 >
+                                    <SelectTrigger className="w-40 bg-white rounded-xl h-10">
+                                       <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                       <SelectItem value="regular">Regular</SelectItem>
+                                       <SelectItem value="premium">Premium</SelectItem>
+                                    </SelectContent>
+                                 </Select>
+                              </div>
                              <div className="flex gap-2">
                                 <Button onClick={handleUpdateSection} size="sm" className="bg-black text-white rounded-xl">Save</Button>
                                 <Button onClick={() => setEditingSection(null)} size="sm" variant="ghost">Cancel</Button>
@@ -947,10 +981,13 @@ export function ShelfSlotsManagement() {
                           </div>
                        ) : (
                           <div className="flex items-center justify-between">
-                             <div>
+                             <div className="flex items-center gap-2">
                                 <h4 className="font-black text-sm italic">{section.name}</h4>
-                                <p className="text-[10px] text-gray-400 font-medium">{section.description || "No description provided."}</p>
+                                <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest ${section.section_tier === 'premium' ? 'bg-orange-500 text-white border-none' : 'text-gray-400'}`}>
+                                   {section.section_tier}
+                                </Badge>
                              </div>
+                             <p className="text-[10px] text-gray-400 font-medium">{section.description || "No description provided."}</p>
                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Button variant="ghost" size="icon" onClick={() => setEditingSection(section)} className="h-8 w-8 rounded-lg">
                                    <Settings className="w-3.5 h-3.5 text-gray-400" />
