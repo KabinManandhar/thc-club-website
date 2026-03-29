@@ -39,7 +39,7 @@ export const userAuth = {
           is_active: true,
         }
 
-        localStorage.setItem("user_session", data.session.access_token)
+        // Only store the user data. Supabase handles the actual session token automatically.
         localStorage.setItem("user_data", JSON.stringify(user))
         
         // Sync login time in background
@@ -60,11 +60,7 @@ export const userAuth = {
 
   async logout(): Promise<void> {
     try {
-      const sessionToken = localStorage.getItem("user_session")
-      if (sessionToken) {
-        await supabase.from("user_sessions").delete().eq("session_token", sessionToken)
-      }
-      localStorage.removeItem("user_session")
+      await supabase.auth.signOut()
       localStorage.removeItem("user_data")
     } catch (err) {
       console.error("User logout error:", err)
@@ -73,25 +69,27 @@ export const userAuth = {
 
   async getCurrentUser(): Promise<ApprovedUser | null> {
     try {
-      const sessionToken = localStorage.getItem("user_session")
-      const userStr = localStorage.getItem("user_data")
+      const { data: { session }, error } = await supabase.auth.getSession()
 
-      if (!sessionToken || !userStr) return null
-
-      // Validate session against database (user_sessions is publicly readable)
-      const { data: sessions } = await supabase
-        .from("user_sessions")
-        .select("id, expires_at")
-        .eq("session_token", sessionToken)
-        .gt("expires_at", new Date().toISOString())
-
-      if (!sessions || sessions.length === 0) {
-        // Session expired or not found
-        await this.logout()
+      if (error || !session) {
         return null
       }
 
-      return JSON.parse(userStr) as ApprovedUser
+      const userStr = localStorage.getItem("user_data")
+      if (userStr) {
+        return JSON.parse(userStr) as ApprovedUser
+      }
+
+      // Reconstruct user data if missing from local storage
+      const user: ApprovedUser = {
+        id: session.user.id,
+        email: session.user.email || "",
+        business_name: session.user.user_metadata?.business_name || "Club Member",
+        is_active: true,
+      }
+      
+      localStorage.setItem("user_data", JSON.stringify(user))
+      return user
     } catch (err) {
       console.error("Get current user error:", err)
       return null
