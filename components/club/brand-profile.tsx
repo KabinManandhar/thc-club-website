@@ -84,6 +84,21 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
     setLoading(false)
   }
 
+  // Direct logo save — no admin approval needed for a logo image
+  const handleLogoUpload = async (url: string) => {
+    setForm(f => ({ ...f, logo_url: url }))
+    try {
+      const { error } = await supabase
+        .from('brands')
+        .update({ logo_url: url, updated_at: new Date().toISOString() })
+        .eq('id', brandId)
+      if (error) throw error
+      toast.success('Brand image updated — visible on the homepage.')
+    } catch (err: any) {
+      toast.error('Image saved locally but failed to push live: ' + err.message)
+    }
+  }
+
   const handleSave = async () => {
     setSaving(true)
     try {
@@ -155,7 +170,7 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
                     bucket="media" 
                     folder={`brand_${brandId}/meta`}
                     value={""} 
-                    onChange={(url) => setForm(f => ({ ...f, logo_url: url }))} 
+                    onChange={handleLogoUpload}
                     className="!border-none !p-0 !bg-transparent !h-full w-full opacity-0"
                   />
                   <span className="absolute text-[8px] font-black text-white uppercase tracking-widest pointer-events-none">New Logo</span>
@@ -304,9 +319,9 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
                     bucket="media" 
                     folder={`brand_${brandId}/meta`}
                     value={form.logo_url} 
-                    onChange={(url) => setForm(f => ({ ...f, logo_url: url }))} 
+                    onChange={handleLogoUpload}
                   />
-                  <p className="text-[10px] text-gray-300 font-black uppercase tracking-widest text-center">Identity Asset</p>
+                  <p className="text-[10px] text-gray-300 font-black uppercase tracking-widest text-center">Identity Asset • live on homepage</p>
                </div>
             </Card>
 

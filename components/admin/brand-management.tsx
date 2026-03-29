@@ -68,18 +68,27 @@ export function BrandManagement() {
     if (!selectedBrand) return
     setProcessingId(selectedBrand.id)
     try {
-      const { error } = await supabase.rpc('delete_brand_entirely', { 
+      console.log('[delete_brand] Attempting to delete brand:', selectedBrand.id, selectedBrand.business_name)
+      const { data, error } = await supabase.rpc('delete_brand_entirely', { 
         p_brand_id: selectedBrand.id 
       })
-      if (error) throw error
-      
-      toast.success("Brand footprint wiped successfully.")
+      if (error) {
+        console.error('[delete_brand] RPC error:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        })
+        throw new Error(error.message || error.details || 'RPC call failed — check if delete_brand_entirely function is deployed in Supabase.')
+      }
+      console.log('[delete_brand] Success:', data)
+      toast.success("Brand completely wiped from all records.")
       setView("list")
       setSelectedBrand(null)
       fetchBrands()
     } catch (err: any) {
-      console.error("Deletion error:", err)
-      toast.error(err.message || "Failed to delete brand.")
+      console.error('[delete_brand] Caught error:', err)
+      toast.error(err.message || "Failed to delete brand. Check browser console for details.")
     } finally {
       setProcessingId(null)
     }
@@ -146,9 +155,23 @@ export function BrandManagement() {
         } else if (request.request_type === 'product_update' && request.target_id) {
           const { error } = await supabase.from('brand_products').update(data).eq('id', request.target_id)
           if (error) throw error
-        } else if (request.request_type === 'brand_update') {
-          const { error } = await supabase.from('brands').update(data).eq('id', request.brand_id)
-          if (error) throw error
+        } else if (request.request_type === 'brand_update' || request.request_type === 'profile_update') {
+          // Apply all profile fields from new_data to brands table
+          const profileFields: Record<string, any> = {}
+          const allowedFields = [
+            'business_name', 'description', 'phone',
+            'instagram_handle', 'website_url', 'logo_url', 'brand_story'
+          ]
+          for (const key of allowedFields) {
+            if (data[key] !== undefined) profileFields[key] = data[key]
+          }
+          if (Object.keys(profileFields).length > 0) {
+            const { error } = await supabase
+              .from('brands')
+              .update({ ...profileFields, updated_at: new Date().toISOString() })
+              .eq('id', request.brand_id)
+            if (error) throw error
+          }
         }
       }
 

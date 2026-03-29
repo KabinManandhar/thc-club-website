@@ -76,6 +76,7 @@ export function PayoutsTracker() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [completedPayout, setCompletedPayout] = useState<Payout | null>(null)
   const [lastSynced, setLastSynced] = useState<Date | null>(null)
+  const [payoutInvoices, setPayoutInvoices] = useState<any[]>([])
 
   // Derived Stats
   const currentMonth = new Date().getMonth() + 1
@@ -144,6 +145,30 @@ export function PayoutsTracker() {
   }, [])
 
   useEffect(() => { fetchData() }, [fetchData])
+
+  const fetchPayoutInvoices = async (brandId: string, month: number, year: number) => {
+    const start = new Date(year, month - 1, 1).toISOString()
+    const end = new Date(year, month, 0, 23, 59, 59).toISOString()
+    const { data } = await supabase
+      .from("invoices")
+      .select("*, invoice_line_items(*)")
+      .eq("brand_id", brandId)
+      .eq("status", "paid")
+      .gte("created_at", start)
+      .lte("created_at", end)
+      .order("created_at", { ascending: true })
+    setPayoutInvoices(data || [])
+  }
+
+  useEffect(() => {
+    if (viewPayout) {
+      fetchPayoutInvoices(viewPayout.brand_id, viewPayout.month, viewPayout.year)
+    } else if (completedPayout && flowStep === "statement") {
+      fetchPayoutInvoices(completedPayout.brand_id, completedPayout.month, completedPayout.year)
+    } else {
+      setPayoutInvoices([])
+    }
+  }, [viewPayout, completedPayout, flowStep])
 
   // ─── Handlers ──────────────────────────────────────────────────────────────
 
@@ -391,8 +416,8 @@ export function PayoutsTracker() {
   }
 
   // ─── Statement panel (for viewing existing settled payouts) ─────────────────
-  const StatementView = ({ payout, printRef }: { payout: Payout; printRef: React.RefObject<HTMLDivElement | null> }) => (
-    <div ref={printRef} className="space-y-8">
+  const StatementView = ({ payout, invoices, printRef }: { payout: Payout; invoices: any[]; printRef: React.RefObject<HTMLDivElement | null> }) => (
+    <div ref={printRef} className="space-y-8 print:p-8">
       <div className="flex justify-between items-end border-b-2 border-[#010307] pb-6">
         <div>
           <div className="text-3xl font-black italic tracking-tighter">THC Club</div>
@@ -442,21 +467,62 @@ export function PayoutsTracker() {
         </div>
       </div>
 
-      <table className="w-full">
+      <div className="space-y-4 pt-6">
+        <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Detailed Transaction Breakdown</h4>
+        <div className="rounded-xl border border-gray-100 overflow-hidden">
+          <table className="w-full text-left">
+            <thead className="bg-gray-50/50">
+              <tr>
+                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Date / Ref</th>
+                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Items Sold</th>
+                <th className="text-right py-2 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Gross (NPR)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 bg-white">
+              {invoices.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-8 text-center text-xs italic text-gray-400">Loading invoice details...</td>
+                </tr>
+              ) : (
+                invoices.map((inv) => (
+                  <tr key={inv.id}>
+                    <td className="py-3 px-3 align-top">
+                      <div className="text-[10px] font-bold text-gray-900">#{inv.invoice_number}</div>
+                      <div className="text-[8px] font-black uppercase tracking-widest text-gray-400">{new Date(inv.created_at).toLocaleDateString()}</div>
+                    </td>
+                    <td className="py-3 px-3 align-top max-w-[200px]">
+                      {inv.invoice_line_items?.map((item: any, idx: number) => (
+                        <div key={idx} className="text-[10px] text-gray-600 truncate mb-0.5">
+                          <span className="font-black text-gray-400">{item.quantity}x</span> {item.product_name}
+                        </div>
+                      ))}
+                    </td>
+                    <td className="py-3 px-3 align-top text-right text-xs font-bold tabular-nums">
+                      {inv.total_amount?.toLocaleString() || '0'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <table className="w-full mt-8">
         <thead>
           <tr>
-            <th className="text-left py-3 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Description</th>
+            <th className="text-left py-3 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Summary Description</th>
             <th className="text-right py-3 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Amount (NPR)</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td className="py-4 px-3 font-bold text-sm border-b border-gray-50">Aggregated Gross Sales</td>
+            <td className="py-4 px-3 font-bold text-sm border-b border-gray-50">Total Aggregated Gross Sales</td>
             <td className="py-4 px-3 font-bold text-sm text-right border-b border-gray-50">{payout.gross_sales.toLocaleString()}</td>
           </tr>
           <tr>
-            <td className="py-4 px-3 font-bold text-sm border-b border-gray-50">Payment Processing Fee (PPF)</td>
-            <td className="py-4 px-3 font-bold text-sm text-right border-b border-gray-50 text-red-400">−{(payout.ppf_amount || 0).toLocaleString()}</td>
+            <td className="py-4 px-3 font-bold text-sm border-b border-gray-50">Platform Processing Fee (PPF Deduction)</td>
+            <td className="py-4 px-3 font-bold text-sm text-right border-b border-gray-50 text-red-500">−{(payout.ppf_amount || 0).toLocaleString()}</td>
           </tr>
           {payout.admin_notes && (
             <tr>
@@ -923,7 +989,7 @@ export function PayoutsTracker() {
                 </div>
               </div>
 
-              {completedPayout && <StatementView payout={completedPayout!} printRef={printRef} />}
+              {completedPayout && <StatementView payout={completedPayout!} invoices={payoutInvoices} printRef={printRef} />}
 
               <div className="flex gap-4 pt-8 border-t border-gray-100">
                 <Button onClick={() => handlePrint(printRef)}
@@ -955,7 +1021,7 @@ export function PayoutsTracker() {
             </Button>
           </div>
           <div className="p-10">
-            {viewPayout && <StatementView payout={viewPayout!} printRef={printRef2} />}
+            {viewPayout && <StatementView payout={viewPayout!} invoices={payoutInvoices} printRef={printRef2} />}
             <div className="flex gap-4 pt-8 border-t border-gray-100">
               <Button onClick={() => handlePrint(printRef2)}
                 className="flex-1 h-14 bg-[#FE7F2D] text-white hover:bg-black rounded-2xl font-black lowercase italic tracking-widest shadow-xl shadow-orange-500/20 flex items-center justify-center gap-2 transition-all">

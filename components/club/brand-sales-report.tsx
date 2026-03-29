@@ -31,21 +31,52 @@ export function BrandSalesReport({ brandId }: BrandSalesReportProps) {
   const fetchSalesReport = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
-        .rpc("get_product_performance_secure", { p_brand_id: brandId })
+      // 1. Fetch all products for this brand
+      const { data: products, error: productsError } = await supabase
+        .from("brand_products")
+        .select("*")
+        .eq("brand_id", brandId)
 
-      if (error) {
-         console.warn("RPC get_product_performance_secure failed:", error)
-         const { data: products } = await supabase.from("brand_products").select("*").eq("brand_id", brandId)
-         setProductSales(products?.map(p => ({ ...p, sold: 0, revenue: 0 })) || [])
-         return
+      if (productsError) throw productsError
+
+      // 2. Fetch paid invoice IDs for this brand
+      const { data: invoices } = await supabase
+        .from("invoices")
+        .select("id")
+        .eq("brand_id", brandId)
+        .eq("status", "paid")
+
+      const invoiceIds = invoices?.map(i => i.id) || []
+
+      // 3. Fetch line items for these invoices
+      let lineItems: any[] = []
+      if (invoiceIds.length > 0) {
+        const { data: items } = await supabase
+          .from("invoice_line_items")
+          .select("product_id, quantity, line_total")
+          .in("invoice_id", invoiceIds)
+        lineItems = items || []
       }
 
-      if (data) {
-        setProductSales(data)
-        setTotalGross(data.reduce((sum: number, p: any) => sum + (p.revenue || 0), 0))
-        setTotalQuantity(data.reduce((sum: number, p: any) => sum + (p.sold || 0), 0))
-      }
+      // 4. Aggregate sales data per product
+      const aggregatedProducts = (products || []).map(p => {
+        const pItems = lineItems.filter(li => li.product_id === p.id)
+        const sold = pItems.reduce((acc, curr) => acc + (curr.quantity || 0), 0)
+        const revenue = pItems.reduce((acc, curr) => acc + (curr.line_total || 0), 0)
+        return {
+          ...p,
+          sold,
+          revenue
+        }
+      })
+
+      // Sort by highest revenue
+      aggregatedProducts.sort((a: any, b: any) => b.revenue - a.revenue)
+
+      setProductSales(aggregatedProducts)
+      setTotalGross(aggregatedProducts.reduce((sum: number, p: any) => sum + p.revenue, 0))
+      setTotalQuantity(aggregatedProducts.reduce((sum: number, p: any) => sum + p.sold, 0))
+
     } catch (err) {
       console.error("Sales report error:", err)
     } finally {
