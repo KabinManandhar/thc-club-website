@@ -142,14 +142,24 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
       {/* Header / Hero */}
       <div className="relative p-10 bg-white rounded-2xl border border-black/5 shadow-sm overflow-hidden group">
          <div className="relative z-10 flex h-full items-center gap-10">
-            <div className="relative">
+            <div className="relative group/logo">
                {form.logo_url ? (
-                  <img src={form.logo_url} alt="Brand Logo" className="w-24 h-24 rounded-2xl object-cover bg-gray-50 border border-black/5 shadow-sm transition-all group-hover:scale-105" />
+                  <img src={form.logo_url} alt="Brand Logo" className="w-24 h-24 rounded-2xl object-cover bg-gray-50 border border-black/5 shadow-sm transition-all group-hover/logo:scale-105" />
                ) : (
                   <div className="w-24 h-24 rounded-2xl bg-gray-50 border border-black/5 flex items-center justify-center text-black/10">
                      <User className="w-10 h-10" />
                   </div>
                )}
+               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/logo:opacity-100 transition-opacity rounded-2xl flex items-center justify-center">
+                  <FileUpload 
+                    bucket="media" 
+                    folder={`brand_${brandId}/meta`}
+                    value={""} 
+                    onChange={(url) => setForm(f => ({ ...f, logo_url: url }))} 
+                    className="!border-none !p-0 !bg-transparent !h-full w-full opacity-0"
+                  />
+                  <span className="absolute text-[8px] font-black text-white uppercase tracking-widest pointer-events-none">New Logo</span>
+               </div>
             </div>
             <div className="space-y-2">
                <div className="flex items-center gap-3">

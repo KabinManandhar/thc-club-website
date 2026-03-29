@@ -13,6 +13,7 @@ interface FileUploadProps {
   onChange: (url: string) => void
   onRemove?: () => void
   accept?: string
+  className?: string
 }
 
 export function FileUpload({
@@ -21,7 +22,8 @@ export function FileUpload({
   value,
   onChange,
   onRemove,
-  accept = "image/*"
+  accept = "image/*",
+  className
 }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
 
@@ -85,7 +87,7 @@ export function FileUpload({
   }
 
   return (
-    <div className="relative border-2 border-dashed border-gray-200 rounded-xl p-6 hover:bg-gray-50 hover:border-[#FE7F2D]/50 transition-all group flex flex-col items-center justify-center text-center cursor-pointer h-32">
+    <div className={`relative border-2 border-dashed border-gray-200 rounded-xl p-6 hover:bg-gray-50 hover:border-[#FE7F2D]/50 transition-all group flex flex-col items-center justify-center text-center cursor-pointer h-32 ${className}`}>
        <input 
          type="file" 
          accept={accept} 
