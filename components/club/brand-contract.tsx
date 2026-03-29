@@ -224,24 +224,49 @@ export function BrandContract({ brandId, brandName }: BrandContractProps) {
       <Card className="border border-black/5 shadow-sm rounded-3xl bg-white overflow-hidden">
         <CardHeader className="border-b border-gray-50 p-6 flex flex-row items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#010307] rounded-xl flex items-center justify-center">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${contract?.contract_type === 'manual_physical' ? 'bg-blue-500' : 'bg-[#010307]'}`}>
               <FileText className="w-5 h-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-base font-black tracking-tight text-[#010307]">Brand Partnership Agreement v1.0</CardTitle>
-              <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">The Hidden Collective Club. • Effective 2026</p>
+              <CardTitle className="text-base font-black tracking-tight text-[#010307]">
+                {contract?.contract_type === 'manual_physical' ? 'Manual Partnership Agreement' : 'Brand Partnership Agreement v1.0'}
+              </CardTitle>
+              <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">
+                {contract?.contract_type === 'manual_physical' ? 'Physical Copy Scanned & Verified' : 'The Hidden Collective Club. • Effective 2026'}
+              </p>
             </div>
           </div>
-          <Button onClick={handleDownloadPDF} variant="ghost" size="sm" className="text-gray-400 hover:text-gray-700 font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
-            <Download className="w-4 h-4" /> Download
-          </Button>
+          {contract?.file_url && contract.file_url.startsWith('http') && (
+            <Button asChild variant="ghost" size="sm" className="text-[#FE7F2D] hover:text-black font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
+              <a href={contract.file_url} target="_blank" rel="noopener noreferrer">
+                <Eye className="w-4 h-4" /> View Document
+              </a>
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="p-0">
-          <div className="max-h-[600px] overflow-y-auto bg-gray-50/30 border-b border-gray-50">
-            <div ref={contractRef} className="p-8 sm:p-12 font-mono text-[13px] md:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap bg-white">
-              {parseTemplate()}
+          {contract?.contract_type === 'manual_physical' ? (
+            <div className="p-20 text-center space-y-6 bg-gray-50/30">
+              <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center text-blue-500 mx-auto shadow-inner">
+                <Shield className="w-10 h-10" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black italic lowercase tracking-tight">Physical Agreement Recorded</h3>
+                <p className="text-sm text-gray-400 font-medium italic lowercase max-w-sm mx-auto leading-relaxed">
+                  Your partnership agreement was signed in person and has been manually uploaded to the club's treasury.
+                </p>
+              </div>
+              <Button asChild className="bg-blue-600 hover:bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 px-10 transition-all shadow-xl shadow-blue-500/20">
+                <a href={contract.file_url} target="_blank" rel="noopener noreferrer">Download Signed Scan</a>
+              </Button>
             </div>
-          </div>
+          ) : (
+            <div className="max-h-[600px] overflow-y-auto bg-gray-50/30 border-b border-gray-50">
+              <div ref={contractRef} className="p-8 sm:p-12 font-mono text-[13px] md:text-sm text-gray-800 leading-relaxed whitespace-pre-wrap bg-white">
+                {parseTemplate()}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

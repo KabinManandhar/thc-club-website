@@ -228,7 +228,12 @@ export function BrandManagement() {
 
       const { error: dbError } = await supabase.from('brand_contracts').insert({
         brand_id: selectedBrand.id,
-        file_url: publicUrl
+        file_url: publicUrl,
+        status: 'signed',
+        contract_type: 'manual_physical',
+        signed_by: 'MANUAL_UPLOAD (Verified In-Person)',
+        signed_at: new Date().toISOString(),
+        ip_note: 'Uploaded manually by admin - in-person signature verified.'
       })
 
       if (dbError) throw dbError
@@ -908,19 +913,26 @@ export function BrandManagement() {
 
                      <div className="grid gap-4">
                         {contracts.map((contract) => (
-                           <Card key={contract.id} className="p-6 border-gray-100 hover:border-[#FE7F2D]/30 transition-all rounded-[1.5rem] group bg-white">
+                           <Card key={contract.id} className="p-6 border-gray-100 hover:border-[#FE7F2D]/30 transition-all rounded-[1.5rem] group bg-white shadow-sm">
                               <div className="flex items-center justify-between">
                                  <div className="flex items-center gap-5">
-                                    <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-[#FE7F2D]/10 group-hover:text-[#FE7F2D] transition-colors">
+                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${contract.contract_type === 'manual_physical' ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400 group-hover:bg-[#FE7F2D]/10 group-hover:text-[#FE7F2D]'}`}>
                                        <FileText className="w-6 h-6" />
                                     </div>
                                     <div>
-                                       <div className="font-black text-gray-900 lowercase italic tracking-tight text-lg mb-0.5">
+                                       <div className="font-black text-gray-900 lowercase italic tracking-tight text-lg mb-0.5 flex items-center gap-2">
                                           {contract.contract_type?.replace('_', ' ') || 'partnership agreement'}
+                                          {contract.contract_type === 'manual_physical' && (
+                                            <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-black uppercase text-[8px] tracking-widest px-2 py-0.5">Physical Scan</Badge>
+                                          )}
                                        </div>
                                        <div className="flex items-center gap-3">
                                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Added {new Date(contract.created_at).toLocaleDateString()}</span>
-                                          <Badge className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 bg-gray-50 text-gray-500 border-none`}>
+                                          <Badge className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border-none ${
+                                            contract.status === 'active' ? 'bg-black text-white' : 
+                                            contract.status === 'signed' ? 'bg-green-50 text-green-700' : 
+                                            'bg-gray-50 text-gray-500'
+                                          }`}>
                                              {contract.status || 'active'}
                                           </Badge>
                                        </div>
@@ -932,8 +944,27 @@ export function BrandManagement() {
                                        className="rounded-xl h-10 px-5 font-black uppercase text-[9px] tracking-widest border border-gray-100 hover:bg-black hover:text-white"
                                        asChild
                                     >
-                                       <a href={contract.file_url} target="_blank" rel="noopener noreferrer">View Doc</a>
+                                       <a href={contract.file_url} target="_blank" rel="noopener noreferrer">
+                                         {contract.contract_type === 'manual_physical' ? 'View Scan' : 'View Doc'}
+                                       </a>
                                     </Button>
+                                    
+                                    {contract.status !== 'active' && (
+                                      <Button
+                                        onClick={async () => {
+                                          const { error: cntError } = await supabase.from('brand_contracts').update({ status: 'active' }).eq('id', contract.id)
+                                          if (cntError) throw cntError
+                                          const { error: brandError } = await supabase.from('brands').update({ onboarding_status: 'active' }).eq('id', selectedBrand.id)
+                                          if (brandError) throw brandError
+                                          toast.success('Contract activated & brand approved.')
+                                          handleBrandSelect(selectedBrand)
+                                          fetchBrands()
+                                        }}
+                                        className="bg-[#FE7F2D] text-white hover:bg-black rounded-xl h-10 px-4 font-black uppercase text-[9px] tracking-widest"
+                                      >
+                                        Activate
+                                      </Button>
+                                    )}
                                  </div>
                               </div>
                            </Card>

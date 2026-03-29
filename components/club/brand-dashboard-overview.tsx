@@ -16,6 +16,7 @@ import {
     UserCircle,
     MessageSquare,
     Clock,
+    Shield,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 
@@ -258,6 +259,13 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
                                  <p className="text-[7px] font-bold text-white/30 uppercase tracking-[0.2em] mb-1">unit mobility</p>
                                  <p className="text-[10px] font-black text-white lowercase italic">{slot.shelves?.is_movable ? 'movable' : 'fixed'}</p>
                               </div>
+                           </div>
+                           
+                           <div className="pt-4 mt-2 border-t border-white/5 flex items-center justify-between text-[9px] font-bold lowercase tracking-widest text-white/20 relative z-10">
+                              <span className="flex items-center gap-1.5 italic">
+                                <Shield className="w-3 h-3 text-[#FE7F2D]" /> partner compliance
+                              </span>
+                              <span className="text-green-500/60 font-black italic">Agreement Secured</span>
                            </div>
                         </div>
                       ))}
