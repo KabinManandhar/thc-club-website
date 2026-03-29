@@ -1,8 +1,8 @@
-import type React from "react"
+import { EnvBanner } from "@/components/env-banner"
 import type { Metadata } from "next"
 import { Space_Grotesk } from "next/font/google"
+import type React from "react"
 import "./globals.css"
-import { EnvBanner } from "@/components/env-banner"
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -12,7 +12,7 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "thc club - the hidden collective club",
   description: "curated shelf space for nepal's indie brands",
-    generator: 'v0.dev'
+  generator: 'v0.dev'
 }
 
 export default function RootLayout({

@@ -482,15 +482,18 @@ export default function LandingPage() {
                     </div>
 
                     {/* Logo instead of text */}
-                    <div className="flex justify-center lg:justify-start">
-                      <Image
-                        src="/logo.png"
-                        alt="the hidden collective club logo"
-                        width={500}
-                        height={250}
-                        className="w-full max-lg h-auto transition-transform hover:scale-105"
-                        priority
-                      />
+                    <div className="flex flex-col items-center lg:items-start">
+                      <h1 className="sr-only">thc club - the hidden collective club kathmandu</h1>
+                      <div className="flex justify-center lg:justify-start">
+                        <Image
+                          src="/logo.png"
+                          alt="the hidden collective club logo"
+                          width={500}
+                          height={250}
+                          className="w-full max-lg h-auto transition-transform hover:scale-105"
+                          priority
+                        />
+                      </div>
                     </div>
 
                     <div className="pt-4 space-y-6">
