@@ -65,6 +65,7 @@ export function AdminLayout({
     { id: "shelf-revenue", label: "Shelf Revenue", icon: TrendingUp },
     { id: "slots", label: "Shelf Slot Management", icon: Package },
     { id: "settings", label: "Content Settings", icon: Settings },
+    { id: "profile", label: "Admin Profile", icon: Users },
   ];
 
   return (
@@ -87,15 +88,25 @@ export function AdminLayout({
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#FFFCEB] border-r border-[#FE7F2D]/10 transform transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#FFFCEB] border-r border-[#010307]/5 transform transition-transform duration-300 ease-in-out scrollbar-hide overflow-y-auto ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
-        <div className="flex flex-col h-full bg-[#FFFCEB] shadow-sm">
-          {/* Header */}
+        <div className="flex flex-col min-h-screen bg-[#FFFCEB] shadow-sm">
           {/* Header */}
           <div className="p-8 border-b border-[#010307]/5">
-            <div className="flex items-center gap-3">
-              <Image src="/logo.png" alt="THC Club" width={100} height={50} className="h-8 w-auto" />
-              <Badge className="bg-[#FE7F2D] text-white text-[8px] font-black uppercase tracking-widest px-2 py-0 border-none">admin</Badge>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Image src="/logo.png" alt="THC Club" width={100} height={50} className="h-8 w-auto" />
+                <Badge className="bg-[#FE7F2D] text-white text-[8px] font-black uppercase tracking-widest px-2 py-0 border-none">admin</Badge>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                className="hover:bg-red-400/5 text-[#010307]/20 hover:text-red-400 transition-all rounded-full"
+                title="Secure Exit"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
             {currentUser && (
                <div className="mt-6 space-y-1">

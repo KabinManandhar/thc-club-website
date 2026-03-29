@@ -123,4 +123,29 @@ export const adminAuth = {
     const user = await this.getCurrentUser()
     return user !== null
   },
+
+  async updatePassword(password: string): Promise<{ success: boolean; error: string | null }> {
+    try {
+      const user = await this.getCurrentUser()
+      const sessionToken = localStorage.getItem("admin_session")
+      
+      if (!user || !sessionToken) return { success: false, error: "Not properly authenticated" }
+
+      const passwordHash = await bcrypt.hash(password, 10)
+      
+      const { data, error } = await supabase.rpc("update_admin_password_securely", {
+        p_admin_id: user.id,
+        p_session_token: sessionToken,
+        p_new_password_hash: passwordHash,
+      })
+
+      if (error) throw error
+      if (data && !data.success) throw new Error(data.error || "Update failed")
+
+      return { success: true, error: null }
+    } catch (err: any) {
+      console.error("Admin update password error:", err)
+      return { success: false, error: err.message || "Update failed" }
+    }
+  },
 }

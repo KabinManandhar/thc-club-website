@@ -66,11 +66,11 @@ export function BrandLayout({
     <div className="min-h-screen bg-[#FFFCEB] font-space-grotesk overflow-hidden flex">
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#010307] text-white transform transition-transform duration-500 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#010307] text-white transform transition-transform duration-500 ease-in-out scrollbar-hide overflow-y-auto ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:static lg:inset-0`}
       >
-        <div className="flex flex-col h-full p-8">
+        <div className="flex flex-col min-h-full p-8">
           {/* Header */}
           <div className="flex items-center gap-4 mb-10">
             <div className="w-12 h-12 bg-[#FE7F2D]/10 rounded-2xl flex items-center justify-center">
@@ -81,6 +81,17 @@ export function BrandLayout({
               <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-none px-2 py-0 text-[10px] lowercase font-bold tracking-widest">
                 brand dashboard
               </Badge>
+            </div>
+            <div className="ml-auto">
+               <Button 
+                 variant="ghost" 
+                 size="icon" 
+                 onClick={handleLogout}
+                 className="hover:bg-red-400/10 hover:text-red-400 transition-colors"
+                 title="Secure Logout"
+               >
+                  <LogOut className="w-5 h-5 opacity-40 hover:opacity-100" />
+               </Button>
             </div>
           </div>
 

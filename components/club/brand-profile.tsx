@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { supabase } from "@/lib/supabase"
+import { userAuth } from "@/lib/user-auth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,6 +41,22 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
     logo_url: "",
     brand_story: "",
   })
+  const [passwordForm, setPasswordForm] = useState({
+    password: "",
+    confirmPassword: "",
+  })
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
+
+  const passwordValidation = {
+    hasUpper: /[A-Z]/.test(passwordForm.password),
+    hasLower: /[a-z]/.test(passwordForm.password),
+    hasDigit: /[0-9]/.test(passwordForm.password),
+    hasSymbol: /[^A-Za-z0-9]/.test(passwordForm.password),
+    minLength: passwordForm.password.length >= 8,
+    matches: passwordForm.password.length > 0 && passwordForm.password === passwordForm.confirmPassword
+  }
+
+  const isPasswordValid = Object.values(passwordValidation).every(Boolean)
 
   useEffect(() => {
     fetchBrand()
@@ -84,6 +101,33 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
     } finally {
       setSaving(false)
     }
+  }
+
+  const handlePasswordUpdate = async () => {
+    if (!isPasswordValid) return
+    setIsUpdatingPassword(true)
+    try {
+      const { success, error } = await userAuth.updatePassword(passwordForm.password)
+      if (success) {
+        toast.success("Security credentials updated successfully")
+        setPasswordForm({ password: "", confirmPassword: "" })
+      } else {
+        throw new Error(error || "Update failed")
+      }
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setIsUpdatingPassword(false)
+    }
+  }
+
+  function PasswordRequirement({ label, met }: { label: string; met: boolean }) {
+    return (
+      <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${met ? 'text-green-500' : 'text-[#010307]/30'}`}>
+        {met ? <ShieldCheck className="w-3 h-3 text-green-500" /> : <ShieldCheck className="w-3 h-3 opacity-20" />}
+        {label}
+      </div>
+    )
   }
 
   if (loading) return (
@@ -187,9 +231,60 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
                         placeholder="Describe your craft..."
                      />
                   </div>
-               </div>
-            </section>
-         </div>
+                </div>
+             </section>
+
+             <section className="space-y-6 pt-10 border-t border-black/5">
+                <div className="flex items-center justify-between">
+                   <h3 className="text-xl font-black tracking-tighter uppercase italic flex items-center gap-3">
+                      <ShieldCheck className="w-5 h-5 text-[#FE7F2D]" />
+                      Security Terminal
+                   </h3>
+                </div>
+                
+                <div className="grid sm:grid-cols-2 gap-8">
+                   <div className="space-y-2">
+                      <Label className="uppercase text-[10px] font-black text-gray-400 tracking-widest ml-1">New Password</Label>
+                      <Input 
+                        type="password"
+                        value={passwordForm.password}
+                        onChange={(e) => setPasswordForm(p => ({ ...p, password: e.target.value }))}
+                        className="rounded-2xl h-14 border-gray-100 font-bold bg-white"
+                        placeholder="••••••••"
+                      />
+                   </div>
+                   <div className="space-y-2">
+                      <Label className="uppercase text-[10px] font-black text-gray-400 tracking-widest ml-1">Confirm New Password</Label>
+                      <Input 
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
+                        className="rounded-2xl h-14 border-gray-100 font-bold bg-white"
+                        placeholder="••••••••"
+                      />
+                   </div>
+                </div>
+
+                <div className="bg-white/50 backdrop-blur-sm p-6 rounded-3xl border border-black/5 space-y-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-3">
+                    <PasswordRequirement label="Uppercase" met={passwordValidation.hasUpper} />
+                    <PasswordRequirement label="Lowercase" met={passwordValidation.hasLower} />
+                    <PasswordRequirement label="Numerical" met={passwordValidation.hasDigit} />
+                    <PasswordRequirement label="Symbol" met={passwordValidation.hasSymbol} />
+                    <PasswordRequirement label="Min. 8" met={passwordValidation.minLength} />
+                    <PasswordRequirement label="Matches" met={passwordValidation.matches} />
+                  </div>
+                </div>
+
+                <Button 
+                   onClick={handlePasswordUpdate}
+                   disabled={isUpdatingPassword || !isPasswordValid}
+                   className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white rounded-xl px-10 h-14 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-orange-500/10 active:scale-95 transition-all"
+                >
+                   {isUpdatingPassword ? "Updating..." : "Secure New Credentials"}
+                </Button>
+             </section>
+          </div>
 
          <div className="space-y-10">
             <Card className="border border-black/5 shadow-sm rounded-2xl bg-white overflow-hidden p-8">
