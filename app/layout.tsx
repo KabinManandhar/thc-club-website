@@ -1,4 +1,5 @@
 import { EnvBanner } from "@/components/env-banner"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import type { Metadata } from "next"
 import { Space_Grotesk } from "next/font/google"
 import type React from "react"
@@ -25,6 +26,7 @@ export default function RootLayout({
       <body className="font-space-grotesk">
         <EnvBanner />
         {children}
+        <SpeedInsights />
       </body>
     </html>
   )
