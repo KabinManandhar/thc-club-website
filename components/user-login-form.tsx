@@ -8,9 +8,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { userAuth } from "@/lib/user-auth"
-import { ArrowLeft, Lock } from "lucide-react"
+import { ArrowLeft, Lock, ShieldCheck, Check, X } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
+
+function PasswordRequirement({ label, met }: { label: string; met: boolean }) {
+  return (
+    <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${met ? 'text-green-500' : 'text-[#010307]/30'}`}>
+      {met ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+      {label}
+    </div>
+  )
+}
 
 interface UserLoginFormProps {
   onLoginSuccess: () => void
@@ -29,6 +38,19 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
   const [otpToken, setOtpToken] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
+  const [isForgotView, setIsForgotView] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [isForgotSuccess, setIsForgotSuccess] = useState(false)
+
+  const passwordValidation = {
+    hasUpper: /[A-Z]/.test(loginData.password),
+    hasLower: /[a-z]/.test(loginData.password),
+    hasDigit: /[0-9]/.test(loginData.password),
+    hasSymbol: /[^A-Za-z0-9]/.test(loginData.password),
+    minLength: loginData.password.length >= 8,
+  }
+
+  const isPasswordValid = Object.values(passwordValidation).every(Boolean)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -91,6 +113,89 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
     } finally {
       setIsResending(false)
     }
+  }
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+    try {
+      const { success, error: forgotError } = await userAuth.forgotPassword(forgotEmail)
+      if (success) {
+        setIsForgotSuccess(true)
+      } else {
+        setError(forgotError || "Failed to send reset link")
+      }
+    } catch (err) {
+      setError("An unexpected error occurred")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (isForgotView) {
+    return (
+      <div className="min-h-screen bg-[#FFFCEB] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-[#FE7F2D]/10 shadow-sm overflow-hidden rounded-[2.5rem] bg-white/50 backdrop-blur-sm p-8">
+          <div className="text-center space-y-6">
+            <Button variant="ghost" onClick={() => setIsForgotView(false)} className="absolute left-4 top-4 p-2 hover:bg-black/5 rounded-full">
+               <ArrowLeft className="w-4 h-4 text-[#010307]/40" />
+            </Button>
+            
+            <div className="flex justify-center pt-8">
+               <Image src="/logo.png" alt="THC Club" width={100} height={50} className="h-10 w-auto" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black lowercase italic text-[#010307]">recover access</h2>
+              <p className="text-[#010307]/60 text-xs lowercase italic font-medium">we'll send a recovery link for the collective terminal.</p>
+            </div>
+
+            {isForgotSuccess ? (
+              <div className="bg-green-50 p-6 rounded-3xl border border-green-100 space-y-4 animate-in fade-in duration-500">
+                <Check className="w-10 h-10 text-green-500 mx-auto" />
+                <p className="text-sm font-bold text-green-600 lowercase italic">recovery link sent to your email. check your inbox.</p>
+                <Button 
+                   onClick={() => setIsForgotView(false)}
+                   className="w-full bg-[#010307] text-white rounded-2xl h-14 lowercase font-black"
+                >
+                   return home
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleForgotSubmit} className="space-y-6">
+                {error && (
+                  <Alert variant="destructive" className="rounded-2xl border-red-100 bg-red-50 text-red-600">
+                    <AlertDescription className="font-bold text-xs lowercase italic">{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-2 text-left">
+                  <Label htmlFor="forgot-email" className="text-[11px] font-bold lowercase tracking-widest text-[#010307]/40 ml-1">recovery email</Label>
+                  <Input
+                    id="forgot-email"
+                    type="email"
+                    placeholder="creator@email.com"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    required
+                    className="border-[#010307]/10 focus:border-[#FE7F2D] rounded-2xl h-14 bg-white/80"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold lowercase text-base h-16 rounded-2xl shadow-xl shadow-orange-500/20 transition-all active:scale-[0.98]"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "sending recovery link..." : "send recovery link"}
+                </Button>
+              </form>
+            )}
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   if (showOtp) {
@@ -203,6 +308,13 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-[11px] font-bold lowercase tracking-widest text-[#010307]/40 ml-1">security password</Label>
+                  <button 
+                    type="button"
+                    onClick={() => setIsForgotView(true)}
+                    className="text-[10px] font-black lowercase text-[#FE7F2D] hover:underline"
+                  >
+                    forgot password?
+                  </button>
                 </div>
                 <Input
                   id="password"
@@ -216,6 +328,22 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
                   className="border-[#010307]/10 focus:border-[#FE7F2D] rounded-2xl h-14 bg-white/80"
                 />
               </div>
+
+              {/* Password Requirements Reminder (Subtle) */}
+              {loginData.password.length > 0 && !isPasswordValid && (
+                <div className="bg-orange-50/50 p-4 rounded-2xl border border-orange-100/50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-[#FE7F2D]/60" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40">security standards</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <PasswordRequirement label="Uppercase" met={passwordValidation.hasUpper} />
+                    <PasswordRequirement label="Lowercase" met={passwordValidation.hasLower} />
+                    <PasswordRequirement label="Digit" met={passwordValidation.hasDigit} />
+                    <PasswordRequirement label="Symbol" met={passwordValidation.hasSymbol} />
+                  </div>
+                </div>
+              )}
 
               <Button
                 type="submit"

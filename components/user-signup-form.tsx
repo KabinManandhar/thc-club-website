@@ -8,9 +8,18 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { UserPlus, ArrowLeft, CheckCircle2 } from "lucide-react"
+import { UserPlus, ArrowLeft, CheckCircle2, ShieldCheck, Check, X } from "lucide-react"
 import { userAuth } from "@/lib/user-auth"
 import Image from "next/image"
+
+function PasswordRequirement({ label, met }: { label: string; met: boolean }) {
+  return (
+    <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${met ? 'text-green-500' : 'text-[#010307]/30'}`}>
+      {met ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+      {label}
+    </div>
+  )
+}
 
 interface UserSignupFormProps {
   onSignupSuccess: () => void
@@ -36,6 +45,16 @@ export function UserSignupForm({ onSignupSuccess, onBack, onSwitchToLogin }: Use
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
 
+  const passwordValidation = {
+    hasUpper: /[A-Z]/.test(formData.password),
+    hasLower: /[a-z]/.test(formData.password),
+    hasDigit: /[0-9]/.test(formData.password),
+    hasSymbol: /[^A-Za-z0-9]/.test(formData.password),
+    minLength: formData.password.length >= 8,
+  }
+
+  const isPasswordValid = Object.values(passwordValidation).every(Boolean)
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
     setFormData((prev) => ({ ...prev, [id]: value }))
@@ -48,6 +67,12 @@ export function UserSignupForm({ onSignupSuccess, onBack, onSwitchToLogin }: Use
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match")
+      setIsLoading(false)
+      return
+    }
+
+    if (!isPasswordValid) {
+      setError("Password does not meet security requirements")
       setIsLoading(false)
       return
     }
@@ -307,6 +332,22 @@ export function UserSignupForm({ onSignupSuccess, onBack, onSwitchToLogin }: Use
                       required
                       className="border-[#010307]/10 focus:border-[#FE7F2D] rounded-2xl h-14 bg-white/80"
                     />
+                  </div>
+                </div>
+
+                {/* Password Requirements UI */}
+                <div className="bg-white/30 backdrop-blur-sm p-6 rounded-3xl border border-[#010307]/5 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className={`w-5 h-5 ${isPasswordValid ? 'text-green-500' : 'text-[#FE7F2D]/40'}`} />
+                    <p className="text-[11px] font-black uppercase tracking-widest text-[#010307]/60">security credentials</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                    <PasswordRequirement label="Uppercase (A-Z)" met={passwordValidation.hasUpper} />
+                    <PasswordRequirement label="Lowercase (a-z)" met={passwordValidation.hasLower} />
+                    <PasswordRequirement label="Numerical (0-9)" met={passwordValidation.hasDigit} />
+                    <PasswordRequirement label="Symbol (!@#$)" met={passwordValidation.hasSymbol} />
+                    <PasswordRequirement label="Min. 8 Chars" met={passwordValidation.minLength} />
+                    <PasswordRequirement label="Match confirmation" met={formData.password.length > 0 && formData.password === formData.confirmPassword} />
                   </div>
                 </div>
 

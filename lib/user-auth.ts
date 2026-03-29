@@ -189,8 +189,27 @@ export const userAuth = {
     }
   },
 
-  async resetPassword(_email: string): Promise<{ success: boolean; error?: string }> {
-    // Placeholder — would trigger an email reset in a full auth system
-    return { success: true }
+  async forgotPassword(email: string): Promise<{ success: boolean; error: string | null }> {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.toLowerCase(), {
+        redirectTo: `${window.location.origin}/reset-password`,
+      })
+      if (error) return { success: false, error: error.message }
+      return { success: true, error: null }
+    } catch (err) {
+      console.error("Forgot password error:", err)
+      return { success: false, error: "Failed to send reset email" }
+    }
+  },
+
+  async updatePassword(password: string): Promise<{ success: boolean; error: string | null }> {
+    try {
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) return { success: false, error: error.message }
+      return { success: true, error: null }
+    } catch (err) {
+      console.error("Update password error:", err)
+      return { success: false, error: "Failed to update password" }
+    }
   },
 }
