@@ -1,3 +1,6 @@
+import { BrandSalesReport } from "@/components/club/brand-sales-report"
+import { ShelfTransactions } from "@/components/shared/shelf-transactions"
+import { SimplifiedPayoutTracker } from "@/components/shared/simplified-payout-tracker"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,9 +19,6 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { ShelfTransactions } from "@/components/shared/shelf-transactions"
-import { SimplifiedPayoutTracker } from "@/components/shared/simplified-payout-tracker"
-import { BrandSalesReport } from "@/components/club/brand-sales-report"
 import { supabase, type Brand, type BrandChangeRequest, type BrandContract, type BrandProduct, type Enquiry, type Invoice, type ShelfBooking, type VisitRequest } from "@/lib/supabase"
 import { generateSKU } from "@/lib/utils"
 import { AlertCircle, ArrowLeft, BarChart3, Calendar, Check, ChevronRight, Clock, X as CloseX, DollarSign, FileText, Image as ImageIcon, Info, Instagram, LayoutGrid, Mail, MessageSquare, Package, Phone, Search, ShieldCheck, StickyNote, Trash2, Users } from "lucide-react"
@@ -48,7 +48,7 @@ export function BrandManagement() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null)
   const [view, setView] = useState<"list" | "detail">("list")
-  
+
   // Detail States
   const [products, setProducts] = useState<BrandProduct[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -69,8 +69,8 @@ export function BrandManagement() {
     setProcessingId(selectedBrand.id)
     try {
       console.log('[delete_brand] Attempting to delete brand:', selectedBrand.id, selectedBrand.business_name)
-      const { data, error } = await supabase.rpc('delete_brand_entirely', { 
-        p_brand_id: selectedBrand.id 
+      const { data, error } = await supabase.rpc('delete_brand_entirely', {
+        p_brand_id: selectedBrand.id
       })
       if (error) {
         console.error('[delete_brand] RPC error object:', error)
@@ -102,7 +102,7 @@ export function BrandManagement() {
     setLoadingDetails(true)
     setSelectedBrand(brand)
     setView("detail")
-    
+
     try {
       const [productsRes, invoicesRes, bookingsRes, enquiriesRes, visitsRes, changesRes, contractsRes] = await Promise.all([
         supabase.from("brand_products").select("*").eq("brand_id", brand.id).order("name", { ascending: true }),
@@ -133,7 +133,7 @@ export function BrandManagement() {
     try {
       if (action === 'approve') {
         const data = request.new_data
-        
+
         if (request.request_type === 'product_add') {
           // Auto Generate SKU if missing
           let sku = data.sku
@@ -142,9 +142,9 @@ export function BrandManagement() {
           }
 
           const { error } = await supabase.from('brand_products').insert({
-             brand_id: request.brand_id,
-             ...data,
-             sku // Insert the (possibly auto-generated) SKU
+            brand_id: request.brand_id,
+            ...data,
+            sku // Insert the (possibly auto-generated) SKU
           })
           if (error) throw error
         } else if (request.request_type === 'product_update' && request.target_id) {
@@ -174,11 +174,11 @@ export function BrandManagement() {
         .from('brand_change_requests')
         .update({ status: action === 'approve' ? 'approved' : 'rejected' })
         .eq('id', request.id)
-      
+
       if (error) throw error
-      
+
       toast.success(`Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`)
-      
+
       // Refresh details
       if (selectedBrand) handleBrandSelect(selectedBrand)
     } catch (err: any) {
@@ -200,7 +200,7 @@ export function BrandManagement() {
         .eq('id', selectedBrand.id)
 
       if (error) throw error
-      setSelectedBrand({...selectedBrand, ...data})
+      setSelectedBrand({ ...selectedBrand, ...data })
       toast.success('CRM Record Updated Successfully')
       fetchBrands() // refresh the list
     } catch (err: any) {
@@ -211,11 +211,11 @@ export function BrandManagement() {
   const uploadContract = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !selectedBrand) return
-    
+
     try {
       const fileExt = file.name.split('.').pop()
       const fileName = `contracts/${selectedBrand.id}/${Date.now()}.${fileExt}`
-      
+
       const { error: uploadError } = await supabase.storage
         .from('media')
         .upload(fileName, file)
@@ -226,14 +226,13 @@ export function BrandManagement() {
         .from('media')
         .getPublicUrl(fileName)
 
-      const { error: dbError } = await supabase.from('brand_contracts').insert({
-        brand_id: selectedBrand.id,
-        file_url: publicUrl,
-        status: 'signed',
-        contract_type: 'manual_physical',
-        signed_by: 'MANUAL_UPLOAD (Verified In-Person)',
-        signed_at: new Date().toISOString(),
-        ip_note: 'Uploaded manually by admin - in-person signature verified.'
+      // Use RPC to bypass RLS for admin manual upload
+      const { error: dbError } = await supabase.rpc('admin_upload_contract', {
+        p_brand_id: selectedBrand.id,
+        p_file_url: publicUrl,
+        p_contract_type: 'manual_physical',
+        p_status: 'signed',
+        p_ip_note: `Admin Manual Upload: ${selectedBrand.business_name} Physical Agreement Recorded.`
       })
 
       if (dbError) throw dbError
@@ -241,9 +240,38 @@ export function BrandManagement() {
       // Refresh contracts
       const { data } = await supabase.from('brand_contracts').select('*').eq('brand_id', selectedBrand.id).order('created_at', { ascending: false })
       setContracts(data || [])
-      toast.success('Contract Uploaded Successfully')
+      toast.success('Contract uploaded successfully.')
+      fetchBrands()
     } catch (err: any) {
       toast.error(err.message)
+    }
+  }
+
+  const deleteContract = async (contract: any) => {
+    if (!confirm('Are you sure you want to delete this contract? This will also remove the file from storage.')) return
+
+    try {
+      // 1. Delete from storage if file_url exists
+      if (contract.file_url) {
+        // Extract storage path from public URL
+        const path = contract.file_url.split('/media/')[1]
+        if (path) {
+          await supabase.storage.from('media').remove([path])
+        }
+      }
+
+      // 2. Delete database record
+      const { error } = await supabase.from('brand_contracts').delete().eq('id', contract.id)
+      if (error) throw error
+
+      toast.success('Contract deleted.')
+      // Refresh list
+      if (selectedBrand) {
+        const { data } = await supabase.from('brand_contracts').select('*').eq('brand_id', selectedBrand.id).order('created_at', { ascending: false })
+        setContracts(data || [])
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to delete contract')
     }
   }
 
@@ -259,8 +287,8 @@ export function BrandManagement() {
   if (view === "detail" && selectedBrand) {
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-right duration-500">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           onClick={() => { setView("list"); setSelectedBrand(null); }}
           className="hover:bg-black/5 hover:text-black -ml-2 rounded-xl transition-all"
         >
@@ -302,9 +330,9 @@ export function BrandManagement() {
             </div>
             {changeRequests.length > 0 && (
               <div className="absolute top-8 right-8 animate-pulse">
-                 <Badge className="bg-red-500 text-white font-black px-4 py-2 rounded-xl shadow-lg shadow-red-500/20">
-                    {changeRequests.length} Pending Actions
-                 </Badge>
+                <Badge className="bg-red-500 text-white font-black px-4 py-2 rounded-xl shadow-lg shadow-red-500/20">
+                  {changeRequests.length} Pending Actions
+                </Badge>
               </div>
             )}
           </div>
@@ -325,9 +353,9 @@ export function BrandManagement() {
                   { id: 'enquiries', label: 'Enquiries', count: enquiries.length, icon: <MessageSquare className="w-4 h-4 mr-3" /> },
                   { id: 'danger', label: 'Danger Zone', icon: <Trash2 className="w-4 h-4 mr-3 text-red-500" /> },
                 ].map(tab => (
-                  <TabsTrigger 
+                  <TabsTrigger
                     key={tab.id}
-                    value={tab.id} 
+                    value={tab.id}
                     className="data-[state=active]:bg-white data-[state=active]:text-[#FE7F2D] data-[state=active]:shadow-sm border border-transparent hover:bg-black/5 w-full justify-start rounded-xl px-4 py-3 font-black uppercase tracking-widest text-[9px] transition-all relative group h-auto"
                   >
                     {tab.icon}
@@ -367,139 +395,139 @@ export function BrandManagement() {
                       </Card>
 
                       <div className="space-y-4">
-                         <div className="bg-white p-5 rounded-2xl border border-gray-100 flex items-center justify-between group hover:border-[#FE7F2D]/30 transition-all shadow-sm">
-                            <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center group-hover:bg-[#FE7F2D]/10 transition-colors">
-                                  <Users className="w-5 h-5 text-[#FE7F2D]" />
-                               </div>
-                               <div>
-                                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-wider leading-none mb-1">Contact Person</p>
-                                  <p className="font-bold text-gray-900">{selectedBrand.contact_name || "---"}</p>
-                               </div>
+                        <div className="bg-white p-5 rounded-2xl border border-gray-100 flex items-center justify-between group hover:border-[#FE7F2D]/30 transition-all shadow-sm">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center group-hover:bg-[#FE7F2D]/10 transition-colors">
+                              <Users className="w-5 h-5 text-[#FE7F2D]" />
                             </div>
-                         </div>
-                         <div className="bg-white p-5 rounded-2xl border border-gray-100 flex items-center justify-between group hover:border-[#FE7F2D]/30 transition-all shadow-sm">
-                            <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center group-hover:bg-green-100 transition-colors">
-                                  <BarChart3 className="w-5 h-5 text-green-600" />
-                               </div>
-                               <div>
-                                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-wider leading-none mb-1">Total Venue Revenue</p>
-                                  <p className="font-bold text-gray-900">NPR {invoices.reduce((acc, inv) => acc + (inv.total_amount || 0), 0).toLocaleString()}</p>
-                               </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-black text-gray-400 tracking-wider leading-none mb-1">Contact Person</p>
+                              <p className="font-bold text-gray-900">{selectedBrand.contact_name || "---"}</p>
                             </div>
-                         </div>
-                         <div className="bg-white p-5 rounded-2xl border border-gray-100 flex items-center justify-between group hover:border-[#FE7F2D]/30 transition-all shadow-sm">
-                            <div className="flex items-center gap-4">
-                               <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-                                  <Package className="w-5 h-5 text-purple-600" />
-                               </div>
-                               <div>
-                                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-wider leading-none mb-1">Active Portfolio</p>
-                                  <p className="font-bold text-gray-900">{products.length} Products listed</p>
-                               </div>
+                          </div>
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl border border-gray-100 flex items-center justify-between group hover:border-[#FE7F2D]/30 transition-all shadow-sm">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center group-hover:bg-green-100 transition-colors">
+                              <BarChart3 className="w-5 h-5 text-green-600" />
                             </div>
-                         </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-black text-gray-400 tracking-wider leading-none mb-1">Total Venue Revenue</p>
+                              <p className="font-bold text-gray-900">NPR {invoices.reduce((acc, inv) => acc + (inv.total_amount || 0), 0).toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-white p-5 rounded-2xl border border-gray-100 flex items-center justify-between group hover:border-[#FE7F2D]/30 transition-all shadow-sm">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center group-hover:bg-purple-100 transition-colors">
+                              <Package className="w-5 h-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="text-[10px] uppercase font-black text-gray-400 tracking-wider leading-none mb-1">Active Portfolio</p>
+                              <p className="font-bold text-gray-900">{products.length} Products listed</p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-4">
-                       <h4 className="text-[10px] uppercase font-black text-[#FE7F2D] tracking-[0.2em] flex items-center gap-2">
-                          <LayoutGrid className="w-4 h-4" /> Active Subscriptions & Shelves
-                       </h4>
-                       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {bookings.map(booking => (
-                             <Card key={booking.id} className="border-gray-100 shadow-sm rounded-2xl overflow-hidden group hover:border-[#FE7F2D]/20 transition-all">
-                                <div className="p-5 space-y-3">
-                                   <div className="flex justify-between items-center">
-                                      <Badge className="bg-blue-50 text-blue-700 border-none font-black uppercase text-[8px] tracking-widest px-3 py-1">
-                                         Slot #{booking.slot_number || "TBD"}
-                                      </Badge>
-                                      <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 ${booking.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : ''}`}>
-                                         {booking.status}
-                                      </Badge>
-                                   </div>
-                                   <div>
-                                      <p className="font-bold text-gray-900 capitalize italic">{booking.shelf_type.replace('_', ' ')}</p>
-                                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{booking.duration} Plan</p>
-                                   </div>
-                                   <div className="pt-3 border-t border-gray-50 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
-                                      <span>NPR {booking.monthly_rent.toLocaleString()}/mo</span>
-                                      <div className="flex items-center gap-1">
-                                         <Calendar className="w-3 h-3" />
-                                         <span>Exp {booking.end_date ? new Date(booking.end_date).toLocaleDateString() : '---'}</span>
-                                      </div>
-                                   </div>
+                      <h4 className="text-[10px] uppercase font-black text-[#FE7F2D] tracking-[0.2em] flex items-center gap-2">
+                        <LayoutGrid className="w-4 h-4" /> Active Subscriptions & Shelves
+                      </h4>
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {bookings.map(booking => (
+                          <Card key={booking.id} className="border-gray-100 shadow-sm rounded-2xl overflow-hidden group hover:border-[#FE7F2D]/20 transition-all">
+                            <div className="p-5 space-y-3">
+                              <div className="flex justify-between items-center">
+                                <Badge className="bg-blue-50 text-blue-700 border-none font-black uppercase text-[8px] tracking-widest px-3 py-1">
+                                  Slot #{booking.slot_number || "TBD"}
+                                </Badge>
+                                <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 ${booking.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : ''}`}>
+                                  {booking.status}
+                                </Badge>
+                              </div>
+                              <div>
+                                <p className="font-bold text-gray-900 capitalize italic">{booking.shelf_type.replace('_', ' ')}</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{booking.duration} Plan</p>
+                              </div>
+                              <div className="pt-3 border-t border-gray-50 flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                                <span>NPR {booking.monthly_rent.toLocaleString()}/mo</span>
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-3 h-3" />
+                                  <span>Exp {booking.end_date ? new Date(booking.end_date).toLocaleDateString() : '---'}</span>
                                 </div>
-                             </Card>
-                          ))}
-                          {bookings.length === 0 && (
-                             <div className="col-span-full py-12 text-center bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100 italic text-gray-400 font-medium">
-                                No active shelf bookings found.
-                             </div>
-                          )}
-                       </div>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                        {bookings.length === 0 && (
+                          <div className="col-span-full py-12 text-center bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100 italic text-gray-400 font-medium">
+                            No active shelf bookings found.
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </TabsContent>
 
                   <TabsContent value="changes" className="mt-0 outline-none space-y-4">
                     {changeRequests.length === 0 ? (
                       <div className="py-20 text-center space-y-4">
-                         <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
-                            <Check className="w-8 h-8 text-gray-300" />
-                         </div>
-                         <p className="text-gray-400 font-bold">No pending change requests.</p>
+                        <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto">
+                          <Check className="w-8 h-8 text-gray-300" />
+                        </div>
+                        <p className="text-gray-400 font-bold">No pending change requests.</p>
                       </div>
                     ) : (
                       <div className="grid gap-4">
                         {changeRequests.map(request => (
                           <Card key={request.id} className="border-[#FE7F2D]/20 overflow-hidden shadow-lg">
-                             <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100">
-                                <div className="p-5 flex-1 space-y-3">
-                                   <div className="flex items-center justify-between">
-                                      <Badge className="bg-orange-50 text-[#FE7F2D] font-black uppercase tracking-widest text-[9px]">
-                                        {request.request_type.replace('_', ' ')}
-                                      </Badge>
-                                      <span className="text-[10px] text-gray-400 font-bold">{new Date(request.created_at).toLocaleString()}</span>
-                                   </div>
-                                    <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                                       <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                                          {Object.entries(request.new_data || {}).map(([key, value]) => {
-                                             if (key === 'image_url' && value) {
-                                                return (
-                                                   <div key={key} className="col-span-2 flex items-center gap-4 py-2 border-b border-gray-100">
-                                                      <span className="text-[10px] font-black uppercase text-gray-400 w-24">Image</span>
-                                                      <img src={value as string} alt="preview" className="w-16 h-16 rounded-xl object-cover border" />
-                                                   </div>
-                                                )
-                                             }
-                                             return (
-                                                <div key={key} className="flex flex-col gap-1 py-2 border-b border-gray-100">
-                                                   <span className="text-[10px] font-black uppercase text-gray-400">{key.replace('_', ' ')}</span>
-                                                   <span className="text-sm font-bold text-gray-900">{String(value)}</span>
-                                                </div>
-                                             )
-                                          })}
-                                       </div>
-                                    </div>
-                                 </div>
-                                <div className="p-5 w-full md:w-48 flex md:flex-col justify-center gap-3 bg-gray-50/30">
-                                   <Button 
-                                      className="w-full bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] h-11 rounded-xl"
-                                      disabled={!!processingId}
-                                      onClick={() => handleApproval(request, 'approve')}
-                                   >
-                                      <Check className="w-4 h-4 mr-2" /> Approve
-                                   </Button>
-                                   <Button 
-                                      variant="outline"
-                                      className="w-full border-red-200 text-red-600 hover:bg-red-50 font-black uppercase text-[10px] h-11 rounded-xl"
-                                      disabled={!!processingId}
-                                      onClick={() => handleApproval(request, 'reject')}
-                                   >
-                                      <CloseX className="w-4 h-4 mr-2" /> Reject
-                                   </Button>
+                            <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-gray-100">
+                              <div className="p-5 flex-1 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <Badge className="bg-orange-50 text-[#FE7F2D] font-black uppercase tracking-widest text-[9px]">
+                                    {request.request_type.replace('_', ' ')}
+                                  </Badge>
+                                  <span className="text-[10px] text-gray-400 font-bold">{new Date(request.created_at).toLocaleString()}</span>
                                 </div>
-                             </div>
+                                <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                                    {Object.entries(request.new_data || {}).map(([key, value]) => {
+                                      if (key === 'image_url' && value) {
+                                        return (
+                                          <div key={key} className="col-span-2 flex items-center gap-4 py-2 border-b border-gray-100">
+                                            <span className="text-[10px] font-black uppercase text-gray-400 w-24">Image</span>
+                                            <img src={value as string} alt="preview" className="w-16 h-16 rounded-xl object-cover border" />
+                                          </div>
+                                        )
+                                      }
+                                      return (
+                                        <div key={key} className="flex flex-col gap-1 py-2 border-b border-gray-100">
+                                          <span className="text-[10px] font-black uppercase text-gray-400">{key.replace('_', ' ')}</span>
+                                          <span className="text-sm font-bold text-gray-900">{String(value)}</span>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="p-5 w-full md:w-48 flex md:flex-col justify-center gap-3 bg-gray-50/30">
+                                <Button
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] h-11 rounded-xl"
+                                  disabled={!!processingId}
+                                  onClick={() => handleApproval(request, 'approve')}
+                                >
+                                  <Check className="w-4 h-4 mr-2" /> Approve
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  className="w-full border-red-200 text-red-600 hover:bg-red-50 font-black uppercase text-[10px] h-11 rounded-xl"
+                                  disabled={!!processingId}
+                                  onClick={() => handleApproval(request, 'reject')}
+                                >
+                                  <CloseX className="w-4 h-4 mr-2" /> Reject
+                                </Button>
+                              </div>
+                            </div>
                           </Card>
                         ))}
                       </div>
@@ -522,17 +550,17 @@ export function BrandManagement() {
                             <TableRow key={p.id}>
                               <TableCell className="px-4">
                                 <div className="flex items-center gap-3">
-                                   {p.image_url ? (
-                                      <img src={p.image_url} alt={p.name} className="w-8 h-8 rounded-lg object-cover bg-gray-100 border shadow-sm" />
-                                   ) : (
-                                      <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100 shrink-0">
-                                         <ImageIcon className="w-4 h-4 text-gray-300" />
-                                      </div>
-                                   )}
-                                   <div className="flex flex-col min-w-[120px]">
-                                     <div className="font-bold text-gray-900 truncate">{p.name}</div>
-                                     <div className="text-[10px] text-gray-400 uppercase tracking-widest">{p.sku}</div>
-                                   </div>
+                                  {p.image_url ? (
+                                    <img src={p.image_url} alt={p.name} className="w-8 h-8 rounded-lg object-cover bg-gray-100 border shadow-sm" />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100 shrink-0">
+                                      <ImageIcon className="w-4 h-4 text-gray-300" />
+                                    </div>
+                                  )}
+                                  <div className="flex flex-col min-w-[120px]">
+                                    <div className="font-bold text-gray-900 truncate">{p.name}</div>
+                                    <div className="text-[10px] text-gray-400 uppercase tracking-widest">{p.sku}</div>
+                                  </div>
                                 </div>
                               </TableCell>
                               <TableCell className="font-mono text-xs font-black whitespace-nowrap">NPR {p.price.toLocaleString()}</TableCell>
@@ -543,9 +571,9 @@ export function BrandManagement() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-right px-4">
-                                 <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 font-black text-[10px] uppercase">
-                                    <Trash2 className="w-3 h-3 mr-1" /> Remove
-                                 </Button>
+                                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 font-black text-[10px] uppercase">
+                                  <Trash2 className="w-3 h-3 mr-1" /> Remove
+                                </Button>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -581,263 +609,311 @@ export function BrandManagement() {
 
 
                   <TabsContent value="payouts" className="mt-0 outline-none">
-                     <SimplifiedPayoutTracker brandId={selectedBrand.id} isAdmin={true} />
+                    <SimplifiedPayoutTracker brandId={selectedBrand.id} isAdmin={true} />
                   </TabsContent>
 
                   <TabsContent value="performance_analysis" className="mt-0 outline-none">
-                     <BrandSalesReport brandId={selectedBrand.id} />
+                    <BrandSalesReport brandId={selectedBrand.id} />
                   </TabsContent>
 
                   <TabsContent value="transactions" className="mt-0 outline-none">
-                     <ShelfTransactions brandId={selectedBrand.id} isAdmin={true} />
-                   </TabsContent>
+                    <ShelfTransactions brandId={selectedBrand.id} isAdmin={true} />
+                  </TabsContent>
 
                   <TabsContent value="enquiries" className="mt-0 outline-none space-y-4">
                     {enquiries.map((enq) => (
                       <Card key={enq.id} className="border-gray-100 shadow-sm rounded-2xl overflow-hidden hover:border-[#FE7F2D]/20 transition-all">
                         <div className="p-6 space-y-4">
-                           <div className="flex justify-between items-start">
-                              <div className="flex items-center gap-3">
-                                 <div className="w-10 h-10 bg-[#FE7F2D]/10 rounded-xl flex items-center justify-center">
-                                    <MessageSquare className="w-5 h-5 text-[#FE7F2D]" />
-                                 </div>
-                                 <div>
-                                    <p className="font-black text-gray-900 tracking-tight">{enq.subject}</p>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase">{new Date(enq.created_at).toLocaleDateString()}</p>
-                                 </div>
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-[#FE7F2D]/10 rounded-xl flex items-center justify-center">
+                                <MessageSquare className="w-5 h-5 text-[#FE7F2D]" />
                               </div>
-                              <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-3 py-1 bg-white">
-                                {enq.status}
-                              </Badge>
-                           </div>
-                           <p className="text-sm text-gray-600 leading-relaxed italic border-l-2 border-[#FE7F2D]/20 pl-4 py-1">"{enq.message}"</p>
+                              <div>
+                                <p className="font-black text-gray-900 tracking-tight">{enq.subject}</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase">{new Date(enq.created_at).toLocaleDateString()}</p>
+                              </div>
+                            </div>
+                            <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest px-3 py-1 bg-white">
+                              {enq.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 leading-relaxed italic border-l-2 border-[#FE7F2D]/20 pl-4 py-1">"{enq.message}"</p>
                         </div>
                       </Card>
                     ))}
                   </TabsContent>
 
-                   <TabsContent value="crm" className="mt-0 outline-none space-y-6">
-                     <Card className="border-gray-100 shadow-sm rounded-[2rem] overflow-hidden">
-                        <div className="p-8 space-y-8">
-                           <div className="flex justify-between items-start">
+                  <TabsContent value="crm" className="mt-0 outline-none space-y-6">
+                    <Card className="border-gray-100 shadow-sm rounded-[2rem] overflow-hidden">
+                      <div className="p-8 space-y-8">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="text-xl font-black lowercase italic tracking-tight text-gray-900 flex items-center gap-3">
+                              <ShieldCheck className="w-6 h-6 text-[#FE7F2D]" />
+                              Internal CRM Controls
+                            </h3>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Manage brand access and administrative lifecycle.</p>
+                          </div>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 gap-8">
+                          <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Onboarding Vibe</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              {['pending', 'slot_selected', 'active', 'rejected'].map((status) => (
+                                <Button
+                                  key={status}
+                                  variant="outline"
+                                  onClick={() => updateBrandCRM({ onboarding_status: status as any })}
+                                  className={`rounded-xl h-12 font-black lowercase italic tracking-widest text-xs transition-all ${selectedBrand.onboarding_status === status
+                                      ? 'bg-black text-white border-black scale-[1.02]'
+                                      : 'text-gray-400 border-gray-100 hover:border-black/20'
+                                    }`}
+                                >
+                                  {status.replace("_", " ")}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Member Status</label>
+                            <div className="flex gap-3">
+                              <Button
+                                variant="outline"
+                                onClick={() => updateBrandCRM({ is_active: true })}
+                                className={`flex-1 rounded-xl h-12 font-black uppercase text-[10px] tracking-widest ${selectedBrand.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'text-gray-400'}`}
+                              >
+                                <Check className="w-4 h-4 mr-2" /> Active
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => updateBrandCRM({ is_active: false })}
+                                className={`flex-1 rounded-xl h-12 font-black uppercase text-[10px] tracking-widest ${!selectedBrand.is_active ? 'bg-red-50 text-red-700 border-red-200' : 'text-gray-400'}`}
+                              >
+                                <CloseX className="w-4 h-4 mr-2" /> Blocked
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1 flex items-center gap-2">
+                              <StickyNote className="w-3.5 h-3.5" />
+                              Private Admin Notes
+                            </label>
+                            <Badge className="bg-orange-100 text-orange-700 border-none font-bold italic lowercase text-[10px] px-3 py-1">Visible to Admins Only</Badge>
+                          </div>
+                          <Textarea
+                            placeholder="Internal notes about the brand..."
+                            value={selectedBrand.admin_notes || ""}
+                            onChange={(e) => setSelectedBrand({ ...selectedBrand, admin_notes: e.target.value })}
+                            onBlur={() => updateBrandCRM({ admin_notes: selectedBrand.admin_notes })}
+                            className="min-h-[200px] border-gray-100 bg-gray-50/30 rounded-2xl p-6 italic font-medium text-gray-700 focus:ring-[#FE7F2D]/20 focus:border-[#FE7F2D]/30"
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="contracts" className="mt-0 outline-none space-y-6">
+                    <div className="flex justify-between items-center bg-gray-50/50 border border-black/5 p-8 rounded-[2.5rem]">
+                      <div>
+                        <h3 className="text-xl font-black lowercase italic tracking-tight text-gray-900 flex items-center gap-3">
+                          <FileText className="w-6 h-6 text-[#FE7F2D]" />
+                          legal & contracts
+                        </h3>
+                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1 italic">manage signed agreements and partnership documents.</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <input
+                          type="file"
+                          id="contract-upload-final"
+                          className="hidden"
+                          onChange={uploadContract}
+                          accept=".pdf,.doc,.docx,.jpg,.png"
+                        />
+                        <Button
+                          onClick={() => document.getElementById('contract-upload-final')?.click()}
+                          className="bg-[#FE7F2D] text-white hover:bg-black rounded-xl font-black uppercase text-[10px] tracking-widest h-12 px-8 shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-2"
+                        >
+                          <ImageIcon className="w-4 h-4" /> Upload Manual Contract
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Digital Contract Helper Note */}
+                    <div className="p-6 bg-blue-50/40 rounded-3xl border border-blue-100 flex items-start gap-4">
+                      <div className="w-10 h-10 bg-blue-100/50 rounded-xl flex items-center justify-center shrink-0">
+                        <Info className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-black text-blue-800 text-[10px] uppercase tracking-widest">Digital Contract Protocol</p>
+                        <p className="text-xs text-blue-700 font-medium italic leading-relaxed">
+                          Electronic agreements are signed by the brand via their portal. Once signed, they will automatically populate here as a "partnership agreement" for your final activation.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-4">
+                      {contracts.map((contract) => (
+                        <Card key={contract.id} className="p-8 border-gray-100 hover:border-[#FE7F2D]/30 transition-all rounded-[2rem] group bg-white shadow-sm space-y-6">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-5">
+                              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-colors ${contract.contract_type === 'manual_physical' ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400 group-hover:bg-[#FE7F2D]/10 group-hover:text-[#FE7F2D]'}`}>
+                                <FileText className="w-7 h-7" />
+                              </div>
                               <div>
-                                 <h3 className="text-xl font-black lowercase italic tracking-tight text-gray-900 flex items-center gap-3">
-                                    <ShieldCheck className="w-6 h-6 text-[#FE7F2D]" />
-                                    Internal CRM Controls
-                                 </h3>
-                                 <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Manage brand access and administrative lifecycle.</p>
+                                <div className="font-black text-gray-900 lowercase italic tracking-tight text-xl mb-0.5 flex items-center gap-2">
+                                  {contract.contract_type?.replace('_', ' ') || 'partnership agreement'}
+                                  {contract.contract_type === 'manual_physical' && (
+                                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-black uppercase text-[8px] tracking-widest px-2 py-0.5">Physical Scan</Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Added {new Date(contract.created_at).toLocaleDateString()}</span>
+                                  <Badge className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border-none ${contract.status === 'active' ? 'bg-black text-white' :
+                                      contract.status === 'signed' ? 'bg-green-50 text-green-700' :
+                                        'bg-gray-50 text-gray-500'
+                                    }`}>
+                                    {contract.status || 'active'}
+                                  </Badge>
+                                </div>
                               </div>
-                           </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Button
+                                variant="ghost"
+                                className="rounded-xl h-10 px-5 font-black uppercase text-[9px] tracking-widest border border-gray-100 hover:bg-black hover:text-white"
+                                asChild
+                              >
+                                <a href={contract.file_url} target="_blank" rel="noopener noreferrer">
+                                  {contract.contract_type === 'manual_physical' ? 'View Scan' : 'View Doc'}
+                                </a>
+                              </Button>
 
-                           <div className="grid md:grid-cols-2 gap-8">
-                              <div className="space-y-4">
-                                 <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Onboarding Vibe</label>
-                                 <div className="grid grid-cols-2 gap-2">
-                                    {['pending', 'slot_selected', 'active', 'rejected'].map((status) => (
-                                       <Button
-                                          key={status}
-                                          variant="outline"
-                                          onClick={() => updateBrandCRM({ onboarding_status: status as any })}
-                                          className={`rounded-xl h-12 font-black lowercase italic tracking-widest text-xs transition-all ${
-                                             selectedBrand.onboarding_status === status 
-                                             ? 'bg-black text-white border-black scale-[1.02]' 
-                                             : 'text-gray-400 border-gray-100 hover:border-black/20'
-                                          }`}
-                                       >
-                                          {status.replace("_", " ")}
-                                       </Button>
-                                    ))}
-                                 </div>
-                              </div>
+                              {contract.status !== 'active' && (
+                                <Button
+                                  onClick={async () => {
+                                    const { error: cntError } = await supabase.from('brand_contracts').update({ status: 'active' }).eq('id', contract.id)
+                                    if (cntError) throw cntError
+                                    const { error: brandError } = await supabase.from('brands').update({ onboarding_status: 'active' }).eq('id', selectedBrand.id)
+                                    if (brandError) throw brandError
+                                    toast.success('Contract activated & brand approved.')
+                                    handleBrandSelect(selectedBrand)
+                                    fetchBrands()
+                                  }}
+                                  className="bg-[#FE7F2D] text-white hover:bg-black rounded-xl h-10 px-4 font-black uppercase text-[9px] tracking-widest"
+                                >
+                                  Activate
+                                </Button>
+                              )}
 
-                              <div className="space-y-4">
-                                 <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Member Status</label>
-                                 <div className="flex gap-3">
-                                    <Button
-                                       variant="outline"
-                                       onClick={() => updateBrandCRM({ is_active: true })}
-                                       className={`flex-1 rounded-xl h-12 font-black uppercase text-[10px] tracking-widest ${selectedBrand.is_active ? 'bg-green-50 text-green-700 border-green-200' : 'text-gray-400'}`}
-                                    >
-                                       <Check className="w-4 h-4 mr-2" /> Active
-                                    </Button>
-                                    <Button
-                                       variant="outline"
-                                       onClick={() => updateBrandCRM({ is_active: false })}
-                                       className={`flex-1 rounded-xl h-12 font-black uppercase text-[10px] tracking-widest ${!selectedBrand.is_active ? 'bg-red-50 text-red-700 border-red-200' : 'text-gray-400'}`}
-                                    >
-                                       <CloseX className="w-4 h-4 mr-2" /> Blocked
-                                    </Button>
-                                 </div>
-                              </div>
-                           </div>
+                              <Button
+                                variant="ghost"
+                                onClick={() => deleteContract(contract)}
+                                className="w-10 h-10 p-0 rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
 
-                           <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                 <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1 flex items-center gap-2">
-                                    <StickyNote className="w-3.5 h-3.5" />
-                                    Private Admin Notes
-                                 </label>
-                                 <Badge className="bg-orange-100 text-orange-700 border-none font-bold italic lowercase text-[10px] px-3 py-1">Visible to Admins Only</Badge>
-                              </div>
-                              <Textarea 
-                                 placeholder="Internal notes about the brand..."
-                                 value={selectedBrand.admin_notes || ""}
-                                 onChange={(e) => setSelectedBrand({...selectedBrand, admin_notes: e.target.value})}
-                                 onBlur={() => updateBrandCRM({ admin_notes: selectedBrand.admin_notes })}
-                                 className="min-h-[200px] border-gray-100 bg-gray-50/30 rounded-2xl p-6 italic font-medium text-gray-700 focus:ring-[#FE7F2D]/20 focus:border-[#FE7F2D]/30"
-                              />
-                           </div>
+                          {(contract.signed_by || contract.stamp_number || contract.ip_note) && (
+                            <div className="grid sm:grid-cols-3 gap-4 pt-4 border-t border-gray-50">
+                              {contract.signed_by && (
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                  <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1">Signed By</p>
+                                  <p className="font-black text-gray-900 italic font-serif">{contract.signed_by}</p>
+                                </div>
+                              )}
+                              {contract.signed_at && (
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                  <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1">Date Executed</p>
+                                  <p className="font-bold text-gray-900 text-xs">{new Date(contract.signed_at).toLocaleDateString()}</p>
+                                </div>
+                              )}
+                              {contract.stamp_number && (
+                                <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                                  <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1">Stamp #</p>
+                                  <p className="font-bold text-gray-900 text-xs">{contract.stamp_number}</p>
+                                </div>
+                              )}
+                              {contract.ip_note && (
+                                <div className="col-span-full bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex items-start gap-3">
+                                  <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                                  <p className="text-[10px] font-bold text-blue-700 italic">{contract.ip_note}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </Card>
+                      ))}
+
+                      {contracts.length === 0 && (
+                        <div className="text-center py-20 bg-gray-50/50 rounded-[3rem] border-2 border-dashed border-gray-100 italic font-medium text-gray-400">
+                          <ShieldCheck className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                          <p className="font-black lowercase tracking-tight text-lg">no legal documents staged</p>
+                          <p className="text-[10px] uppercase font-bold tracking-[0.2em] mt-2">upload manual scans or wait for e-signature sync</p>
                         </div>
-                     </Card>
-                   </TabsContent>
-
-                   <TabsContent value="contracts" className="mt-0 outline-none space-y-6">
-                     <div className="flex justify-between items-center bg-gray-50/50 border border-black/5 p-8 rounded-[2.5rem]">
-                        <div>
-                           <h3 className="text-xl font-black lowercase italic tracking-tight text-gray-900 flex items-center gap-3">
-                              <FileText className="w-6 h-6 text-[#FE7F2D]" />
-                              legal & contracts
-                           </h3>
-                           <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1 italic">manage signed agreements and partnership documents.</p>
-                        </div>
-                         <div className="flex items-center gap-4">
-                           <input
-                             type="file"
-                             id="contract-upload-final"
-                             className="hidden"
-                             onChange={uploadContract}
-                             accept=".pdf,.doc,.docx,.jpg,.png"
-                           />
-                           <Button 
-                             onClick={() => document.getElementById('contract-upload-final')?.click()}
-                             className="bg-[#FE7F2D] text-white hover:bg-black rounded-xl font-black uppercase text-[10px] tracking-widest h-12 px-8 shadow-xl shadow-orange-500/20 active:scale-95 transition-all flex items-center gap-2"
-                           >
-                              <ImageIcon className="w-4 h-4" /> Upload Manual Contract
-                           </Button>
-                         </div>
-                     </div>
-
-                     <div className="grid gap-4">
-                        {contracts.map((contract) => (
-                           <Card key={contract.id} className="p-6 border-gray-100 hover:border-[#FE7F2D]/30 transition-all rounded-[1.5rem] group bg-white shadow-sm">
-                              <div className="flex items-center justify-between">
-                                 <div className="flex items-center gap-5">
-                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${contract.contract_type === 'manual_physical' ? 'bg-blue-50 text-blue-500' : 'bg-gray-50 text-gray-400 group-hover:bg-[#FE7F2D]/10 group-hover:text-[#FE7F2D]'}`}>
-                                       <FileText className="w-6 h-6" />
-                                    </div>
-                                    <div>
-                                       <div className="font-black text-gray-900 lowercase italic tracking-tight text-lg mb-0.5 flex items-center gap-2">
-                                          {contract.contract_type?.replace('_', ' ') || 'partnership agreement'}
-                                          {contract.contract_type === 'manual_physical' && (
-                                            <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none font-black uppercase text-[8px] tracking-widest px-2 py-0.5">Physical Scan</Badge>
-                                          )}
-                                       </div>
-                                       <div className="flex items-center gap-3">
-                                          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Added {new Date(contract.created_at).toLocaleDateString()}</span>
-                                          <Badge className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 border-none ${
-                                            contract.status === 'active' ? 'bg-black text-white' : 
-                                            contract.status === 'signed' ? 'bg-green-50 text-green-700' : 
-                                            'bg-gray-50 text-gray-500'
-                                          }`}>
-                                             {contract.status || 'active'}
-                                          </Badge>
-                                       </div>
-                                    </div>
-                                 </div>
-                                 <div className="flex items-center gap-3">
-                                    <Button 
-                                       variant="ghost" 
-                                       className="rounded-xl h-10 px-5 font-black uppercase text-[9px] tracking-widest border border-gray-100 hover:bg-black hover:text-white"
-                                       asChild
-                                    >
-                                       <a href={contract.file_url} target="_blank" rel="noopener noreferrer">
-                                         {contract.contract_type === 'manual_physical' ? 'View Scan' : 'View Doc'}
-                                       </a>
-                                    </Button>
-                                    
-                                    {contract.status !== 'active' && (
-                                      <Button
-                                        onClick={async () => {
-                                          const { error: cntError } = await supabase.from('brand_contracts').update({ status: 'active' }).eq('id', contract.id)
-                                          if (cntError) throw cntError
-                                          const { error: brandError } = await supabase.from('brands').update({ onboarding_status: 'active' }).eq('id', selectedBrand.id)
-                                          if (brandError) throw brandError
-                                          toast.success('Contract activated & brand approved.')
-                                          handleBrandSelect(selectedBrand)
-                                          fetchBrands()
-                                        }}
-                                        className="bg-[#FE7F2D] text-white hover:bg-black rounded-xl h-10 px-4 font-black uppercase text-[9px] tracking-widest"
-                                      >
-                                        Activate
-                                      </Button>
-                                    )}
-                                 </div>
-                              </div>
-                           </Card>
-                        ))}
-
-                        {contracts.length === 0 && (
-                           <div className="text-center py-20 bg-gray-50/50 rounded-[3rem] border-2 border-dashed border-gray-100 italic font-medium text-gray-400">
-                              <ShieldCheck className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                              <p className="font-black lowercase tracking-tight text-lg">no legal documents staged</p>
-                              <p className="text-[10px] uppercase font-bold tracking-[0.2em] mt-2">upload manual scans or wait for e-signature sync</p>
-                           </div>
-                        )}
-                     </div>
-                   </TabsContent>
+                      )}
+                    </div>
+                  </TabsContent>
 
                   <TabsContent value="danger" className="mt-0 outline-none">
-                      <div className="bg-red-50 border-2 border-dashed border-red-200 rounded-[3rem] p-16 text-center space-y-8 animate-in zoom-in-95 duration-500">
-                         <div className="w-24 h-24 bg-red-500 rounded-full flex items-center justify-center text-white mx-auto shadow-2xl shadow-red-500/20">
-                            <Trash2 className="w-12 h-12" />
-                         </div>
-                         <div className="space-y-4 max-w-lg mx-auto">
-                            <h3 className="text-3xl font-black tracking-tighter lowercase italic text-red-900 leading-none">nuclear deletion</h3>
-                            <p className="text-red-700/60 font-medium italic text-lg leading-relaxed">
-                               You are about to permanently wipe <span className="font-black text-red-800 underline decoration-red-800/20">{selectedBrand.business_name}</span>. 
-                               This will erase all sales history, invoices, shelf allotments, and inventory records. <span className="font-black">This action is IRREVERSIBLE.</span>
-                            </p>
-                         </div>
-                         
-                         <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                               <Button 
-                                  variant="destructive"
-                                  className="h-20 px-16 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[12px] shadow-2xl shadow-red-500/30 hover:scale-105 transition-all active:scale-95 bg-red-600"
-                               >
-                                  Confirm Total Wipe
-                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent className="rounded-[2.5rem] p-10 border-red-100 shadow-2xl">
-                               <AlertDialogHeader className="space-y-4">
-                                  <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 mb-2">
-                                     <AlertCircle className="w-8 h-8" />
-                                  </div>
-                                  <AlertDialogTitle className="text-2xl font-black lowercase italic tracking-tight">Final Authorization Required</AlertDialogTitle>
-                                  <AlertDialogDescription className="text-gray-500 font-medium leading-relaxed italic text-lg">
-                                     This will trigger a cascading database wipe. All cloud synchronization and POS associations for this brand will be severed immediately.
-                                  </AlertDialogDescription>
-                               </AlertDialogHeader>
-                               <AlertDialogFooter className="mt-10 gap-4">
-                                  <AlertDialogCancel className="h-14 px-10 rounded-2xl font-bold lowercase tracking-widest text-[11px] border-none bg-gray-50">abort mission</AlertDialogCancel>
-                                  <AlertDialogAction 
-                                     onClick={handleDeleteBrand}
-                                     className="h-14 px-10 rounded-2xl font-black lowercase tracking-widest text-[11px] bg-red-600 hover:bg-red-700 text-white shadow-xl shadow-red-500/20"
-                                  >
-                                     confirm execution
-                                  </AlertDialogAction>
-                               </AlertDialogFooter>
-                            </AlertDialogContent>
-                         </AlertDialog>
+                    <div className="bg-red-50 border-2 border-dashed border-red-200 rounded-[3rem] p-16 text-center space-y-8 animate-in zoom-in-95 duration-500">
+                      <div className="w-24 h-24 bg-red-500 rounded-full flex items-center justify-center text-white mx-auto shadow-2xl shadow-red-500/20">
+                        <Trash2 className="w-12 h-12" />
+                      </div>
+                      <div className="space-y-4 max-w-lg mx-auto">
+                        <h3 className="text-3xl font-black tracking-tighter lowercase italic text-red-900 leading-none">nuclear deletion</h3>
+                        <p className="text-red-700/60 font-medium italic text-lg leading-relaxed">
+                          You are about to permanently wipe <span className="font-black text-red-800 underline decoration-red-800/20">{selectedBrand.business_name}</span>.
+                          This will erase all sales history, invoices, shelf allotments, and inventory records. <span className="font-black">This action is IRREVERSIBLE.</span>
+                        </p>
+                      </div>
 
-                         <div className="pt-8 flex flex-wrap justify-center gap-3">
-                            <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">cascading wipe enabled</Badge>
-                            <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">pos link termination</Badge>
-                            <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">financial record purge</Badge>
-                       </div>
-                       </div>
-                    </TabsContent>
-                 </div>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            className="h-20 px-16 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[12px] shadow-2xl shadow-red-500/30 hover:scale-105 transition-all active:scale-95 bg-red-600"
+                          >
+                            Confirm Total Wipe
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="rounded-[2.5rem] p-10 border-red-100 shadow-2xl">
+                          <AlertDialogHeader className="space-y-4">
+                            <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 mb-2">
+                              <AlertCircle className="w-8 h-8" />
+                            </div>
+                            <AlertDialogTitle className="text-2xl font-black lowercase italic tracking-tight">Final Authorization Required</AlertDialogTitle>
+                            <AlertDialogDescription className="text-gray-500 font-medium leading-relaxed italic text-lg">
+                              This will trigger a cascading database wipe. All cloud synchronization and POS associations for this brand will be severed immediately.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter className="mt-10 gap-4">
+                            <AlertDialogCancel className="h-14 px-10 rounded-2xl font-bold lowercase tracking-widest text-[11px] border-none bg-gray-50">abort mission</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={handleDeleteBrand}
+                              className="h-14 px-10 rounded-2xl font-black lowercase tracking-widest text-[11px] bg-red-600 hover:bg-red-700 text-white shadow-xl shadow-red-500/20"
+                            >
+                              confirm execution
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+
+                      <div className="pt-8 flex flex-wrap justify-center gap-3">
+                        <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">cascading wipe enabled</Badge>
+                        <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">pos link termination</Badge>
+                        <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">financial record purge</Badge>
+                      </div>
+                    </div>
+                  </TabsContent>
+                </div>
               )}
             </div>
           </Tabs>
