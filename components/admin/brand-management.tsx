@@ -73,13 +73,8 @@ export function BrandManagement() {
         p_brand_id: selectedBrand.id 
       })
       if (error) {
-        console.error('[delete_brand] RPC error:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        })
-        throw new Error(error.message || error.details || 'RPC call failed — check if delete_brand_entirely function is deployed in Supabase.')
+        console.error('[delete_brand] RPC error object:', error)
+        throw new Error(JSON.stringify(error) || 'RPC call failed with an unknown error.')
       }
       console.log('[delete_brand] Success:', data)
       toast.success("Brand completely wiped from all records.")
@@ -88,7 +83,7 @@ export function BrandManagement() {
       fetchBrands()
     } catch (err: any) {
       console.error('[delete_brand] Caught error:', err)
-      toast.error(err.message || "Failed to delete brand. Check browser console for details.")
+      toast.error(typeof err === "string" ? err : err?.message || "Failed to delete brand. Check browser console for details.")
     } finally {
       setProcessingId(null)
     }
@@ -113,7 +108,7 @@ export function BrandManagement() {
         supabase.from("brand_products").select("*").eq("brand_id", brand.id).order("name", { ascending: true }),
         supabase.from("invoices").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
         supabase.from("shelf_bookings").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
-        supabase.from("enquiries").select("*").eq("email", brand.email).order("created_at", { ascending: false }),
+        supabase.from("enquiries").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
         supabase.from("visit_requests").select("*").eq("email", brand.email).order("created_at", { ascending: false }),
         supabase.from("brand_change_requests").select("*").eq("brand_id", brand.id).eq("status", "pending").order("created_at", { ascending: false }),
         supabase.from("brand_contracts").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false })
@@ -252,6 +247,9 @@ export function BrandManagement() {
       b.business_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       b.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  const pendingBrands = filtered.filter((b) => b.onboarding_status === "pending")
+  const activeBrands = filtered.filter((b) => b.onboarding_status !== "pending")
 
   if (view === "detail" && selectedBrand) {
     return (
@@ -1011,119 +1009,180 @@ export function BrandManagement() {
     )
   }
 
+  const BrandTable = ({ list }: { list: typeof brands }) => (
+    <Table>
+      <TableHeader className="bg-gray-50/50">
+        <TableRow className="hover:bg-transparent border-none whitespace-nowrap">
+          <TableHead className="w-[30%] px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Brand Portfolio</TableHead>
+          <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Communication</TableHead>
+          <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Vibe Check</TableHead>
+          <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Latest Pulse</TableHead>
+          <TableHead className="w-[80px] px-6 py-4"></TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {loading ? (
+          <TableRow>
+            <TableCell colSpan={5} className="text-center py-24">
+              <div className="flex flex-col items-center gap-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D] border-t-transparent shadow-lg shadow-orange-500/10"></div>
+                <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest">Waking up the database...</p>
+              </div>
+            </TableCell>
+          </TableRow>
+        ) : list.length === 0 ? (
+          <TableRow>
+            <TableCell colSpan={5} className="text-center py-24">
+              <Users className="w-16 h-16 mx-auto text-gray-100 mb-6" />
+              <p className="text-gray-500 font-black uppercase tracking-widest text-xs">No brands found matching your search.</p>
+            </TableCell>
+          </TableRow>
+        ) : (
+          list.map((b) => (
+            <TableRow
+              key={b.id}
+              className="hover:bg-[#FE7F2D]/5 cursor-pointer group transition-all border-b border-gray-50"
+              onClick={() => handleBrandSelect(b)}
+            >
+              <TableCell className="px-6 py-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center font-black text-[#FE7F2D] text-lg uppercase group-hover:bg-[#FE7F2D] group-hover:text-white group-hover:border-transparent transition-all shadow-sm">
+                    {b.business_name.substring(0, 2)}
+                  </div>
+                  <div>
+                    <div className="font-black text-gray-900 text-lg tracking-tight group-hover:translate-x-1 transition-transform">
+                      {b.business_name}
+                    </div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                      @{b.instagram_handle?.replace('@', '') || "no_handle"}
+                    </div>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="px-6">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-sm font-bold text-gray-600">
+                    {b.email}
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium italic">
+                    {b.phone || "---"}
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell className="px-6 text-center">
+                <Badge className={`${STATUS_COLORS[b.onboarding_status] || "bg-gray-100 text-gray-700"} px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border-none`}>
+                  {b.onboarding_status.replace("_", " ")}
+                </Badge>
+              </TableCell>
+              <TableCell className="px-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:bg-white group-hover:border-[#FE7F2D]/30 transition-colors">
+                    <Clock className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#FE7F2D]" />
+                  </div>
+                  <span className="text-xs font-bold text-gray-500 group-hover:text-gray-900 transition-colors">{timeAgo(b.updated_at || b.created_at)}</span>
+                </div>
+              </TableCell>
+              <TableCell className="px-6">
+                <div className="flex justify-end">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center group-hover:bg-[#FE7F2D] group-hover:text-white transition-all transform group-hover:-rotate-45">
+                    <ChevronRight className="w-6 h-6" />
+                  </div>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))
+        )}
+      </TableBody>
+    </Table>
+  )
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-4xl font-black tracking-tight">Brand CRM</h2>
           <p className="text-gray-500 font-bold">Manage membership lifecycle and vendor portfolio.</p>
         </div>
-        <div className="text-[10px] font-black tracking-[0.2em] text-[#FE7F2D] bg-[#FE7F2D]/10 px-6 py-3 rounded-2xl border border-[#FE7F2D]/20 uppercase">
-          {brands.length} Active Member Brands
+        <div className="flex items-center gap-3">
+          {pendingBrands.length > 0 && (
+            <div className="flex items-center gap-2 text-[10px] font-black tracking-[0.2em] text-amber-700 bg-amber-50 px-5 py-3 rounded-2xl border border-amber-200 uppercase animate-pulse">
+              <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+              {pendingBrands.length} Awaiting Approval
+            </div>
+          )}
+          <div className="text-[10px] font-black tracking-[0.2em] text-[#FE7F2D] bg-[#FE7F2D]/10 px-6 py-3 rounded-2xl border border-[#FE7F2D]/20 uppercase">
+            {activeBrands.length} Active Brands
+          </div>
         </div>
       </div>
 
-      <Card className="border border-black/5 shadow-sm rounded-2xl overflow-hidden bg-white">
-        <CardHeader className="bg-white border-b border-black/5 p-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search by brand name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 h-14 bg-gray-50 border-transparent focus:bg-white focus:border-black transition-all rounded-xl font-bold"
-            />
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="table-responsive">
-            <Table>
-              <TableHeader className="bg-gray-50/50">
-                <TableRow className="hover:bg-transparent border-none whitespace-nowrap">
-                  <TableHead className="w-[30%] px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Brand Portfolio</TableHead>
-                  <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Communication</TableHead>
-                  <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Vibe Check</TableHead>
-                  <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Latest Pulse</TableHead>
-                  <TableHead className="w-[80px] px-6 py-4"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-24">
-                      <div className="flex flex-col items-center gap-4">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D] border-t-transparent shadow-lg shadow-orange-500/10"></div>
-                        <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest">Waking up the database...</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : filtered.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-24">
-                      <Users className="w-16 h-16 mx-auto text-gray-100 mb-6" />
-                      <p className="text-gray-500 font-black uppercase tracking-widest text-xs">No curators found matching sequence.</p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filtered.map((b) => (
-                    <TableRow 
-                      key={b.id} 
-                      className="hover:bg-[#FE7F2D]/5 cursor-pointer group transition-all border-b border-gray-50"
-                      onClick={() => handleBrandSelect(b)}
-                    >
-                      <TableCell className="px-6 py-5">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center font-black text-[#FE7F2D] text-lg uppercase group-hover:bg-[#FE7F2D] group-hover:text-white group-hover:border-transparent transition-all shadow-sm">
-                            {b.business_name.substring(0, 2)}
-                          </div>
-                          <div>
-                            <div className="font-black text-gray-900 text-lg tracking-tight group-hover:translate-x-1 transition-transform">
-                              {b.business_name}
-                            </div>
-                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                              @{b.instagram_handle?.replace('@', '') || "no_handle"}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6">
-                        <div className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 text-sm font-bold text-gray-600">
-                             {b.email}
-                          </div>
-                          <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium italic">
-                             {b.phone || "---"}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6 text-center">
-                        <Badge className={`${STATUS_COLORS[b.onboarding_status] || "bg-gray-100 text-gray-700"} px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border-none`}>
-                          {b.onboarding_status.replace("_", " ")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="px-6">
-                        <div className="flex items-center gap-3">
-                           <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:bg-white group-hover:border-[#FE7F2D]/30 transition-colors">
-                              <Clock className="w-3.5 h-3.5 text-gray-300 group-hover:text-[#FE7F2D]" />
-                           </div>
-                           <span className="text-xs font-bold text-gray-500 group-hover:text-gray-900 transition-colors">{timeAgo(b.updated_at || b.created_at)}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-6">
-                        <div className="flex justify-end">
-                           <div className="w-10 h-10 rounded-full flex items-center justify-center group-hover:bg-[#FE7F2D] group-hover:text-white transition-all transform group-hover:-rotate-45">
-                              <ChevronRight className="w-6 h-6" />
-                           </div>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+        <Input
+          placeholder="Search by brand name or email..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-12 h-14 bg-white border border-black/5 focus:border-black shadow-sm transition-all rounded-xl font-bold"
+        />
+      </div>
+
+      {/* Tabbed Sections */}
+      <Tabs defaultValue={pendingBrands.length > 0 ? "pending" : "active"} className="w-full">
+        <TabsList className="bg-transparent border-b border-gray-100 rounded-none w-full justify-start h-auto p-0 mb-0 gap-8">
+          <TabsTrigger
+            value="active"
+            className="data-[state=active]:border-black data-[state=active]:border-b-2 data-[state=active]:text-black bg-transparent border-transparent rounded-none px-0 pb-4 font-black uppercase tracking-[0.2em] text-[10px] text-gray-400 flex items-center gap-2"
+          >
+            Active Brands
+            <span className="bg-gray-900 text-white rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 text-[9px] font-black">
+              {activeBrands.length}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="pending"
+            className="data-[state=active]:border-amber-500 data-[state=active]:border-b-2 data-[state=active]:text-amber-700 bg-transparent border-transparent rounded-none px-0 pb-4 font-black uppercase tracking-[0.2em] text-[10px] text-gray-400 flex items-center gap-2"
+          >
+            Pending Approval
+            {pendingBrands.length > 0 && (
+              <span className="bg-amber-500 text-white rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5 text-[9px] font-black animate-pulse">
+                {pendingBrands.length}
+              </span>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active" className="mt-0 outline-none">
+          <Card className="border border-black/5 shadow-sm rounded-b-2xl rounded-tr-2xl overflow-hidden bg-white">
+            <CardContent className="p-0">
+              <div className="table-responsive">
+                <BrandTable list={activeBrands} />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="pending" className="mt-0 outline-none">
+          {pendingBrands.length > 0 && (
+            <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-t-2xl px-6 py-4">
+              <div className="w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-white text-[9px] font-black">!</span>
+              </div>
+              <p className="text-[11px] font-bold text-amber-800 uppercase tracking-widest">
+                These brands have registered but are awaiting your admin approval. Review their profile and approve or reject via the CRM tab.
+              </p>
+            </div>
+          )}
+          <Card className="border border-black/5 shadow-sm rounded-b-2xl overflow-hidden bg-white">
+            <CardContent className="p-0">
+              <div className="table-responsive">
+                <BrandTable list={pendingBrands} />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

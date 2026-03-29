@@ -144,6 +144,29 @@ export function PayoutsTracker() {
     }
   }, [])
 
+  const syncToSettlements = async (month: number, year: number) => {
+    try {
+      const { data: pData } = await supabase.from("payouts").select("*").eq("month", month).eq("year", year)
+      if (pData && pData.length > 0) {
+        const syncData = pData.map(p => ({
+          brand_id: p.brand_id,
+          period_year: p.year,
+          period_month: p.month,
+          total_sales: p.gross_sales,
+          ppf_deduction: p.ppf_amount || 0,
+          net_payout: p.net_payout,
+          status: p.status,
+          paid_at: p.paid_at,
+          bank_reference: p.admin_notes || "",
+          admin_notes: p.admin_notes || ""
+        }))
+        await supabase.from("brand_settlements").upsert(syncData, { onConflict: 'brand_id, period_year, period_month' })
+      }
+    } catch (e) {
+      console.error("Sync to settlements failed", e)
+    }
+  }
+
   useEffect(() => { fetchData() }, [fetchData])
 
   const fetchPayoutInvoices = async (brandId: string, month: number, year: number) => {
@@ -180,6 +203,10 @@ export function PayoutsTracker() {
       const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
       const { error } = await supabase.rpc("generate_monthly_payouts", { p_month: month, p_year: year })
       if (error) throw error
+      
+      // Mirror to brand_settlements for dashboard visibility
+      await syncToSettlements(month, year)
+
       toast.success(`Payout ledger for ${month}/${year} synchronized.`)
       fetchData()
     } catch (err: any) {
@@ -285,6 +312,10 @@ export function PayoutsTracker() {
         setCompletedPayout(finalRecord)
         setFlowStep("statement")
         toast.success(`Payout completed for ${activeBrandName}`)
+        
+        // Unify the records into brand_settlements for dashboard consistency
+        await syncToSettlements(finalRecord.month, finalRecord.year)
+
         fetchData()
       }
     } catch (err: any) {
@@ -297,11 +328,27 @@ export function PayoutsTracker() {
   const handleUndoSettlement = async (payoutId: string) => {
     if (!confirm("Reverse this settlement? The status will revert to pending.")) return
     try {
-      const { error } = await supabase
+      // 1. Revert in payouts table
+      const { data: revertedRecord, error } = await supabase
         .from("payouts")
         .update({ status: "pending", paid_at: null })
         .eq("id", payoutId)
+        .select("*")
+        .single()
+      
       if (error) throw error
+
+      // 2. Sync reversion to brand_settlements
+      if (revertedRecord) {
+        await supabase.from("brand_settlements").update({
+          status: "pending",
+          paid_at: null
+        })
+        .eq("brand_id", (revertedRecord as Payout).brand_id)
+        .eq("period_year", (revertedRecord as Payout).year)
+        .eq("period_month", (revertedRecord as Payout).month)
+      }
+
       toast.success("Settlement reversed.")
       fetchData()
     } catch (err: any) {
@@ -309,11 +356,16 @@ export function PayoutsTracker() {
     }
   }
 
+
   const handleRedoPayout = async (month: number, year: number) => {
     setIsGenerating(true)
     try {
       const { error } = await supabase.rpc("generate_monthly_payouts", { p_month: month, p_year: year })
       if (error) throw error
+      
+      // Ensure brand dashboards are in sync with redo
+      await syncToSettlements(month, year)
+
       toast.success(`Ledger for ${month}/${year} recalculated.`)
       fetchData()
     } catch (err: any) {

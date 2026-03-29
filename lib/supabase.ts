@@ -247,6 +247,7 @@ export interface BrandSettlement {
   status: "pending" | "processing" | "paid"
   paid_at?: string
   bank_reference?: string
+  admin_notes?: string
   created_at: string
   updated_at: string
 }

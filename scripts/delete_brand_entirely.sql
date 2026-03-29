@@ -83,7 +83,6 @@ BEGIN
   -- ── Step 11: Enquiries & visit requests tied to brand or its email
   DELETE FROM enquiries WHERE brand_id = p_brand_id;
   IF v_email IS NOT NULL THEN
-    DELETE FROM enquiries      WHERE email = v_email;
     DELETE FROM visit_requests WHERE email = v_email;
   END IF;
 
