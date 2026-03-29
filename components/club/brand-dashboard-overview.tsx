@@ -276,7 +276,7 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
 
         {/* Low Stock Watchlist - Sticky Sidebar */}
         {!isSidebarHidden && (
-          <div className="lg:sticky lg:top-24 h-fit animate-in fade-in slide-in-from-right-4 duration-500">
+          <div className="lg:sticky lg:top-4 h-fit animate-in fade-in slide-in-from-right-4 duration-500">
             <Card className="border border-black/5 shadow-sm rounded-[2rem] bg-white overflow-hidden p-0">
                <CardHeader className="p-8 pb-4 border-b border-[#010307]/5 flex flex-row items-center justify-between">
                   <div>

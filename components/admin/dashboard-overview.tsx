@@ -301,8 +301,13 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat) => {
           const Icon = stat.icon
+          const isFinancial = stat.title.includes("Sales") || stat.title.includes("Fee")
           return (
-            <Card key={stat.title} className="group border-black/5 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white overflow-hidden">
+            <Card 
+              key={stat.title} 
+              className={`group border-black/5 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white overflow-hidden cursor-pointer active:scale-95`}
+              onClick={() => onTabChange(isFinancial ? "accounts" : (stat.title.includes("Brands") ? "brands" : "inbox"))}
+            >
               <CardContent className="p-5 sm:p-8">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
@@ -448,7 +453,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
         {/* Quick Insights / Action Cards - Sticky Sidebar */}
         {!isSidebarHidden && (
-          <div className="space-y-6 lg:sticky lg:top-24 h-fit animate-in fade-in slide-in-from-right-4 duration-500">
+          <div className="space-y-6 lg:sticky lg:top-4 h-fit animate-in fade-in slide-in-from-right-4 duration-500">
             <Card className="border-gray-100 shadow-lg rounded-2xl overflow-hidden">
               <CardHeader className="py-4">
                 <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">

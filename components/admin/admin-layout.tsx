@@ -11,6 +11,7 @@ import {
   BookOpen,
   DollarSign,
   FileText,
+  Landmark,
   LogOut,
   Menu,
   MessageSquare,
@@ -73,6 +74,7 @@ export function AdminLayout({
     { id: "bookings", label: "Shelf Bookings", icon: BookOpen },
     { id: "invoices", label: "Create Invoice", icon: Receipt },
     { id: "invoice-list", label: "Sales History", icon: FileText },
+    { id: "accounts", label: "Accounts", icon: Landmark },
     { id: "payouts", label: "Payouts Tracker", icon: DollarSign },
     { id: "pricing-offers", label: "Pricing & Economics", icon: BadgeDollarSign },
     { id: "shelf-revenue", label: "Shelf Revenue", icon: TrendingUp },
@@ -178,9 +180,9 @@ export function AdminLayout({
       )}
 
       {/* ── Main content ─────────────────────────────────────────── */}
-      <main className="flex-1 min-w-0 overflow-x-hidden">
+      <main className="flex-1 min-w-0 flex flex-col h-screen overflow-hidden">
         {/* Top bar with toggle */}
-        <div className="sticky top-0 z-30 bg-[#FFFCEB]/90 backdrop-blur-md border-b border-[#010307]/5 px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-4">
+        <div className="h-14 shrink-0 bg-[#FFFCEB]/90 backdrop-blur-md border-b border-[#010307]/5 px-4 sm:px-6 lg:px-8 flex items-center gap-4 z-30">
           <Button
             variant="ghost"
             size="icon"
@@ -195,7 +197,7 @@ export function AdminLayout({
           </span>
         </div>
 
-        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 scroll-smooth">{children}</div>
       </main>
     </div>
   );

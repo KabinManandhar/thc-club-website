@@ -3,14 +3,13 @@
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { supabase, type BrandSettlement, type Invoice } from "@/lib/supabase"
-import { AlertCircle, CircleDollarSign, FileText, Package, RefreshCw, Printer } from "lucide-react"
-import { useEffect, useState, useRef } from "react"
+import { AlertCircle, CircleDollarSign, FileText, Printer, RefreshCw } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 
 interface Props {
    brandId: string
@@ -27,7 +26,7 @@ export function SimplifiedPayoutTracker({ brandId, isAdmin = false }: Props) {
    const [selectedSettlement, setSelectedSettlement] = useState<BrandSettlement | null>(null)
    const [settlementInvoices, setSettlementInvoices] = useState<any[]>([])
    const [isFetchingInvoices, setIsFetchingInvoices] = useState(false)
-   
+
    const printRef = useRef<HTMLDivElement>(null)
 
    const currentDate = new Date()
@@ -143,7 +142,7 @@ export function SimplifiedPayoutTracker({ brandId, isAdmin = false }: Props) {
    const handlePrint = () => {
       const content = printRef.current;
       if (!content) return;
-      
+
       const printWindow = window.open('', '_blank');
       if (!printWindow) return;
 
@@ -410,7 +409,7 @@ export function SimplifiedPayoutTracker({ brandId, isAdmin = false }: Props) {
                      <div className="flex justify-between items-end border-b-2 border-gray-900 pb-8">
                         <div>
                            <div className="text-4xl font-black italic tracking-tighter text-gray-900">THC Club</div>
-                           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mt-1">Internal Treasury Control</p>
+                           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mt-1">Internal thc club Control</p>
                         </div>
                         <div className="text-right">
                            <div className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D] mb-1">Payout Statement</div>
@@ -493,7 +492,7 @@ export function SimplifiedPayoutTracker({ brandId, isAdmin = false }: Props) {
                                              <div className="space-y-1">
                                                 {inv.invoice_line_items?.map((item: any, idx: number) => (
                                                    <p key={idx} className="text-[10px] text-gray-600 flex gap-2">
-                                                      <span className="font-black text-gray-400">{item.quantity}x</span> 
+                                                      <span className="font-black text-gray-400">{item.quantity}x</span>
                                                       <span className="truncate max-w-[240px]">{item.product_name}</span>
                                                    </p>
                                                 ))}
@@ -521,10 +520,10 @@ export function SimplifiedPayoutTracker({ brandId, isAdmin = false }: Props) {
                               <span className="font-bold text-gray-500 uppercase tracking-widest text-[10px]">Platform processing fee (ppf)</span>
                               <span className="font-bold tabular-nums text-red-500">−NPR {selectedSettlement?.ppf_deduction.toLocaleString()}</span>
                            </div>
-                           
+
                            {selectedSettlement?.admin_notes && (
                               <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/50 mb-4">
-                                 <p className="text-[10px] font-bold text-amber-700/60 uppercase tracking-widest mb-1">Treasury Note</p>
+                                 <p className="text-[10px] font-bold text-amber-700/60 uppercase tracking-widest mb-1">thc club Note</p>
                                  <p className="text-xs italic text-amber-800">{selectedSettlement.admin_notes}</p>
                               </div>
                            )}
@@ -543,7 +542,7 @@ export function SimplifiedPayoutTracker({ brandId, isAdmin = false }: Props) {
                      </div>
                   </div>
                </ScrollArea>
-               
+
                <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4 no-print">
                   <Button
                      onClick={handlePrint}
@@ -553,7 +552,7 @@ export function SimplifiedPayoutTracker({ brandId, isAdmin = false }: Props) {
                      <Printer className="w-4 h-4" />
                      Download PDF
                   </Button>
-                  <Button 
+                  <Button
                      onClick={() => setSelectedSettlement(null)}
                      className="bg-black text-white hover:bg-gray-800 font-black uppercase text-[10px] tracking-widest px-8 h-12 rounded-2xl shadow-lg"
                   >

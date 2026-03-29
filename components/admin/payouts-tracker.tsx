@@ -1,22 +1,33 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
-import { supabase } from "@/lib/supabase"
-import { Card } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  CheckCircle, Clock, RefreshCcw, DollarSign, Wallet, ArrowUpRight,
-  CheckCircle2, AlertCircle, FileText, Printer, X, ChevronRight,
-  Receipt, ShieldCheck, Banknote, TrendingUp, Landmark, Smartphone
-} from "lucide-react"
-import { toast } from "sonner"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { supabase } from "@/lib/supabase"
+import {
+  AlertCircle,
+  ArrowUpRight,
+  Banknote,
+  CheckCircle2,
+  ChevronRight,
+  Clock,
+  Landmark,
+  Printer,
+  Receipt,
+  RefreshCcw,
+  ShieldCheck,
+  Smartphone,
+  TrendingUp,
+  Wallet,
+  X
+} from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -29,7 +40,7 @@ interface LiveSale {
   ppf_amount: number
   ppf_rate: number
   brands?: { business_name: string; bank_account_details?: any }
-  
+
 }
 
 interface Payout {
@@ -78,20 +89,43 @@ export function PayoutsTracker() {
   const [lastSynced, setLastSynced] = useState<Date | null>(null)
   const [payoutInvoices, setPayoutInvoices] = useState<any[]>([])
 
+  // ─── Search & Selection ───────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState("")
+  const [activeView, setActiveView] = useState<"pending" | "ledger">("pending")
+
   // Derived Stats
   const currentMonth = new Date().getMonth() + 1
   const currentYear = new Date().getFullYear()
 
-  // Only count current month for the "Live Flow" ticker, but use all for the total due
-  const currentMonthSales = liveSales.filter(s => s.month === currentMonth && s.year === currentYear)
-  const totalMonthGross = currentMonthSales.reduce((s, x) => s + (x.gross_sales || 0), 0)
-  
+  // 1. Live Sales (Unprocessed Accruals)
   const totalLiveGross = liveSales.reduce((s, x) => s + (x.gross_sales || 0), 0)
   const totalLiveDue = liveSales.reduce((sum, s) => sum + (s.gross_sales - (s.ppf_amount || 0)), 0)
+  const totalLivePPF = totalLiveGross - totalLiveDue
+
+  // 2. Finalized Pending (Waiting for Disbursement)
+  const pendingPayouts = payouts.filter(p => p.status === 'pending')
+  const totalFinalizedPendingGross = pendingPayouts.reduce((sum, p) => sum + p.gross_sales, 0)
+  const totalFinalizedPendingNet = pendingPayouts.reduce((sum, p) => sum + p.net_payout, 0)
+  const totalFinalizedPendingPPF = totalFinalizedPendingGross - totalFinalizedPendingNet
+
+  // 3. Totals
+  const grandTotalGross = totalLiveGross + totalFinalizedPendingGross
+  const grandTotalNetDue = totalLiveDue + totalFinalizedPendingNet
+  const grandTotalPPFAccrued = totalLivePPF + totalFinalizedPendingPPF
 
   const [viewPayout, setViewPayout] = useState<Payout | null>(null)
-
   const printRef = useRef<HTMLDivElement | null>(null)
+
+  // Filtering
+  const filteredLiveSales = liveSales.filter(s =>
+    s.brands?.business_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+  const filteredPendingPayouts = pendingPayouts.filter(p =>
+    p.brands?.business_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+  const filteredLedger = payouts.filter(p =>
+    p.status === 'paid' && p.brands?.business_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   // ─── Data Fetching ──────────────────────────────────────────────────────────
 
@@ -120,7 +154,7 @@ export function PayoutsTracker() {
         .limit(10)
 
       const payoutsResult = (payoutData || []) as Payout[]
-      
+
       // Filter out live sales that already have an associated payout record
       const finalizedIds = new Set(payoutsResult.map(p => `${p.brand_id}-${p.month}-${p.year}`))
       const filteredLiveSales = (salesData || []).filter(s => !finalizedIds.has(`${s.brand_id}-${s.month}-${s.year}`))
@@ -203,7 +237,7 @@ export function PayoutsTracker() {
       const year = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
       const { error } = await supabase.rpc("generate_monthly_payouts", { p_month: month, p_year: year })
       if (error) throw error
-      
+
       // Mirror to brand_settlements for dashboard visibility
       await syncToSettlements(month, year)
 
@@ -312,7 +346,7 @@ export function PayoutsTracker() {
         setCompletedPayout(finalRecord)
         setFlowStep("statement")
         toast.success(`Payout completed for ${activeBrandName}`)
-        
+
         // Unify the records into brand_settlements for dashboard consistency
         await syncToSettlements(finalRecord.month, finalRecord.year)
 
@@ -335,7 +369,7 @@ export function PayoutsTracker() {
         .eq("id", payoutId)
         .select("*")
         .single()
-      
+
       if (error) throw error
 
       // 2. Sync reversion to brand_settlements
@@ -344,9 +378,9 @@ export function PayoutsTracker() {
           status: "pending",
           paid_at: null
         })
-        .eq("brand_id", (revertedRecord as Payout).brand_id)
-        .eq("period_year", (revertedRecord as Payout).year)
-        .eq("period_month", (revertedRecord as Payout).month)
+          .eq("brand_id", (revertedRecord as Payout).brand_id)
+          .eq("period_year", (revertedRecord as Payout).year)
+          .eq("period_month", (revertedRecord as Payout).month)
       }
 
       toast.success("Settlement reversed.")
@@ -362,7 +396,7 @@ export function PayoutsTracker() {
     try {
       const { error } = await supabase.rpc("generate_monthly_payouts", { p_month: month, p_year: year })
       if (error) throw error
-      
+
       // Ensure brand dashboards are in sync with redo
       await syncToSettlements(month, year)
 
@@ -404,9 +438,9 @@ export function PayoutsTracker() {
         <span className="text-xs font-bold uppercase tracking-tight">No disbursement profile configured by brand</span>
       </div>
     )
-    
+
     const type = details.type || "bank"
-    
+
     if (type === "bank") {
       return (
         <div className="flex items-center gap-4 bg-emerald-50/50 p-4 rounded-xl border border-emerald-100/50">
@@ -421,7 +455,7 @@ export function PayoutsTracker() {
         </div>
       )
     }
-    
+
     if (type === "wallet") {
       return (
         <div className="flex items-center gap-4 bg-blue-50/50 p-4 rounded-xl border border-blue-100/50">
@@ -442,7 +476,7 @@ export function PayoutsTracker() {
           <Banknote className="w-6 h-6 text-orange-500" />
           <div className="flex flex-col">
             <div className="text-sm font-black italic text-gray-900 uppercase tracking-tight">Physical Cash Disbursement</div>
-            <div className="text-[10px] font-bold text-orange-600/60 uppercase tracking-widest">To be settled at Club Treasury</div>
+            <div className="text-[10px] font-bold text-orange-600/60 uppercase tracking-widest">To be settled at thc club</div>
           </div>
         </div>
       )
@@ -470,16 +504,16 @@ export function PayoutsTracker() {
   // ─── Statement panel (for viewing existing settled payouts) ─────────────────
   const StatementView = ({ payout, invoices, printRef }: { payout: Payout; invoices: any[]; printRef: React.RefObject<HTMLDivElement | null> }) => (
     <div ref={printRef} className="space-y-8 print:p-8">
-      <div className="flex justify-between items-end border-b-2 border-[#010307] pb-6">
+      <div className="flex justify-between items-end border-b-[3px] border-[#010307] pb-8">
         <div>
-          <div className="text-3xl font-black italic tracking-tighter">THC Club</div>
-          <p className="text-[8px] font-black uppercase tracking-widest text-[#010307]/30">Internal Treasury Control</p>
+          <div className="text-4xl font-black italic tracking-tighter uppercase">thc club</div>
+          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#010307]/40 mt-1">Internal Control · Treasury Division</p>
         </div>
         <div className="text-right">
-          <div className="text-xs font-black uppercase tracking-widest text-[#FE7F2D]">Payout Statement</div>
-          <p className="text-[10px] font-bold tabular-nums">Ref: #{payout.id.slice(0, 8).toUpperCase()}</p>
-          <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest">
-            {new Date(payout.paid_at || Date.now()).toLocaleDateString("en-NP")}
+          <Badge className="bg-[#FE7F2D] text-white border-none font-black uppercase text-[9px] px-4 py-1 tracking-widest mb-3">Settlement Statement</Badge>
+          <p className="text-[11px] font-bold tabular-nums text-gray-400">ID: {payout.id.slice(0, 12).toUpperCase()}</p>
+          <p className="text-[11px] font-black text-[#010307] uppercase tracking-widest">
+            {new Date(payout.paid_at || Date.now()).toLocaleDateString("en-NP", { day: '2-digit', month: 'short', year: 'numeric' })}
           </p>
         </div>
       </div>
@@ -499,15 +533,15 @@ export function PayoutsTracker() {
           <div>
             <div className="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Disbursement Profile</div>
             <div className="text-sm font-medium italic text-gray-600">
-               {payout.brands?.bank_account_details?.type === 'cash' ? (
-                 "Cash Settlement"
-               ) : payout.brands?.bank_account_details?.type === 'wallet' ? (
-                 `${payout.brands.bank_account_details.walletProvider} • ${payout.brands.bank_account_details.walletNumber}`
-               ) : payout.brands?.bank_account_details?.bankName ? (
-                 `${payout.brands.bank_account_details.bankName} • ${payout.brands.bank_account_details.accountNumber}`
-               ) : (
-                 "manual settlement (verify records)"
-               )}
+              {payout.brands?.bank_account_details?.type === 'cash' ? (
+                "Cash Settlement"
+              ) : payout.brands?.bank_account_details?.type === 'wallet' ? (
+                `${payout.brands.bank_account_details.walletProvider} • ${payout.brands.bank_account_details.walletNumber}`
+              ) : payout.brands?.bank_account_details?.bankName ? (
+                `${payout.brands.bank_account_details.bankName} • ${payout.brands.bank_account_details.accountNumber}`
+              ) : (
+                "manual settlement (verify records)"
+              )}
             </div>
           </div>
           <div>
@@ -520,36 +554,41 @@ export function PayoutsTracker() {
       </div>
 
       <div className="space-y-4 pt-6">
-        <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400">Detailed Transaction Breakdown</h4>
-        <div className="rounded-xl border border-gray-100 overflow-hidden">
-          <table className="w-full text-left">
+        <div className="flex items-center gap-3 px-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-[#FE7F2D]" />
+          <h4 className="text-[10px] font-black uppercase tracking-[0.15em] text-gray-400">Verified POS Transactions</h4>
+        </div>
+        <div className="rounded-[2rem] border border-gray-100 overflow-hidden bg-white shadow-sm">
+          <table className="w-full text-left border-collapse">
             <thead className="bg-gray-50/50">
               <tr>
-                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Date / Ref</th>
-                <th className="py-2 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Items Sold</th>
-                <th className="text-right py-2 px-3 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b">Gross (NPR)</th>
+                <th className="py-4 px-6 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">Timestamp / Invoice</th>
+                <th className="py-4 px-6 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">Inventory Distribution</th>
+                <th className="text-right py-4 px-6 text-[9px] font-black uppercase tracking-widest text-gray-400 border-b border-gray-100">Gross Vol. (NPR)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50 bg-white">
+            <tbody className="divide-y divide-gray-50">
               {invoices.length === 0 ? (
                 <tr>
-                  <td colSpan={3} className="py-8 text-center text-xs italic text-gray-400">Loading invoice details...</td>
+                  <td colSpan={3} className="py-16 text-center text-xs italic text-gray-300 font-medium tracking-tight">Accessing POS archives...</td>
                 </tr>
               ) : (
                 invoices.map((inv) => (
-                  <tr key={inv.id}>
-                    <td className="py-3 px-3 align-top">
-                      <div className="text-[10px] font-bold text-gray-900">#{inv.invoice_number}</div>
-                      <div className="text-[8px] font-black uppercase tracking-widest text-gray-400">{new Date(inv.created_at).toLocaleDateString()}</div>
+                  <tr key={inv.id} className="hover:bg-gray-50/30 transition-colors">
+                    <td className="py-5 px-6 align-top">
+                      <div className="text-[11px] font-black text-gray-900 mb-0.5">#{inv.invoice_number}</div>
+                      <div className="text-[9px] font-bold text-gray-400 tabular-nums uppercase">{new Date(inv.created_at).toLocaleDateString()} · {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                     </td>
-                    <td className="py-3 px-3 align-top max-w-[200px]">
-                      {inv.invoice_line_items?.map((item: any, idx: number) => (
-                        <div key={idx} className="text-[10px] text-gray-600 truncate mb-0.5">
-                          <span className="font-black text-gray-400">{item.quantity}x</span> {item.product_name}
-                        </div>
-                      ))}
+                    <td className="py-5 px-6 align-top">
+                      <div className="flex flex-wrap gap-x-3 gap-y-1">
+                        {inv.invoice_line_items?.map((item: any, idx: number) => (
+                          <div key={idx} className="text-[10px] font-medium text-gray-500 whitespace-nowrap">
+                            <span className="font-black text-gray-300 mr-1">{item.quantity}×</span> {item.product_name?.toLowerCase()}
+                          </div>
+                        ))}
+                      </div>
                     </td>
-                    <td className="py-3 px-3 align-top text-right text-xs font-bold tabular-nums">
+                    <td className="py-5 px-6 align-top text-right text-xs font-black italic tabular-nums text-gray-900 border-l border-gray-50/50">
                       {inv.total_amount?.toLocaleString() || '0'}
                     </td>
                   </tr>
@@ -599,108 +638,166 @@ export function PayoutsTracker() {
   return (
     <div className="space-y-10 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
       {/* Header */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-        <div>
-          <h1 className="text-3xl font-black tracking-tighter uppercase italic flex items-center gap-3">
-            <Wallet className="w-8 h-8 text-[#FE7F2D]" /> Payouts Terminal
-          </h1>
-          <div className="flex items-center gap-2 mt-1">
-            <p className="text-gray-500 font-medium text-sm">Real-time settlement aggregator and financial reconciliation.</p>
+      <div className="flex flex-col md:flex-row items-end justify-between gap-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center">
+              <Wallet className="w-5 h-5 text-[#FE7F2D]" />
+            </div>
+            <h1 className="text-3xl font-black tracking-tighter uppercase italic">
+              payouts tracker
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <p className="text-gray-400 font-medium text-sm">Real-time settlement aggregator and financial reconciliation.</p>
             {lastSynced && (
-               <div className="flex items-center gap-1 px-2 py-0.5 bg-gray-50 rounded-full border border-black/5">
-                  <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span>
-                  <span className="text-[8px] font-bold text-gray-400 uppercase">Synced {lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-               </div>
+              <div className="hidden sm:flex items-center gap-1 px-2.5 py-1 bg-white rounded-full border border-black/5 shadow-sm">
+                <span className="w-1 h-1 bg-green-500 rounded-full animate-pulse"></span>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Synced {lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <Button variant="outline" onClick={fetchData} disabled={isSyncing}
-            className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest border-gray-200 hover:bg-gray-50 flex items-center gap-2">
-            <RefreshCcw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} /> Sync Live
-          </Button>
-          <Button onClick={handleGeneratePayouts} disabled={isGenerating}
-            className="bg-black text-white hover:bg-black/90 rounded-2xl h-12 px-8 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 flex-1 md:flex-none">
-            <TrendingUp className="w-4 h-4" />
-            {isGenerating ? "Finalizing..." : "Finalize Last Month"}
-          </Button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-64">
+            <Input
+              placeholder="search brand partner..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-12 rounded-2xl bg-white border-black/5 pl-10 font-bold lowercase italic text-sm text-[#010307] focus:border-[#FE7F2D]/20 transition-all shadow-sm"
+            />
+            <X
+              className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 ${searchTerm ? 'hidden' : 'block'}`}
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+                <X className="w-4 h-4 text-gray-400 hover:text-black" />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={fetchData} disabled={isSyncing}
+              className="rounded-2xl h-12 px-6 font-black uppercase text-[10px] tracking-widest border-black/5 bg-white hover:bg-gray-50 flex items-center gap-2 shadow-sm transition-all flex-1 sm:flex-none">
+              <RefreshCcw className={`w-3.5 h-3.5 ${isSyncing ? "animate-spin" : ""}`} /> sync
+            </Button>
+            <Button onClick={handleGeneratePayouts} disabled={isGenerating}
+              className="bg-[#FE7F2D] text-white hover:bg-black rounded-2xl h-12 px-8 font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-xl shadow-orange-500/20 transition-all flex-[2] sm:flex-none">
+              <TrendingUp className="w-3.5 h-3.5" />
+              {isGenerating ? "processing..." : "finalize period"}
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        <Card className="border-none shadow-xl rounded-[2rem] sm:rounded-[2.5rem] bg-white p-6 sm:p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
-          <div className="flex justify-between items-start mb-4 sm:mb-6">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-50 rounded-xl sm:rounded-2xl flex items-center justify-center">
-              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-[#FE7F2D]" />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="border-none shadow-xl rounded-[2.5rem] bg-white p-8 border border-white group hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#FE7F2D]/5 blur-3xl -mr-16 -mt-16"></div>
+          <div className="relative z-10">
+            <div className="flex justify-between items-center mb-6">
+              <div className="w-12 h-12 bg-[#FE7F2D]/10 rounded-2xl flex items-center justify-center text-[#FE7F2D]">
+                <TrendingUp className="w-6 h-6" />
+              </div>
+              <Badge className="bg-gray-50 text-gray-400 border-none font-black uppercase text-[8px] px-3 py-1 tracking-widest">accrued sales</Badge>
             </div>
-            <Badge className="bg-orange-100 text-orange-700 border-none font-black uppercase text-[8px] px-2 sm:px-3 tracking-widest leading-relaxed">Live Flow</Badge>
+            <p className="text-[10px] font-black uppercase text-[#010307]/30 tracking-widest mb-1 italic">Gross Market Volume</p>
+            <h3 className="text-3xl font-black text-[#010307] tracking-tighter italic tabular-nums">NPR {grandTotalGross.toLocaleString()}</h3>
+            <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-gray-400 italic">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+              includes live + finalized pending
+            </div>
           </div>
-          <p className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Current Month Flux</p>
-          <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalMonthGross.toLocaleString()}</h3>
         </Card>
 
-        <Card className="border-none shadow-xl rounded-[2rem] sm:rounded-[2.5rem] bg-white p-6 sm:p-8 border border-gray-100 group hover:scale-[1.02] transition-transform">
-          <div className="flex justify-between items-start mb-4 sm:mb-6">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-50 rounded-xl sm:rounded-2xl flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+        <Card className="border-none shadow-xl rounded-[2.5rem] bg-white p-8 border border-white group hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 blur-3xl -mr-16 -mt-16"></div>
+          <div className="relative z-10">
+            <div className="flex justify-between items-center mb-6">
+              <div className="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center text-green-600">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <Badge className="bg-green-500 text-white border-none font-black uppercase text-[8px] px-3 py-1 tracking-widest animate-pulse">outstanding debt</Badge>
             </div>
-            <Badge className="bg-green-100 text-green-700 border-none font-black uppercase text-[8px] px-2 sm:px-3 tracking-widest leading-relaxed">Est. Payout</Badge>
+            <p className="text-[10px] font-black uppercase text-[#010307]/30 tracking-widest mb-1 italic">Net Brand Revenue</p>
+            <h3 className="text-3xl font-black text-[#010307] tracking-tighter italic tabular-nums">NPR {grandTotalNetDue.toLocaleString()}</h3>
+            <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-gray-400 italic">
+              <Landmark className="w-3 h-3" />
+              total liabilities for disbursement
+            </div>
           </div>
-          <p className="text-[9px] sm:text-[10px] font-black uppercase text-gray-400 tracking-widest mb-1 font-mono">Net Brand Revenue</p>
-          <h3 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tighter italic">NPR {totalLiveDue.toLocaleString()}</h3>
         </Card>
 
-        <Card className="border-none shadow-xl rounded-[2rem] sm:rounded-[2.5rem] bg-black text-white p-6 sm:p-8 group hover:scale-[1.02] transition-transform">
-          <div className="flex justify-between items-start mb-4 sm:mb-6">
-            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 rounded-xl sm:rounded-2xl flex items-center justify-center">
-              <ArrowUpRight className="w-5 h-5 sm:w-6 sm:h-6 text-[#FE7F2D]" />
+        <Card className="border-none shadow-xl rounded-[2.5rem] bg-[#010307] p-8 group hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#FE7F2D]/20 blur-3xl -mr-16 -mt-16"></div>
+          <div className="relative z-10">
+            <div className="flex justify-between items-center mb-6">
+              <div className="w-12 h-12 bg-[#FE7F2D] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-orange-500/30">
+                <ArrowUpRight className="w-6 h-6" />
+              </div>
+              <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-none font-black uppercase text-[8px] px-3 py-1 tracking-widest">accrued profit</Badge>
             </div>
-            <Badge className="bg-[#FE7F2D] text-white border-none font-black uppercase text-[8px] px-2 sm:px-3 tracking-widest leading-relaxed">Club Profit</Badge>
+            <p className="text-[10px] font-black uppercase text-white/30 tracking-widest mb-1 italic">Total PPF Commission</p>
+            <h3 className="text-3xl font-black text-white tracking-tighter italic tabular-nums">NPR {grandTotalPPFAccrued.toLocaleString()}</h3>
+            <div className="mt-4 flex items-center gap-2 text-[10px] font-bold text-white/20 italic">
+              <ShieldCheck className="w-3 h-3 text-[#FE7F2D]" />
+              thc club revenue (processing fees)
+            </div>
           </div>
-          <p className="text-[9px] sm:text-[10px] font-black uppercase text-white/40 tracking-widest mb-1 font-mono">PPF Stream</p>
-          <h3 className="text-2xl sm:text-3xl font-black text-white tracking-tighter italic">NPR {(totalLiveGross - totalLiveDue).toLocaleString()}</h3>
         </Card>
       </div>
 
-      {/* ── Tabs Navigation ── */}
-      <Tabs defaultValue="pending" className="w-full">
-        <TabsList className="bg-white/50 backdrop-blur-md p-1 rounded-2xl h-auto flex flex-col sm:flex-row w-full md:w-fit border border-black/5 shadow-sm mb-8 gap-2">
-          <TabsTrigger value="pending" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-4 sm:px-8 py-3 w-full sm:w-auto data-[state=active]:bg-black data-[state=active]:text-white transition-all">
-            <Clock className="w-4 h-4 mr-2" /> Pending Settlements
-          </TabsTrigger>
-          <TabsTrigger value="ledger" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-4 sm:px-8 py-3 w-full sm:w-auto data-[state=active]:bg-[#FE7F2D] data-[state=active]:text-white transition-all">
-            <ShieldCheck className="w-4 h-4 mr-2" /> Finalized Ledger
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabs Navigation */}
+      <Tabs value={activeView} onValueChange={(v) => setActiveView(v as any)} className="w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <TabsList className="bg-white/50 backdrop-blur-md p-1.5 rounded-2xl h-auto border border-black/5 shadow-sm gap-1 w-full sm:w-auto">
+            <TabsTrigger value="pending" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-8 py-3.5 data-[state=active]:bg-[#010307] data-[state=active]:text-white transition-all w-full sm:w-auto">
+              <Clock className="w-4 h-4 mr-2" /> pending settlements
+            </TabsTrigger>
+            <TabsTrigger value="ledger" className="rounded-xl font-black uppercase text-[10px] tracking-widest px-8 py-3.5 data-[state=active]:bg-[#FE7F2D] data-[state=active]:text-white transition-all w-full sm:w-auto">
+              <ShieldCheck className="w-4 h-4 mr-2" /> finalized archive
+            </TabsTrigger>
+          </TabsList>
+
+          {activeView === "pending" && (
+            <div className="flex items-center gap-3 px-6 py-3 bg-white rounded-2xl border border-black/5 shadow-sm">
+              <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#010307]/40">
+                {filteredLiveSales.length + filteredPendingPayouts.length} actionable items found
+              </span>
+            </div>
+          )}
+        </div>
 
 
-        <TabsContent value="pending" className="space-y-12 animate-in fade-in slide-in-from-left-4 duration-500">
-           {/* ── Pending Settlements (Live) ── */}
-           <div className="space-y-6">
-            <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-gray-400" /> Pending Settlements (Live)
-            </h3>
-            <Card className="border-none shadow-2xl rounded-[2rem] sm:rounded-[3rem] bg-white overflow-hidden border border-gray-50 table-responsive">
+        <TabsContent value="pending" className="space-y-12 animate-in fade-in slide-in-from-left-4 duration-700">
+          {/* ── Live Sales (Unprocessed) ── */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between px-2">
+              <h3 className="text-xl font-black tracking-tighter uppercase italic flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-[#FE7F2D]" /> Accruing Live Sales
+              </h3>
+              {searchTerm && <Badge variant="outline" className="text-[9px] uppercase tracking-widest border-black/5 font-bold italic">filtered by: {searchTerm}</Badge>}
+            </div>
+            <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-white/50">
               <Table>
                 <TableHeader className="bg-gray-50/50">
-                  <TableRow className="border-none whitespace-nowrap">
-                    <TableHead className="px-6 sm:px-10 py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Brand Partner</TableHead>
-                    <TableHead className="py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Period</TableHead>
-                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Gross Sales</TableHead>
-                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">PPF (Fee)</TableHead>
-                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Net Due</TableHead>
+                  <TableRow className="border-none">
+                    <TableHead className="px-10 py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Brand Partner</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Cycle</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Gross Vol.</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Processing</TableHead>
+                    <TableHead className="py-6 font-black text-[10px] uppercase tracking-widest text-gray-400">Estimated Net</TableHead>
                     <TableHead className="px-10 py-6 text-right" />
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-50">
-                  {liveSales.length === 0 ? (
+                  {filteredLiveSales.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-24 text-gray-300 italic font-medium">
-                        No sales recorded for the current cycle.
+                        {searchTerm ? `No brands matching "${searchTerm}" in live flow.` : "No sales recorded for the current cycle."}
                       </TableCell>
                     </TableRow>
-                  ) : liveSales.map(sale => (
+                  ) : filteredLiveSales.map(sale => (
                     <TableRow key={sale.id} className="group hover:bg-gray-50/30 transition-colors">
                       <TableCell className="px-10 py-8">
                         <div className="flex flex-col">
@@ -711,8 +808,8 @@ export function PayoutsTracker() {
                                 {sale.brands.bank_account_details.type === 'bank' && <Landmark className="w-3 h-3" />}
                                 {sale.brands.bank_account_details.type === 'wallet' && <Smartphone className="w-3 h-3" />}
                                 {sale.brands.bank_account_details.type === 'cash' && <Banknote className="w-3 h-3" />}
-                                {sale.brands.bank_account_details.type === 'cash' 
-                                  ? "Cash" 
+                                {sale.brands.bank_account_details.type === 'cash'
+                                  ? "Cash"
                                   : sale.brands.bank_account_details.type === 'wallet'
                                     ? `${sale.brands.bank_account_details.walletProvider || 'Wallet'} (${sale.brands.bank_account_details.walletNumber || '?'})`
                                     : `${sale.brands.bank_account_details.bankName || 'Bank'} (...${(sale.brands.bank_account_details.accountNumber || '').slice(-4)})`
@@ -749,9 +846,9 @@ export function PayoutsTracker() {
           {/* ── Pending (Finalized but not paid) ── */}
           <div className="space-y-6">
             <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
-              <Clock className="w-5 h-5 text-gray-400" /> Finalized Accruals (Pending Payment)
+              <Clock className="w-5 h-5 text-gray-400" /> Finalized Pending Disbursement
             </h3>
-            <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-gray-50">
+            <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-white/50">
               <Table>
                 <TableHeader className="bg-gray-50/50">
                   <TableRow className="border-none">
@@ -762,13 +859,13 @@ export function PayoutsTracker() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-50">
-                  {payouts.filter(p => p.status === 'pending').length === 0 ? (
+                  {filteredPendingPayouts.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={4} className="text-center py-24 text-gray-300 italic font-medium">
-                        No localized pending payouts found.
+                        {searchTerm ? `No brands matching "${searchTerm}" in finalized accruals.` : "No localized pending payouts found."}
                       </TableCell>
                     </TableRow>
-                  ) : payouts.filter(p => p.status === 'pending').map(po => (
+                  ) : filteredPendingPayouts.map(po => (
                     <TableRow key={po.id} className="group hover:bg-gray-50/30 transition-colors">
                       <TableCell className="px-10 py-8 font-black text-gray-900 italic uppercase">
                         {po.brands?.business_name}
@@ -797,44 +894,47 @@ export function PayoutsTracker() {
             <Card className="border-none shadow-xl rounded-[2.5rem] bg-white/40 overflow-hidden border border-white/60">
               <div className="table-responsive">
                 <Table>
-                <TableHeader>
-                  <TableRow className="border-none whitespace-nowrap">
-                    <TableHead className="px-10 py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Timestamp</TableHead>
-                    <TableHead className="py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Partner</TableHead>
-                    <TableHead className="py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Invoice</TableHead>
-                    <TableHead className="text-right px-6 sm:px-10 py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Net Due</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentInvoices.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-16 sm:py-24">
-                        <span className="text-gray-300 italic text-xs">No recent transactions synced.</span>
-                      </TableCell>
+                  <TableHeader>
+                    <TableRow className="border-none whitespace-nowrap">
+                      <TableHead className="px-10 py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Timestamp</TableHead>
+                      <TableHead className="py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Partner</TableHead>
+                      <TableHead className="py-5 font-black text-[9px] uppercase tracking-widest text-gray-400">Invoice</TableHead>
+                      <TableHead className="text-right px-6 sm:px-10 py-4 sm:py-6 font-black text-[9px] sm:text-[10px] uppercase tracking-widest text-gray-400">Net Due</TableHead>
                     </TableRow>
-                  ) : recentInvoices.map(inv => (
-                    <TableRow key={inv.id} className="border-0">
-                      <TableCell className="px-10 py-4 font-mono text-[10px] text-gray-400">
-                        {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                      </TableCell>
-                      <TableCell className="py-4 text-[10px] font-black uppercase italic text-gray-900">{inv.brands?.business_name}</TableCell>
-                      <TableCell className="py-4 text-[10px] font-bold text-gray-400">{inv.invoice_number}</TableCell>
-                      <TableCell className="py-4 text-right pr-10 font-bold text-xs">NPR {inv.total_amount.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {recentInvoices.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-16 sm:py-24">
+                          <span className="text-gray-300 italic text-xs">No recent transactions synced.</span>
+                        </TableCell>
+                      </TableRow>
+                    ) : recentInvoices.map(inv => (
+                      <TableRow key={inv.id} className="border-0">
+                        <TableCell className="px-10 py-4 font-mono text-[10px] text-gray-400">
+                          {new Date(inv.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </TableCell>
+                        <TableCell className="py-4 text-[10px] font-black uppercase italic text-gray-900">{inv.brands?.business_name}</TableCell>
+                        <TableCell className="py-4 text-[10px] font-bold text-gray-400">{inv.invoice_number}</TableCell>
+                        <TableCell className="py-4 text-right pr-10 font-bold text-xs">NPR {inv.total_amount.toLocaleString()}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
             <p className="text-[10px] text-gray-400 font-medium italic text-center">showing last 10 live invoices across all brand partners.</p>
           </div>
         </TabsContent>
 
-        <TabsContent value="ledger" className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-          <h3 className="text-xl font-black tracking-tighter uppercase italic px-2 flex items-center gap-3">
-            <CheckCircle2 className="w-5 h-5 text-gray-400" /> Finalized Settlement Ledger
-          </h3>
-          <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-gray-50">
+        <TabsContent value="ledger" className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-700">
+          <div className="flex items-center justify-between px-2">
+            <h3 className="text-xl font-black tracking-tighter uppercase italic flex items-center gap-3">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Finalized Settlement Ledger
+            </h3>
+            {searchTerm && <Badge variant="outline" className="text-[9px] uppercase tracking-widest border-black/5 font-bold italic">filtered: {searchTerm}</Badge>}
+          </div>
+          <Card className="border-none shadow-2xl rounded-[3rem] bg-white overflow-hidden border border-white/50">
             <Table>
               <TableHeader className="bg-gray-50/50">
                 <TableRow className="border-none">
@@ -846,15 +946,15 @@ export function PayoutsTracker() {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-50">
-                {payouts.filter(p => p.status === 'paid').length === 0 ? (
+                {filteredLedger.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-32 text-gray-300 italic font-medium">
-                      Treasury archive is currently empty.
+                      {searchTerm ? `No brands matching "${searchTerm}" in ledger archive.` : "thc club archive is currently empty."}
                     </TableCell>
                   </TableRow>
-                ) : payouts.filter(p => p.status === 'paid').map(po => (
+                ) : filteredLedger.map(po => (
                   <TableRow key={po.id} className="group hover:bg-gray-50/30 transition-colors">
-                    <TableCell className="px-10 py-8 font-black text-gray-900 italic uppercase">{po.brands?.business_name}</TableCell>
+                    <TableCell className="px-10 py-8 font-black text-[#010307] italic uppercase">{po.brands?.business_name}</TableCell>
                     <TableCell className="py-8 font-bold text-xs text-gray-500 tabular-nums">{po.month}/{po.year}</TableCell>
                     <TableCell className="py-8 font-black text-green-700 text-lg italic text-center">NPR {po.net_payout.toLocaleString()}</TableCell>
                     <TableCell className="py-8 text-center text-xs font-bold text-gray-400 uppercase tracking-widest font-mono">
@@ -890,17 +990,16 @@ export function PayoutsTracker() {
             <div className="flex items-center gap-3 mb-4">
               {(["report", "confirm", "statement"] as PayoutFlowStep[]).map((step, i) => (
                 <div key={step} className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${
-                    flowStep === step
-                      ? "bg-[#FE7F2D] text-white"
-                      : ["statement"].includes(flowStep) && step === "report"
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${flowStep === step
+                    ? "bg-[#FE7F2D] text-white"
+                    : ["statement"].includes(flowStep) && step === "report"
+                      ? "bg-white/20 text-white/60"
+                      : flowStep === "statement" && step === "confirm"
                         ? "bg-white/20 text-white/60"
-                        : flowStep === "statement" && step === "confirm"
+                        : flowStep === "confirm" && step === "report"
                           ? "bg-white/20 text-white/60"
-                          : flowStep === "confirm" && step === "report"
-                            ? "bg-white/20 text-white/60"
-                            : "bg-white/10 text-white/30"
-                  }`}>
+                          : "bg-white/10 text-white/30"
+                    }`}>
                     {flowStep === "statement" || (flowStep === "confirm" && step === "report") ? (
                       <CheckCircle2 className="w-4 h-4" />
                     ) : (i + 1)}
@@ -988,7 +1087,7 @@ export function PayoutsTracker() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Admin Notes (optional)</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-gray-400">Administrative Note (optional)</Label>
                   <Input
                     placeholder="Internal notes for this settlement"
                     value={adminNotes}
@@ -998,12 +1097,22 @@ export function PayoutsTracker() {
                 </div>
               </div>
 
-              <div className="bg-[#010307] rounded-2xl p-6 flex items-center justify-between">
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-white/40">You are about to release</p>
-                  <p className="text-3xl font-black italic text-[#FE7F2D] tracking-tighter">NPR {parseFloat(finalAmount || "0").toLocaleString()}</p>
+              <div className="bg-[#FE7F2D]/5 rounded-3xl p-6 border border-[#FE7F2D]/10 space-y-4">
+                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-[#FE7F2D]">
+                  <span>Routing Verification</span>
+                  <ShieldCheck className="w-3 h-3" />
                 </div>
-                <ShieldCheck className="w-10 h-10 text-white/10" />
+                {renderSettlementDetails((flowSale?.brands || flowPayout?.brands)?.bank_account_details)}
+              </div>
+
+              <div className="bg-[#010307] rounded-3xl p-8 flex items-center justify-between shadow-2xl">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">Total Release Intent</p>
+                  <p className="text-4xl font-black italic text-[#FE7F2D] tracking-tighter">NPR {parseFloat(finalAmount || "0").toLocaleString()}</p>
+                </div>
+                <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center">
+                  <Banknote className="w-7 h-7 text-white/20" />
+                </div>
               </div>
 
               <div className="flex gap-4">

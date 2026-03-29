@@ -32,8 +32,8 @@ export function InvoiceList() {
       
       if (error) throw error
       setInvoices(data || [])
-    } catch (err) {
-      console.error("Error fetching invoices:", err)
+    } catch (err: any) {
+      console.error("Error fetching invoices:", err.message || err)
     } finally {
       setLoading(false)
     }

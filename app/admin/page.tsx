@@ -14,6 +14,7 @@ import { PricingOffersManagement } from "@/components/admin/pricing-offers-manag
 import { ShelfRentalRevenueMetrics } from "@/components/admin/shelf-rental-metrics";
 import { ShelfSlotsManagement } from "@/components/admin/shelf-slots-management";
 import { ContentManagement } from "@/components/admin/content-management";
+import { AccountsManagement } from "@/components/admin/accounts-view";
 import { AdminProfile } from "@/components/admin/admin-profile";
 import { adminAuth } from "@/lib/auth";
 import { useSearchParams } from "next/navigation";
@@ -69,6 +70,8 @@ function AdminDashboardContent() {
         return <InvoiceList />;
       case "payouts":
         return <PayoutsTracker />;
+      case "accounts":
+        return <AccountsManagement />;
       case "pricing-offers":
         return <PricingOffersManagement />;
       case "shelf-revenue":
