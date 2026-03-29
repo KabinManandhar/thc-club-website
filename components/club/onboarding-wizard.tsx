@@ -153,13 +153,13 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
         shelf_type: shelfType,
         duration: duration,
         monthly_rent: monthlyRent,
-        total_amount: totalAmount,
+        total_amount: totalAmount + 800, // Include registration fee
         brand_agreement_accepted: true,
         status: "pending",
         payment_method: paymentMethod as any,
         section: selectedSection?.name,
         section_tier: selectedSection?.section_tier,
-        admin_notes: `Requested Zone: ${selectedSection?.name}. ${activeOffer ? `Applied Offer: ${activeOffer.name}` : ''}`
+        admin_notes: `Requested Zone: ${selectedSection?.name}. ${activeOffer ? `Applied Offer: ${activeOffer.name}` : ''}. Includes 800 NPR Registration Fee.`
       })
 
       if (bookingError) throw bookingError

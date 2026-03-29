@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, MessageSquare, Calendar, Package, TrendingUp, AlertCircle, Shield, Plus, FileText, ArrowUpRight, Check, X as CloseX, LayoutGrid, Zap, AlertTriangle, DollarSign, Receipt } from "lucide-react"
+import { Users, MessageSquare, Package, TrendingUp, AlertCircle, Shield, Plus, ArrowUpRight, Check, X as CloseX, LayoutGrid, Zap, AlertTriangle, DollarSign, Receipt } from "lucide-react"
 import { supabase, type StockUpdateRequest, type BrandChangeRequest } from "@/lib/supabase"
 import { adminAuth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
@@ -50,6 +50,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
   const [criticalStock, setCriticalStock] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [processingId, setProcessingId] = useState<string | null>(null)
+  const [isSidebarHidden, setIsSidebarHidden] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
 
   useEffect(() => {
@@ -251,13 +252,6 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
     },
   ]
 
-  const quickActions = [
-    { title: "Generate Bill", icon: Receipt, action: () => onTabChange("invoices"), color: "bg-[#010307]" },
-    { title: "Manage Shelf", icon: LayoutGrid, action: () => onTabChange("slots"), color: "bg-[#FE7F2D]" },
-    { title: "Review Inbox", icon: MessageSquare, action: () => onTabChange("inbox"), color: "bg-blue-600" },
-    { title: "Manage Brands", icon: Users, action: () => onTabChange("brands"), color: "bg-purple-600" },
-  ]
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-32">
@@ -268,7 +262,6 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
   return (
     <div className="space-y-6 pb-20">
-      {/* Welcome Header */}
       {/* Welcome Header */}
       <div className="bg-white text-black rounded-2xl p-6 sm:p-10 border border-black/5 relative overflow-hidden shadow-sm group">
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
@@ -283,6 +276,14 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
             >
               <Plus className="w-3.5 h-3.5 mr-2" />
               New Invoice
+            </Button>
+            <Button
+              variant="outline"
+              className={`border-black/5 text-black hover:bg-gray-50 font-black uppercase text-[10px] tracking-widest px-4 sm:px-8 h-10 sm:h-12 rounded-xl transition-all shadow-sm flex items-center gap-2 ${isSidebarHidden ? 'bg-black text-white hover:bg-black/90' : 'bg-white'}`}
+              onClick={() => setIsSidebarHidden(!isSidebarHidden)}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              {isSidebarHidden ? "Show Insights" : "Hide Insights"}
             </Button>
             <Button
               variant="outline"
@@ -326,7 +327,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Pending Action Queue */}
-        <Card className="lg:col-span-2 border-black/5 shadow-sm rounded-2xl overflow-hidden bg-white">
+        <Card className={`${isSidebarHidden ? 'lg:col-span-3' : 'lg:col-span-2'} border-black/5 shadow-sm rounded-2xl overflow-hidden bg-white transition-all duration-500`}>
           <div className="px-8 bg-gray-50/50 border-b border-black/5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <CardTitle className="text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
               <Shield className="w-4 h-4 text-black" />
@@ -445,89 +446,89 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
           )}
         </Card>
 
-        {/* Quick Insights / Action Cards */}
-        <div className="space-y-6">
-          <Card className="border-gray-100 shadow-lg rounded-2xl overflow-hidden">
-            <CardHeader className="py-4">
-              <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                <Zap className="w-4 h-4 text-[#FE7F2D]" />
-                Occupancy Pulse
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center text-xs font-bold text-gray-500">
-                <span>Active Slots</span>
-                <span className="text-gray-900 font-black">{stats.occupiedSlots} / 102</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-3 relative overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-[#FE7F2D] to-orange-400 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(254,127,45,0.4)]"
-                  style={{ width: `${(stats.occupiedSlots / 102) * 100}%` }}
-                ></div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <div className="bg-green-50/50 p-2 rounded-xl text-center border border-green-100/50">
-                  <p className="text-[10px] uppercase font-black text-green-700 tracking-tighter">Available</p>
-                  <p className="text-lg font-black text-green-800">{stats.availableSlots}</p>
+        {/* Quick Insights / Action Cards - Sticky Sidebar */}
+        {!isSidebarHidden && (
+          <div className="space-y-6 lg:sticky lg:top-24 h-fit animate-in fade-in slide-in-from-right-4 duration-500">
+            <Card className="border-gray-100 shadow-lg rounded-2xl overflow-hidden">
+              <CardHeader className="py-4">
+                <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-[#FE7F2D]" />
+                  Occupancy Pulse
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center text-xs font-bold text-gray-500">
+                  <span>Active Slots</span>
+                  <span className="text-gray-900 font-black">{stats.occupiedSlots} / 102</span>
                 </div>
-                <div className="bg-blue-50/50 p-2 rounded-xl text-center border border-blue-100/50">
-                  <p className="text-[10px] uppercase font-black text-blue-700 tracking-tighter">Capacity</p>
-                  <p className="text-lg font-black text-blue-800">{((stats.occupiedSlots / 102) * 100).toFixed(0)}%</p>
+                <div className="w-full bg-gray-100 rounded-full h-3 relative overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-[#FE7F2D] to-orange-400 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(254,127,45,0.4)]"
+                    style={{ width: `${(stats.occupiedSlots / 102) * 100}%` }}
+                  ></div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  <div className="bg-green-50/50 p-2 rounded-xl text-center border border-green-100/50">
+                    <p className="text-[10px] uppercase font-black text-green-700 tracking-tighter">Available</p>
+                    <p className="text-lg font-black text-green-800">{stats.availableSlots}</p>
+                  </div>
+                  <div className="bg-blue-50/50 p-2 rounded-xl text-center border border-blue-100/50">
+                    <p className="text-[10px] uppercase font-black text-blue-700 tracking-tighter">Capacity</p>
+                    <p className="text-lg font-black text-blue-800">{((stats.occupiedSlots / 102) * 100).toFixed(0)}%</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card className="border-red-100 shadow-sm bg-white rounded-2xl overflow-hidden">
-             <CardHeader className="py-4 bg-red-50/50 border-b border-red-50">
-               <CardTitle className="text-sm font-black text-red-800 uppercase tracking-widest flex items-center gap-2">
-                 <AlertTriangle className="w-4 h-4" /> Global Critical Stock
-               </CardTitle>
-             </CardHeader>
-             <CardContent className="p-0">
-               {criticalStock.length > 0 ? (
-                 <div className="divide-y divide-gray-50">
-                   {criticalStock.map((p: any) => (
-                     <div key={p.id} className="p-4 flex items-center justify-between hover:bg-red-50/20 transition-colors">
-                       <div>
-                         <p className="font-bold text-sm text-gray-900">{p.name}</p>
-                         <p className="text-[10px] text-gray-500 font-bold uppercase">{p.brands?.business_name || "Unknown"}</p>
-                       </div>
-                       <div className="text-right">
-                         <p className="font-black text-red-600 text-lg leading-none">{p.stock_quantity}</p>
-                         <p className="text-[10px] text-gray-400 font-bold uppercase">remaining</p>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-               ) : (
-                 <div className="p-6 text-center text-gray-500 font-medium text-xs">No critical stock warnings.</div>
-               )}
-             </CardContent>
-          </Card>
+            <Card className="border-red-100 shadow-sm bg-white rounded-2xl overflow-hidden">
+              <CardHeader className="py-4 bg-red-50/50 border-b border-red-50">
+                <CardTitle className="text-sm font-black text-red-800 uppercase tracking-widest flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4" /> Global Critical Stock
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {criticalStock.length > 0 ? (
+                  <div className="divide-y divide-gray-50">
+                    {criticalStock.map((p: any) => (
+                      <div key={p.id} className="p-4 flex items-center justify-between hover:bg-red-50/20 transition-colors">
+                        <div>
+                          <p className="font-bold text-sm text-gray-900">{p.name}</p>
+                          <p className="text-[10px] text-gray-500 font-bold uppercase">{p.brands?.business_name || "Unknown"}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-black text-red-600 text-lg leading-none">{p.stock_quantity}</p>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase">remaining</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-gray-500 font-medium text-xs">No critical stock warnings.</div>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card className="border-gray-100 shadow-lg rounded-2xl overflow-hidden bg-[#FE7F2D] text-white">
-            <CardContent className="p-6 space-y-4">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <Shield className="w-6 h-6" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-black text-lg leading-tight uppercase tracking-tighter">System Health</h3>
-                <p className="text-white/70 text-xs font-medium leading-relaxed">Synchronized with Supabase Edge. All RLS policies active.</p>
-              </div>
-              <Button
-                variant="outline"
-                className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 font-black text-xs h-10 rounded-xl"
-                onClick={() => window.location.reload()}
-              >
-                Refresh Cache
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+            <Card className="border-gray-100 shadow-lg rounded-2xl overflow-hidden bg-[#FE7F2D] text-white">
+              <CardContent className="p-6 space-y-4">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-black text-lg leading-tight uppercase tracking-tighter">System Health</h3>
+                  <p className="text-white/70 text-xs font-medium leading-relaxed">Synchronized with Supabase Edge. All RLS policies active.</p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full bg-white/10 border-white/20 text-white hover:bg-white/20 font-black text-xs h-10 rounded-xl"
+                  onClick={() => window.location.reload()}
+                >
+                  Refresh Cache
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   )
 }
-
-

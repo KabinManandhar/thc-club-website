@@ -144,7 +144,6 @@ export function BrandLayout({
                     key={item.id}
                     onClick={() => {
                       onTabChange(item.id)
-                      setSidebarOpen(false)
                     }}
                     className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-bold transition-all duration-300 group ${
                       isActive
@@ -199,7 +198,6 @@ export function BrandLayout({
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[45] lg:hidden"
-          onClick={() => setSidebarOpen(false)}
         />
       )}
     </div>

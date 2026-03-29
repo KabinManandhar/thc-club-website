@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase"
+import { Button } from "@/components/ui/button"
 import {
     Activity,
     ArrowUpRight,
@@ -33,6 +34,7 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
   const [activeBooking, setActiveBooking] = useState<any>(null)
   const [allottedSlots, setAllottedSlots] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isSidebarHidden, setIsSidebarHidden] = useState(false)
 
   useEffect(() => {
     fetchDashboardData()
@@ -93,10 +95,18 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
             <h2 className="text-4xl font-black tracking-tighter lowercase italic">performance dashboard</h2>
             <p className="text-[#010307]/40 font-medium italic lowercase">synchronized with outlet 01 • kathmandu</p>
          </div>
-         <div className="flex gap-3">
+         <div className="flex gap-3 items-center">
             <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-none px-4 py-2 rounded-xl font-bold lowercase italic text-xs">
                partner id: {brandId.slice(0, 8)}
             </Badge>
+            <Button
+               variant="outline"
+               className={`border-[#010307]/5 text-[#010307] hover:bg-[#010307] hover:text-white rounded-xl font-black lowercase italic text-xs h-9 px-4 transition-all shadow-sm flex items-center gap-2 ${isSidebarHidden ? 'bg-[#010307] text-white whitespace-nowrap' : 'bg-white whitespace-nowrap'}`}
+               onClick={() => setIsSidebarHidden(!isSidebarHidden)}
+            >
+               <LayoutGrid className="w-3.5 h-3.5" />
+               {isSidebarHidden ? "show alerts" : "hide alerts"}
+            </Button>
          </div>
       </div>
 
@@ -191,7 +201,7 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className={`grid grid-cols-1 ${isSidebarHidden ? 'lg:grid-cols-1' : 'lg:grid-cols-2'} gap-8 transition-all duration-500`}>
         {/* Shelf Territory */}
         <Card className="border border-black/5 shadow-sm rounded-[2rem] bg-white overflow-hidden p-0">
            <CardHeader className="p-8 pb-4 border-b border-[#010307]/5">
@@ -264,52 +274,56 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
            </CardContent>
         </Card>
 
-        {/* Low Stock Watchlist */}
-        <Card className="border border-black/5 shadow-sm rounded-[2rem] bg-white overflow-hidden p-0">
-           <CardHeader className="p-8 pb-4 border-b border-[#010307]/5 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-black tracking-tighter lowercase italic flex items-center gap-3">
-                  watchlist
-                </CardTitle>
-                <p className="text-[10px] font-bold lowercase text-[#010307]/30 tracking-widest mt-1">inventory alerts</p>
-              </div>
-              <Badge variant="outline" className="rounded-full border-[#010307]/5 text-[#010307]/30 font-bold px-4">{lowStockProducts.length}</Badge>
-           </CardHeader>
-           <CardContent className="p-0">
-              {lowStockProducts.length > 0 ? (
-                <div className="divide-y divide-gray-50 max-h-[350px] overflow-y-auto">
-                  {lowStockProducts.map(p => (
-                    <div key={p.id} className="p-6 flex items-center justify-between hover:bg-red-50/20 transition-all group">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center border-2 border-dashed border-gray-100 group-hover:border-red-100 transition-colors">
-                           {p.image_url ? (
-                              <img src={p.image_url} alt={p.name} className="w-full h-full rounded-xl object-cover" />
-                           ) : (
-                              <Package className="w-5 h-5 text-gray-300" />
-                           )}
+        {/* Low Stock Watchlist - Sticky Sidebar */}
+        {!isSidebarHidden && (
+          <div className="lg:sticky lg:top-24 h-fit animate-in fade-in slide-in-from-right-4 duration-500">
+            <Card className="border border-black/5 shadow-sm rounded-[2rem] bg-white overflow-hidden p-0">
+               <CardHeader className="p-8 pb-4 border-b border-[#010307]/5 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-xl font-black tracking-tighter lowercase italic flex items-center gap-3">
+                      watchlist
+                    </CardTitle>
+                    <p className="text-[10px] font-bold lowercase text-[#010307]/30 tracking-widest mt-1">inventory alerts</p>
+                  </div>
+                  <Badge variant="outline" className="rounded-full border-[#010307]/5 text-[#010307]/30 font-bold px-4">{lowStockProducts.length}</Badge>
+               </CardHeader>
+               <CardContent className="p-0">
+                  {lowStockProducts.length > 0 ? (
+                    <div className="divide-y divide-gray-50 max-h-[350px] overflow-y-auto">
+                      {lowStockProducts.map(p => (
+                        <div key={p.id} className="p-6 flex items-center justify-between hover:bg-red-50/20 transition-all group">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center border-2 border-dashed border-gray-100 group-hover:border-red-100 transition-colors">
+                               {p.image_url ? (
+                                  <img src={p.image_url} alt={p.name} className="w-full h-full rounded-xl object-cover" />
+                               ) : (
+                                  <Package className="w-5 h-5 text-gray-300" />
+                               )}
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm text-gray-900 tracking-tight lowercase">{p.name}</p>
+                              <p className="text-[9px] text-gray-400 font-mono tracking-widest uppercase">Stock Alert</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-black text-red-600 text-xl leading-none italic">{p.stock_quantity}</p>
+                            <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest">Left</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-sm text-gray-900 tracking-tight lowercase">{p.name}</p>
-                          <p className="text-[9px] text-gray-400 font-mono tracking-widest uppercase">Stock Alert</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-black text-red-600 text-xl leading-none italic">{p.stock_quantity}</p>
-                        <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest">Left</p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="py-24 text-center space-y-4">
-                   <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center text-green-500 mx-auto">
-                      <Package className="w-7 h-7" />
-                   </div>
-                   <p className="text-gray-400 font-bold lowercase italic text-xs tracking-wide">catalog is synchronized.</p>
-                </div>
-              )}
-           </CardContent>
-        </Card>
+                  ) : (
+                    <div className="py-24 text-center space-y-4">
+                       <div className="w-14 h-14 bg-green-50 rounded-full flex items-center justify-center text-green-500 mx-auto">
+                          <Package className="w-7 h-7" />
+                       </div>
+                       <p className="text-gray-400 font-bold lowercase italic text-xs tracking-wide">catalog is synchronized.</p>
+                    </div>
+                  )}
+               </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
 
       {/* Connection Indicator */}

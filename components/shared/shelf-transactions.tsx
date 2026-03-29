@@ -30,6 +30,9 @@ export function ShelfTransactions({ brandId, isAdmin = false }: Props) {
   const [method, setMethod] = useState("in_person")
   const [notes, setNotes] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [selectedPayment, setSelectedPayment] = useState<ShelfBookingPayment | null>(null)
+  const [brand, setBrand] = useState<any>(null)
+  const [isStatementOpen, setIsStatementOpen] = useState(false)
 
   useEffect(() => {
     if (brandId) fetchTransactions()
@@ -45,11 +48,21 @@ export function ShelfTransactions({ brandId, isAdmin = false }: Props) {
     setBookings(bookingsRes.data || [])
     setPayments(paymentsRes.data || [])
     
+    // Fetch Brand Data for statements
+    if (brandId) {
+      const { data: bData } = await supabase.from("brands").select("*").eq("id", brandId).single()
+      setBrand(bData)
+    }
+
     // Auto-select first active/pending booking if modal opens
     if (bookingsRes.data?.length) {
        setSelectedBookingId(bookingsRes.data[0].id)
     }
     setLoading(false)
+  }
+
+  const handlePrint = () => {
+    window.print()
   }
 
   const handleRecordPayment = async () => {
@@ -193,11 +206,24 @@ export function ShelfTransactions({ brandId, isAdmin = false }: Props) {
                         </p>
                      </div>
                   </div>
-                  {isAdmin && payment.confirmed_by && (
-                     <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black text-gray-300 pointer-events-none">
-                       by {payment.confirmed_by}
-                     </Badge>
-                  )}
+                  <div className="flex items-center gap-2">
+                     <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-8 px-3 rounded-lg text-[9px] font-black uppercase tracking-widest text-[#FE7F2D] hover:text-white hover:bg-[#FE7F2D] transition-all"
+                        onClick={() => {
+                           setSelectedPayment(payment)
+                           setIsStatementOpen(true)
+                        }}
+                     >
+                        View Statement
+                     </Button>
+                     {isAdmin && payment.confirmed_by && (
+                        <Badge variant="outline" className="text-[8px] uppercase tracking-widest font-black text-gray-300 pointer-events-none">
+                        by {payment.confirmed_by}
+                        </Badge>
+                     )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -277,6 +303,116 @@ export function ShelfTransactions({ brandId, isAdmin = false }: Props) {
             </Button>
           </div>
         </DialogContent>
+      </Dialog>
+
+      {/* Shelf Payment Statement Modal */}
+      <Dialog open={isStatementOpen} onOpenChange={setIsStatementOpen}>
+         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white border-none shadow-2xl rounded-3xl">
+            <DialogHeader className="sr-only">
+               <DialogTitle>Shelf Payment Statement</DialogTitle>
+            </DialogHeader>
+
+            <div className="flex-1 overflow-y-auto p-12 space-y-10 print:p-0">
+               <div id="shelf-statement-print">
+                  {/* Header */}
+                  <div className="flex justify-between items-end border-b-2 border-gray-900 pb-8">
+                     <div>
+                        <div className="text-4xl font-black italic tracking-tighter text-gray-900">THC Club</div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 mt-1">Official Payment Record</p>
+                     </div>
+                     <div className="text-right">
+                        <div className="text-sm font-black uppercase tracking-[0.2em] text-[#FE7F2D] mb-1">Payment Receipt</div>
+                        <p className="text-xs font-bold tabular-nums text-gray-900">Ref: #{selectedPayment?.id.slice(0, 8).toUpperCase()}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1">
+                           {selectedPayment && new Date(selectedPayment.payment_date).toLocaleDateString('en-NP', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                     </div>
+                  </div>
+
+                  {/* Entity Info */}
+                  <div className="grid grid-cols-2 gap-16 py-10">
+                     <div className="space-y-6">
+                        <div>
+                           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Payer Brand</p>
+                           <p className="text-xl font-black italic text-gray-900 lowercase">{brand?.business_name}</p>
+                        </div>
+                        <div>
+                           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Associated Lease</p>
+                           {(() => {
+                              const b = bookings.find(bk => bk.id === selectedPayment?.booking_id)
+                              return (
+                                 <div className="space-y-1">
+                                    <p className="text-lg font-bold text-gray-900 lowercase italic">
+                                       {b?.section || "The Collective Hub"} • {b?.shelf_type.replace('_', ' ')}
+                                    </p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{b?.duration.replace('_', ' ')} Cycle</p>
+                                 </div>
+                              )
+                           })()}
+                        </div>
+                     </div>
+                     <div className="space-y-6 text-right sm:text-left">
+                        <div>
+                           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Channel / Method</p>
+                           <p className="text-sm font-bold text-gray-600 italic uppercase tracking-wider">{selectedPayment?.payment_method.replace('_', ' ')}</p>
+                        </div>
+                        <div>
+                           <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Confirmation</p>
+                           <div className="flex items-center gap-2 justify-end sm:justify-start">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <p className="text-sm font-black italic uppercase text-green-600">Payment Verified</p>
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Financial Details */}
+                  <div className="space-y-4">
+                     <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-400 border-b border-gray-100 pb-3">Financial Overview</h4>
+                     <div className="bg-gray-50/50 rounded-3xl p-8 space-y-6">
+                        <div className="flex justify-between items-center text-sm border-b border-gray-100 pb-4">
+                           <span className="font-bold text-gray-500 uppercase tracking-widest text-[10px]">Total Lease Amount</span>
+                           <span className="font-bold tabular-nums text-gray-900">NPR {bookings.find(b => b.id === selectedPayment?.booking_id)?.total_amount.toLocaleString()}</span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center text-sm">
+                           <span className="font-bold text-[#FE7F2D] uppercase tracking-widest text-[10px]">Net Payment Realized</span>
+                           <span className="text-3xl font-black text-[#FE7F2D] tabular-nums">NPR {selectedPayment?.amount_paid.toLocaleString()}</span>
+                        </div>
+
+                        {selectedPayment?.notes && (
+                           <div className="pt-4 border-t border-gray-100">
+                              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Transaction Notes</p>
+                              <p className="text-xs italic text-gray-600">{selectedPayment.notes}</p>
+                           </div>
+                        )}
+                     </div>
+                  </div>
+
+                  <div className="text-center pt-20">
+                     <p className="text-[8px] font-black uppercase tracking-[0.4em] text-gray-200">
+                        this is a computer generated electronic receipt. treasury verification id: {selectedPayment?.id}
+                     </p>
+                  </div>
+               </div>
+            </div>
+
+            <div className="p-8 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-4 no-print">
+               <Button
+                  onClick={handlePrint}
+                  variant="outline"
+                  className="h-12 border-gray-200 rounded-2xl font-black uppercase tracking-widest text-[10px] px-8 hover:bg-white"
+               >
+                  Download Receipt
+               </Button>
+               <Button 
+                  onClick={() => setIsStatementOpen(false)}
+                  className="bg-black text-white hover:bg-gray-800 font-black uppercase text-[10px] tracking-widest px-8 h-12 rounded-2xl"
+               >
+                  Close
+               </Button>
+            </div>
+         </DialogContent>
       </Dialog>
     </div>
   )

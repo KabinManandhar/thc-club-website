@@ -83,7 +83,6 @@ export function AdminLayout({
 
   const handleNavClick = (id: string) => {
     onTabChange(id);
-    if (isMobile) setSidebarOpen(false);
   };
 
   return (
@@ -175,7 +174,6 @@ export function AdminLayout({
       {sidebarOpen && isMobile && (
         <div
           className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setSidebarOpen(false)}
         />
       )}
 
