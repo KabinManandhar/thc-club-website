@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, BarChart3, Eye, Heart, Instagram, Lock, LogIn, Package, ShieldCheck, Users, Zap } from "lucide-react"
+import { ArrowRight, BarChart3, Eye, Heart, Instagram, Lock, LogIn, Menu, Package, ShieldCheck, Users, X, Zap } from "lucide-react"
 import Image from "next/image"
 import { useEffect, useState } from "react"
 
@@ -30,36 +30,36 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
       <section className="py-12 bg-[#010307] text-white">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-4xl mx-auto text-center space-y-4 sm:space-y-6">
-            <div className="flex items-center justify-center gap-4">
-              <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-[#FE7F2D]" />
-              <h2 className="text-xl sm:text-2xl lg:text-3xl font-black lowercase italic tracking-tight">exclusive access required</h2>
-              <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-[#FE7F2D]" />
+            <div className="flex items-center justify-center gap-2 sm:gap-4">
+              <Lock className="w-4 h-4 sm:w-6 sm:h-6 text-[#FE7F2D]" />
+              <h2 className="text-lg sm:text-2xl lg:text-3xl font-black lowercase italic tracking-tight">exclusive access required</h2>
+              <Lock className="w-4 h-4 sm:w-6 sm:h-6 text-[#FE7F2D]" />
             </div>
             <p className="text-base sm:text-lg text-white/60 max-w-2xl mx-auto font-medium lowercase italic">
               Register your account to get full access to pricing, shelf availability, and membership applications.
             </p>
-            <div className="grid grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-12">
-              <div className="text-center space-y-2">
-                <div className="text-2xl sm:text-4xl font-black text-[#FE7F2D] lowercase italic leading-none">step 1</div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-6 mt-8 sm:mt-12">
+              <div className="text-center space-y-1 sm:space-y-2">
+                <div className="text-3xl sm:text-4xl font-black text-[#FE7F2D] lowercase italic leading-none">step 1</div>
                 <div className="text-[10px] sm:text-xs text-white/40 font-black uppercase tracking-widest italic">register</div>
               </div>
-              <div className="text-center space-y-2 border-x border-white/5">
-                <div className="text-2xl sm:text-4xl font-black text-[#FE7F2D] lowercase italic leading-none">step 2</div>
+              <div className="text-center space-y-1 sm:space-y-2 border-y sm:border-y-0 sm:border-x border-white/5 py-4 sm:py-0">
+                <div className="text-3xl sm:text-4xl font-black text-[#FE7F2D] lowercase italic leading-none">step 2</div>
                 <div className="text-[10px] sm:text-xs text-white/40 font-black uppercase tracking-widest italic">book slot</div>
               </div>
-              <div className="text-center space-y-2">
-                <div className="text-2xl sm:text-4xl font-black text-[#FE7F2D] lowercase italic leading-none">step 3</div>
+              <div className="text-center space-y-1 sm:space-y-2">
+                <div className="text-3xl sm:text-4xl font-black text-[#FE7F2D] lowercase italic leading-none">step 3</div>
                 <div className="text-[10px] sm:text-xs text-white/40 font-black uppercase tracking-widest italic">go live</div>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12 sm:mt-16">
               <Button
                 size="lg"
-                className="bg-[#FE7F2D] text-white hover:bg-black font-black lowercase italic tracking-widest text-base sm:text-lg px-10 py-8 rounded-2xl group transition-all h-auto shadow-2xl shadow-orange-500/20"
+                className="bg-[#FE7F2D] text-white hover:bg-black font-black lowercase italic tracking-widest text-base sm:text-lg px-8 sm:px-10 py-6 sm:py-8 rounded-2xl group transition-all h-auto shadow-2xl shadow-orange-500/20"
                 onClick={() => setAuthView("signup")}
               >
                 apply for membership
-                <ArrowRight className="ml-3 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="ml-2 sm:ml-3 h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-1" />
               </Button>
               {!isAuthenticated && (
                 <Button
@@ -135,8 +135,8 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16 sm:mb-24 space-y-6">
-              <h2 className="text-3xl sm:text-4xl lg:text-7xl font-black lowercase italic tracking-tighter">is this for you?</h2>
-              <p className="text-lg sm:text-2xl text-[#010307]/50 max-w-3xl mx-auto italic lowercase font-medium">
+              <h2 className="text-4xl sm:text-4xl lg:text-7xl font-black lowercase italic tracking-tighter">is this for you?</h2>
+              <p className="text-base sm:text-2xl text-[#010307]/50 max-w-3xl mx-auto italic lowercase font-medium">
                 We're built for creators and brands who are doing things with intention — whether you're just starting
                 or scaling up.
               </p>
@@ -172,7 +172,7 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
 
         <div className="container mx-auto px-4 sm:px-6 text-center relative z-10">
           <div className="max-w-4xl mx-auto space-y-8 sm:space-y-12">
-            <h2 className="text-4xl sm:text-7xl lg:text-8xl font-black lowercase italic tracking-tighter leading-tight italic">
+            <h2 className="text-5xl sm:text-7xl lg:text-8xl font-black lowercase italic tracking-tighter leading-tight italic">
               ready to <span className="text-[#FE7F2D]">join</span>?
             </h2>
             <div className="space-y-4">
@@ -219,6 +219,7 @@ export default function LandingPage() {
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
   const [origins, setOrigins] = useState("")
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     if (!api) return
@@ -321,10 +322,10 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk">
       {/* Persistent Marquee */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-2 sm:py-3 overflow-hidden border-b border-[#FE7F2D]/20">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-1.5 sm:py-3 overflow-hidden border-b border-[#FE7F2D]/20">
         <div className="animate-marquee whitespace-nowrap">
           {[1, 2, 3, 4].map((i) => (
-            <span key={i} className="inline-block px-6 sm:px-12 text-xs sm:text-sm font-bold tracking-wide ">
+            <span key={i} className="inline-block px-4 sm:px-12 text-[10px] sm:text-sm font-bold tracking-wide ">
               the first rule of <span className="thc-highlight">THC Club</span> is you talk about{" "}
               <span className="thc-highlight">THC Club</span>. the second rule of{" "}
               <span className="thc-highlight">THC Club</span> is you TALK ABOUT{" "}
@@ -335,51 +336,59 @@ export default function LandingPage() {
       </div>
 
       {/* Navigation */}
-      <nav className="sticky top-10 sm:top-12 z-40 bg-[#FFFCEB]/95 backdrop-blur-sm border-b border-[#FE7F2D]/20 mt-10 sm:mt-12">
+      <nav className="sticky top-8 sm:top-12 z-40 bg-[#FFFCEB]/95 backdrop-blur-sm border-b border-[#FE7F2D]/20 mt-8 sm:mt-12">
         <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <Image
                 src="/logo.png"
                 alt="thc club logo"
                 width={100}
                 height={50}
-                className="h-8 w-auto cursor-pointer transition-transform hover:scale-105"
-                onClick={() => setActiveTab("home")}
+                className="h-6 sm:h-8 w-auto cursor-pointer transition-transform hover:scale-105"
+                onClick={() => {
+                  setActiveTab("home")
+                  setIsMobileMenuOpen(false)
+                }}
               />
-              <div className="flex flex-1 sm:ml-8 overflow-x-auto scrollbar-hide items-center gap-4 sm:gap-6 px-2 sm:px-0 mask-linear-fade">
-                <button
-                  onClick={() => setActiveTab("home")}
-                  className={`text-[10px] sm:text-xs font-black lowercase italic tracking-widest whitespace-nowrap transition-all ${activeTab === "home" ? "text-[#FE7F2D] border-b border-[#FE7F2D]" : "text-[#010307]/40 hover:text-[#010307]"
-                    }`}
-                >
-                  home
-                </button>
-                <button
-                  onClick={() => setActiveTab("origins")}
-                  className={`text-[10px] sm:text-xs font-black lowercase italic tracking-widest whitespace-nowrap transition-all ${activeTab === "origins" ? "text-[#FE7F2D] border-b border-[#FE7F2D]" : "text-[#010307]/40 hover:text-[#010307]"
-                    }`}
-                >
-                  our origins
-                </button>
-                <button
-                  onClick={() => setActiveTab("members")}
-                  className={`text-[10px] sm:text-xs font-black lowercase italic tracking-widest whitespace-nowrap transition-all ${activeTab === "members" ? "text-[#FE7F2D] border-b border-[#FE7F2D]" : "text-[#010307]/40 hover:text-[#010307]"
-                    }`}
-                >
-                  the collective
-                </button>
-              </div>
             </div>
+
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-8 ml-8">
+              <button
+                onClick={() => setActiveTab("home")}
+                className={`text-xs font-black lowercase italic tracking-widest transition-all ${activeTab === "home" ? "text-[#FE7F2D] border-b border-[#FE7F2D]" : "text-[#010307]/40 hover:text-[#010307]"
+                  }`}
+              >
+                home
+              </button>
+              <button
+                onClick={() => setActiveTab("origins")}
+                className={`text-xs font-black lowercase italic tracking-widest transition-all ${activeTab === "origins" ? "text-[#FE7F2D] border-b border-[#FE7F2D]" : "text-[#010307]/40 hover:text-[#010307]"
+                  }`}
+              >
+                our origins
+              </button>
+              <button
+                onClick={() => setActiveTab("members")}
+                className={`text-xs font-black lowercase italic tracking-widest transition-all ${activeTab === "members" ? "text-[#FE7F2D] border-b border-[#FE7F2D]" : "text-[#010307]/40 hover:text-[#010307]"
+                  }`}
+              >
+                the collective
+              </button>
+            </div>
+
             <div className="flex items-center gap-2 sm:gap-6 shrink-0">
-              <Image
-                src="/broski.png"
-                alt="broski mascot"
-                width={32}
-                height={32}
-                className="h-6 w-6 sm:h-8 sm:w-8 transition-transform hover:rotate-12 hidden sm:block"
-              />
-              <div className="flex gap-1.5 sm:gap-2">
+              <div className="hidden sm:flex items-center gap-4">
+                <Image
+                  src="/broski.png"
+                  alt="broski mascot"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 transition-transform hover:rotate-12"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Button
                   size="sm"
                   className="bg-[#FE7F2D] hover:bg-black text-white font-black lowercase italic tracking-widest shadow-lg rounded-xl h-8 sm:h-10 px-3 sm:px-8 text-[10px] sm:text-sm transition-all active:scale-95"
@@ -391,17 +400,72 @@ export default function LandingPage() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-[#010307]/20 text-[#010307] hover:bg-[#010307] hover:text-white font-black lowercase italic tracking-widest rounded-xl h-8 sm:h-10 px-2 sm:px-6 text-[10px] sm:text-sm transition-all"
+                    className="border-[#010307]/20 text-[#010307] hover:bg-[#010307] hover:text-white font-black lowercase italic tracking-widest rounded-xl h-8 sm:h-10 px-2 sm:px-6 text-[10px] sm:text-sm transition-all hidden xs:flex"
                     onClick={() => setAuthView("login")}
                   >
-                    <LogIn className="w-3 h-3 sm:mr-2 hidden sm:inline" />
+                    <LogIn className="w-3 h-3 mr-2 hidden sm:inline" />
                     login
                   </Button>
                 )}
+                {/* Mobile Menu Toggle */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="lg:hidden p-1 h-8 w-8 text-[#010307]"
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                >
+                  {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                </Button>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Mobile menu overlay */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden absolute top-full left-0 right-0 bg-[#FFFCEB] border-b border-[#FE7F2D]/20 py-6 px-4 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+            <button
+              onClick={() => {
+                setActiveTab("home")
+                setIsMobileMenuOpen(false)
+              }}
+              className={`block w-full text-left py-2 px-4 text-sm font-black lowercase italic tracking-widest ${activeTab === "home" ? "text-[#FE7F2D] bg-[#FE7F2D]/5 rounded-xl" : "text-[#010307]"}`}
+            >
+              home
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("origins")
+                setIsMobileMenuOpen(false)
+              }}
+              className={`block w-full text-left py-2 px-4 text-sm font-black lowercase italic tracking-widest ${activeTab === "origins" ? "text-[#FE7F2D] bg-[#FE7F2D]/5 rounded-xl" : "text-[#010307]"}`}
+            >
+              our origins
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("members")
+                setIsMobileMenuOpen(false)
+              }}
+              className={`block w-full text-left py-2 px-4 text-sm font-black lowercase italic tracking-widest ${activeTab === "members" ? "text-[#FE7F2D] bg-[#FE7F2D]/5 rounded-xl" : "text-[#010307]"}`}
+            >
+              the collective
+            </button>
+            <div className="pt-4 border-t border-[#FE7F2D]/10">
+              {!isAuthenticated && (
+                <Button
+                  className="w-full bg-black text-white font-black lowercase italic tracking-widest rounded-xl py-6 h-auto"
+                  onClick={() => {
+                    setAuthView("login")
+                    setIsMobileMenuOpen(false)
+                  }}
+                >
+                  login to club
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </nav>
 
       {activeTab === "home" ? (
@@ -409,7 +473,7 @@ export default function LandingPage() {
           {/* Hero Section */}
           <section className="container mx-auto px-4 sm:px-6 py-12 sm:py-20 lg:py-32">
             <div className="max-w-6xl mx-auto">
-              <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div className="grid lg:grid-cols-2 gap-16 lg:gap-12 items-center">
                 <div className="space-y-8 fade-in">
                   <div className="space-y-6">
                     <div className="inline-flex items-center gap-2 bg-[#FE7F2D]/10 text-[#FE7F2D] px-4 py-2 rounded-full text-xs font-medium lowercase tracking-wide">
@@ -524,15 +588,15 @@ export default function LandingPage() {
                           className="w-full h-auto drop-shadow-2xl transition-all duration-500 group-hover:scale-110 group-hover:rotate-2"
                           priority
                         />
-                        <div className="absolute -bottom-4 -right-4 sm:-bottom-8 sm:-right-8 bg-[#FE7F2D] text-white p-3 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl border-4 border-[#FFFCEB] rotate-12 transition-all group-hover:rotate-6 z-20 group-hover:scale-110">
-                          <p className="text-lg sm:text-2xl font-black italic lowercase leading-none">zero fakes.</p>
-                          <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest mt-1 sm:mt-2 opacity-60">Verified Collective</p>
+                        <div className="absolute -bottom-2 -right-2 sm:-bottom-8 sm:-right-8 bg-[#FE7F2D] text-white p-3 sm:p-6 rounded-xl sm:rounded-[2rem] shadow-2xl border-4 border-[#FFFCEB] rotate-12 transition-all group-hover:rotate-6 z-20 group-hover:scale-110">
+                          <p className="text-sm sm:text-2xl font-black italic lowercase leading-none">zero fakes.</p>
+                          <p className="text-[6px] sm:text-[10px] font-black uppercase tracking-widest mt-1 sm:mt-2 opacity-60 whitespace-nowrap">Verified Collective</p>
                         </div>
 
-                        <div className="absolute -top-6 -left-6 sm:-top-10 sm:-left-10 bg-black text-white p-2.5 sm:p-4 rounded-2xl sm:rounded-3xl shadow-2xl -rotate-12 transition-all group-hover:rotate-0 z-20">
+                        <div className="absolute -top-4 -left-2 sm:-top-10 sm:-left-10 bg-black text-white p-2 sm:p-4 rounded-xl sm:rounded-3xl shadow-2xl -rotate-12 transition-all group-hover:rotate-0 z-20">
                           <div className="flex items-center gap-1.5 sm:gap-2">
                             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-500 animate-ping" />
-                            <p className="text-[9px] sm:text-xs font-black uppercase tracking-widest italic">Live from Kathmandu</p>
+                            <p className="text-[7px] sm:text-xs font-black uppercase tracking-widest italic whitespace-nowrap">Live from Kathmandu</p>
                           </div>
                         </div>
                       </div>
@@ -580,7 +644,7 @@ export default function LandingPage() {
               <div className="max-w-4xl mx-auto text-center space-y-12">
                 <div className="space-y-6">
                   <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black lowercase italic tracking-tighter">what is thc club?</h2>
-                  <p className="text-lg sm:text-xl lg:text-2xl text-[#010307]/60 font-medium italic leading-relaxed max-w-3xl mx-auto lowercase">
+                  <p className="text-base sm:text-xl lg:text-2xl text-[#010307]/60 font-medium italic leading-relaxed max-w-3xl mx-auto lowercase">
                     nepal's first curated creative collective. we're a community of real creators sharing space, telling
                     their stories, and making the city feel alive.
                   </p>

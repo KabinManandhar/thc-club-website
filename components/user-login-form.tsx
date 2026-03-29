@@ -25,6 +25,10 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [showOtp, setShowOtp] = useState(false)
+  const [otpToken, setOtpToken] = useState("")
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [isResending, setIsResending] = useState(false)
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,7 +36,12 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
     setError("")
 
     try {
-      const { user, error: loginError } = await userAuth.login(loginData.email, loginData.password)
+      const { user, error: loginError, emailNotConfirmed } = await userAuth.login(loginData.email, loginData.password)
+
+      if (emailNotConfirmed) {
+        setShowOtp(true)
+        return
+      }
 
       if (loginError || !user) {
         setError(loginError || "Login failed")
@@ -46,6 +55,109 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsVerifying(true)
+    setError("")
+
+    try {
+      const { success, error: verifyError } = await userAuth.verifyOtp(loginData.email, otpToken)
+      if (verifyError || !success) {
+        setError(verifyError || "Verification failed")
+        return
+      }
+      onLoginSuccess()
+    } catch (error) {
+      setError("An unexpected error occurred during verification")
+    } finally {
+      setIsVerifying(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    setIsResending(true)
+    setError("")
+    try {
+      const { success, error: resendError } = await userAuth.resendOtp(loginData.email)
+      if (success) {
+        // Show success briefly? Alert?
+      } else {
+        setError(resendError || "Failed to resend code")
+      }
+    } catch (err) {
+      setError("Failed to resend code")
+    } finally {
+      setIsResending(false)
+    }
+  }
+
+  if (showOtp) {
+    return (
+      <div className="min-h-screen bg-[#FFFCEB] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md border-[#FE7F2D]/10 shadow-sm overflow-hidden rounded-[2.5rem] bg-white/50 backdrop-blur-sm p-8">
+          <div className="text-center space-y-6">
+            <div className="flex justify-center">
+              <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center">
+                <Image src="/logo.png" alt="THC" width={40} height={20} className="grayscale opacity-50" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black lowercase italic text-[#010307]">complete verification</h2>
+              <p className="text-[#010307]/60 text-xs lowercase italic font-medium">your email hasn't been verified yet. we sent a code to <span className="font-bold text-[#010307]">{loginData.email}</span></p>
+            </div>
+
+            {error && (
+              <Alert variant="destructive" className="rounded-2xl border-red-100 bg-red-50 text-red-600 py-3">
+                <AlertDescription className="font-bold text-xs lowercase italic">{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleVerifyOtp} className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="otp" className="text-[11px] font-bold lowercase tracking-widest text-[#010307]/40">6-digit security code</Label>
+                <Input
+                  id="otp"
+                  placeholder="000000"
+                  maxLength={6}
+                  value={otpToken}
+                  onChange={(e) => setOtpToken(e.target.value)}
+                  required
+                  className="text-center text-2xl tracking-[0.5em] font-black border-[#010307]/10 focus:border-[#FE7F2D] rounded-2xl h-16 bg-white/80"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white font-bold lowercase text-lg h-16 rounded-2xl shadow-xl shadow-orange-500/10 transition-all active:scale-[0.98]"
+                disabled={isVerifying || otpToken.length !== 6}
+              >
+                {isVerifying ? "verifying identity..." : "verify & enter club"}
+              </Button>
+
+              <div className="flex flex-col gap-4">
+                <button 
+                  type="button"
+                  disabled={isResending}
+                  onClick={handleResendOtp}
+                  className="text-[10px] font-bold text-[#FE7F2D] hover:underline uppercase tracking-widest disabled:opacity-50"
+                >
+                  {isResending ? "sending..." : "resend verification code"}
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setShowOtp(false)}
+                  className="text-[10px] font-bold text-[#010307]/40 hover:text-[#FE7F2D] uppercase tracking-widest"
+                >
+                  ← return to login
+                </button>
+              </div>
+            </form>
+          </div>
+        </Card>
+      </div>
+    )
   }
 
   return (
