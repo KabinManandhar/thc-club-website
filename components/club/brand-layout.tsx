@@ -39,6 +39,12 @@ export function BrandLayout({
   const [currentUser, setCurrentUser] = useState<ApprovedUser | null>(null)
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setSidebarOpen(true)
+    }
+  }, [])
+
+  useEffect(() => {
     const loadUser = async () => {
       const user = await userAuth.getCurrentUser()
       setCurrentUser(user)
@@ -63,43 +69,68 @@ export function BrandLayout({
   ]
 
   return (
-    <div className="min-h-screen bg-[#FFFCEB] font-space-grotesk overflow-hidden flex">
+    <div className="min-h-screen bg-[#FFFCEB] font-space-grotesk overflow-hidden flex relative">
+      {/* Sidebar Toggle Button (visible when closed) */}
+      {!sidebarOpen && (
+        <div className="fixed top-6 left-6 z-50 animate-in fade-in duration-300">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+            className="bg-white rounded-xl shadow-xl border-[#010307]/5 hover:scale-105 active:scale-95 transition-all text-[#010307]"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
+
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#010307] text-white transform transition-transform duration-500 ease-in-out scrollbar-hide overflow-y-auto ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#010307] text-white transition-all duration-500 ease-in-out scrollbar-hide overflow-y-auto ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } lg:translate-x-0 lg:static lg:inset-0`}
+        } lg:static ${sidebarOpen ? "lg:ml-0" : "lg:-ml-72"} shrink-0`}
       >
-        <div className="flex flex-col min-h-full p-8">
+        <div className="flex flex-col min-h-full p-8 relative">
+           <Button
+               variant="ghost"
+               size="icon"
+               onClick={() => setSidebarOpen(false)}
+               className="absolute right-4 top-8 text-white/30 hover:text-white hover:bg-white/5 z-10 w-8 h-8 rounded-full"
+            >
+               <X className="w-4 h-4" />
+            </Button>
           {/* Header */}
-          <div className="flex items-center gap-4 mb-10">
-            <div className="w-12 h-12 bg-[#FE7F2D]/10 rounded-2xl flex items-center justify-center">
+          <div className="flex items-center gap-4 mb-10 mt-2">
+            <div className="w-12 h-12 bg-[#FE7F2D]/10 rounded-2xl flex items-center justify-center shrink-0">
                <TrendingUp className="text-[#FE7F2D] w-6 h-6" />
             </div>
             <div>
               <h1 className="text-xl font-black tracking-tighter">THC Club</h1>
-              <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-none px-2 py-0 text-[10px] lowercase font-bold tracking-widest">
+              <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-none px-2 py-0 text-[10px] lowercase font-bold tracking-widest hidden sm:inline-flex">
                 brand dashboard
               </Badge>
-            </div>
-            <div className="ml-auto">
-               <Button 
-                 variant="ghost" 
-                 size="icon" 
-                 onClick={handleLogout}
-                 className="hover:bg-red-400/10 hover:text-red-400 transition-colors"
-                 title="Secure Logout"
-               >
-                  <LogOut className="w-5 h-5 opacity-40 hover:opacity-100" />
-               </Button>
             </div>
           </div>
 
           {/* User Info */}
           {currentUser && (
-            <div className="mb-10 p-4 bg-white/5 rounded-3xl border border-white/5">
-               <p className="text-[10px] font-bold lowercase text-white/30 tracking-widest mb-1">authenticated as</p>
-               <p className="font-bold tracking-tight text-sm truncate">{currentUser.business_name.toLowerCase()}</p>
+            <div className="mb-10 p-4 bg-white/5 rounded-3xl border border-white/5 flex items-center justify-between group">
+               <div className="min-w-0 pr-2">
+                 <p className="text-[10px] font-bold lowercase text-white/30 tracking-widest mb-1 flex items-center gap-2">
+                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                   authenticated
+                 </p>
+                 <p className="font-bold tracking-tight text-sm truncate">{currentUser.business_name.toLowerCase()}</p>
+               </div>
+               <Button 
+                 variant="ghost" 
+                 size="icon" 
+                 onClick={handleLogout}
+                 className="text-white/20 hover:bg-red-400/10 hover:text-red-400 transition-all shrink-0 group-hover:text-white/40 h-8 w-8 rounded-xl"
+                 title="Secure Logout"
+               >
+                  <LogOut className="w-4 h-4" />
+               </Button>
             </div>
           )}
 
@@ -128,16 +159,7 @@ export function BrandLayout({
             })}
           </nav>
 
-          {/* Footer */}
-          <div className="mt-auto pt-8 border-t border-white/5">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-sm font-bold text-white/50 hover:text-red-400 hover:bg-red-400/5 transition-all duration-300"
-            >
-              <LogOut className="w-5 h-5" />
-              <span className="tracking-tight lowercase text-[11px] tracking-widest">secure logout</span>
-            </button>
-          </div>
+          {/* Footer removed per UX update */}
         </div>
       </aside>
 

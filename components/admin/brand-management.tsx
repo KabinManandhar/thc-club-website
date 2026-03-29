@@ -283,41 +283,47 @@ export function BrandManagement() {
             )}
           </div>
 
-          <Tabs defaultValue="info" className="flex-1 flex flex-col">
-            <div className="px-8 border-b border-black/5 bg-white">
-              <TabsList className="bg-transparent border-none gap-8 h-14 p-0">
+          <Tabs defaultValue="info" orientation="vertical" className="flex-1 flex flex-col md:flex-row h-full items-stretch">
+            <div className="w-full md:w-64 border-b md:border-b-0 md:border-r border-black/5 bg-gray-50/50 p-6 shrink-0 block overflow-x-auto md:overflow-y-auto">
+              <TabsList className="flex flex-row md:flex-col justify-start bg-transparent p-0 h-auto gap-2 w-max md:w-full items-start">
                 {[
-                  { id: 'info', label: 'Brand Profile' },
-                  { id: 'changes', label: `Requests`, count: changeRequests.length },
-                  { id: 'products', label: 'Inventory', count: products.length },
-                  { id: 'sales_history', label: 'Sales History', count: invoices.length },
-                  { id: 'performance_analysis', label: 'Performance Report' },
-                  { id: 'payouts', label: 'EOM Payouts' },
-                  { id: 'transactions', label: 'Shelf Ledger' },
-                  { id: 'crm', label: 'CRM (Admin)' },
-                  { id: 'contracts', label: 'Contracts', count: contracts.length },
-                  { id: 'enquiries', label: 'Enquiries', count: enquiries.length },
-                  { id: 'danger', label: 'Danger Zone' },
+                  { id: 'info', label: 'Brand Profile', icon: <Package className="w-4 h-4 mr-3" /> },
+                  { id: 'crm', label: 'CRM (Admin)', icon: <ShieldCheck className="w-4 h-4 mr-3" /> },
+                  { id: 'changes', label: 'Requests', count: changeRequests.length, icon: <Check className="w-4 h-4 mr-3" /> },
+                  { id: 'products', label: 'Inventory', count: products.length, icon: <LayoutGrid className="w-4 h-4 mr-3" /> },
+                  { id: 'sales_history', label: 'Sales History', count: invoices.length, icon: <ArrowLeft className="w-4 h-4 mr-3" /> },
+                  { id: 'performance_analysis', label: 'Performance Report', icon: <BarChart3 className="w-4 h-4 mr-3" /> },
+                  { id: 'payouts', label: 'EOM Payouts', icon: <DollarSign className="w-4 h-4 mr-3" /> },
+                  { id: 'transactions', label: 'Shelf Ledger', icon: <StickyNote className="w-4 h-4 mr-3" /> },
+                  { id: 'contracts', label: 'Contracts', count: contracts.length, icon: <FileText className="w-4 h-4 mr-3" /> },
+                  { id: 'enquiries', label: 'Enquiries', count: enquiries.length, icon: <MessageSquare className="w-4 h-4 mr-3" /> },
+                  { id: 'danger', label: 'Danger Zone', icon: <Trash2 className="w-4 h-4 mr-3 text-red-500" /> },
                 ].map(tab => (
                   <TabsTrigger 
                     key={tab.id}
                     value={tab.id} 
-                    className="data-[state=active]:border-b-2 data-[state=active]:border-black data-[state=active]:text-black rounded-none px-0 font-black uppercase tracking-widest text-[9px] h-full bg-transparent border-transparent transition-all"
+                    className="data-[state=active]:bg-white data-[state=active]:text-[#FE7F2D] data-[state=active]:shadow-sm border border-transparent hover:bg-black/5 w-full justify-start rounded-xl px-4 py-3 font-black uppercase tracking-widest text-[9px] transition-all relative group h-auto"
                   >
-                    {tab.label} {tab.count !== undefined && <span className="ml-1 opacity-30">({tab.count})</span>}
+                    {tab.icon}
+                    <span className="truncate">{tab.label}</span>
+                    {tab.count !== undefined && tab.count > 0 && (
+                      <span className="ml-auto bg-[#FE7F2D] text-white rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 text-[8px]">
+                        {tab.count}
+                      </span>
+                    )}
                   </TabsTrigger>
                 ))}
               </TabsList>
             </div>
 
-            <div className="p-8">
+            <div className="flex-1 p-8 md:p-10 overflow-y-auto bg-white/50 h-full">
               {loadingDetails ? (
-                <div className="flex flex-col items-center justify-center py-32 gap-4">
+                <div className="flex flex-col items-center justify-center py-32 gap-4 h-full">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D]"></div>
                   <p className="text-gray-400 font-black uppercase tracking-widest text-xs">Crunching database...</p>
                 </div>
               ) : (
-                <>
+                <div className="max-w-[1400px] h-full">
                   <TabsContent value="info" className="mt-0 outline-none space-y-8">
                     <div className="grid md:grid-cols-2 gap-8">
                       <Card className="border-none bg-gray-50/50 rounded-2xl p-6">
@@ -970,10 +976,10 @@ export function BrandManagement() {
                             <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">cascading wipe enabled</Badge>
                             <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">pos link termination</Badge>
                             <Badge variant="outline" className="rounded-full border-red-100 text-red-800/40 font-bold lowercase text-[10px] px-3 py-1 italic">financial record purge</Badge>
-                         </div>
-                      </div>
-                   </TabsContent>
-                </>
+                       </div>
+                       </div>
+                    </TabsContent>
+                 </div>
               )}
             </div>
           </Tabs>

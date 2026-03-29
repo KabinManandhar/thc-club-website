@@ -41,6 +41,12 @@ export function AdminLayout({
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
 
   useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth >= 1024) {
+      setSidebarOpen(true);
+    }
+  }, []);
+
+  useEffect(() => {
     const loadUser = async () => {
       const user = await adminAuth.getCurrentUser();
       setCurrentUser(user);
@@ -70,53 +76,61 @@ export function AdminLayout({
 
   return (
     <div className="min-h-screen bg-[#FFFCEB] font-space-grotesk text-[#010307]">
-      {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="bg-white"
-        >
-          {sidebarOpen ? (
-            <X className="w-4 h-4" />
-          ) : (
-            <Menu className="w-4 h-4" />
-          )}
-        </Button>
-      </div>
+      {/* Sidebar Toggle Button (visible when closed) */}
+      {!sidebarOpen && (
+        <div className="fixed top-6 left-6 z-50 animate-in fade-in duration-300">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setSidebarOpen(true)}
+            className="bg-white rounded-xl shadow-xl border-[#010307]/5 hover:scale-105 active:scale-95 transition-all text-[#010307]"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#FFFCEB] border-r border-[#010307]/5 transform transition-transform duration-300 ease-in-out scrollbar-hide overflow-y-auto ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        className={`fixed inset-y-0 left-0 z-40 w-64 bg-[#FFFCEB] border-r border-[#010307]/5 transform transition-transform duration-300 ease-in-out scrollbar-hide overflow-y-auto ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div className="flex flex-col min-h-screen bg-[#FFFCEB] shadow-sm">
+        <div className="flex flex-col min-h-screen bg-[#FFFCEB] shadow-sm relative">
           {/* Header */}
           <div className="p-8 border-b border-[#010307]/5">
+            <Button
+               variant="ghost"
+               size="icon"
+               onClick={() => setSidebarOpen(false)}
+               className="absolute right-4 top-6 text-[#010307]/30 hover:text-black hover:bg-black/5 z-10 w-8 h-8 rounded-full"
+            >
+               <X className="w-4 h-4" />
+            </Button>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Image src="/logo.png" alt="THC Club" width={100} height={50} className="h-8 w-auto" />
                 <Badge className="bg-[#FE7F2D] text-white text-[8px] font-black uppercase tracking-widest px-2 py-0 border-none">admin</Badge>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleLogout}
-                className="hover:bg-red-400/5 text-[#010307]/20 hover:text-red-400 transition-all rounded-full"
-                title="Secure Exit"
-              >
-                <LogOut className="w-4 h-4" />
-              </Button>
             </div>
             {currentUser && (
-               <div className="mt-6 space-y-1">
-                  <p className="text-[11px] font-bold lowercase tracking-wide text-black flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                     {currentUser.name.toLowerCase()}
-                  </p>
-                  <p className="text-[10px] font-medium text-[#010307]/40 lowercase tracking-tighter ml-3.5 italic">
-                     {currentUser.role.replace("_", " ").toLowerCase()}
-                  </p>
+               <div className="mt-6 flex items-start justify-between">
+                 <div className="space-y-1 min-w-0 pr-2">
+                    <p className="text-[11px] font-bold lowercase tracking-wide text-black flex items-center gap-2 truncate">
+                       <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shrink-0" />
+                       {currentUser.name.toLowerCase()}
+                    </p>
+                    <p className="text-[10px] font-medium text-[#010307]/40 lowercase tracking-tighter ml-3.5 italic">
+                       {currentUser.role.replace("_", " ").toLowerCase()}
+                    </p>
+                 </div>
+                 <Button
+                   variant="ghost"
+                   size="icon"
+                   onClick={handleLogout}
+                   className="hover:bg-red-400/5 text-[#010307]/20 hover:text-red-400 transition-all rounded-xl shrink-0 w-8 h-8"
+                   title="Secure Exit"
+                 >
+                   <LogOut className="w-4 h-4" />
+                 </Button>
                </div>
             )}
           </div>
@@ -149,23 +163,13 @@ export function AdminLayout({
             </ul>
           </nav>
 
-          {/* Footer */}
-          <div className="p-6 border-t border-[#010307]/5">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-[#010307]/40 hover:text-[#FE7F2D] hover:bg-[#FE7F2D]/5 rounded-xl transition-all h-12 px-4 group"
-              onClick={handleLogout}
-            >
-              <LogOut className="w-4 h-4 mr-3 text-[#010307]/20 group-hover:text-[#FE7F2D]" />
-              <span className="font-bold text-[12px] lowercase tracking-wide">logout</span>
-            </Button>
-          </div>
+          {/* Footer removed per UX update */}
         </div>
       </div>
 
       {/* Main content */}
-      <div className="lg:ml-64 min-w-0">
-        <div className="p-4 sm:p-6 lg:p-8">{children}</div>
+      <div className={`min-w-0 transition-all duration-300 ease-in-out ${sidebarOpen ? "lg:ml-64" : ""}`}>
+        <div className="p-4 sm:p-6 lg:p-8 pt-20 lg:pt-8">{children}</div>
       </div>
 
       {/* Mobile overlay */}
