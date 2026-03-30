@@ -956,17 +956,18 @@ export default function LandingPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-12">
                   {brands.map((brand) => (
                     <div key={brand.id} className="group relative flex flex-col items-center gap-4 sm:gap-6 transition-all duration-300 hover-lift">
-                      <div className="w-32 h-32 sm:w-40 sm:h-40 md:w-56 md:h-56 bg-white rounded-[2rem] sm:rounded-[3rem] border border-[#FE7F2D]/5 flex items-center justify-center p-6 sm:p-10 overflow-hidden shadow-2xl group-hover:shadow-[#FE7F2D]/10 transition-all">
+                      <div className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-56 md:h-56 bg-white rounded-[2rem] sm:rounded-[3rem] border border-[#FE7F2D]/5 overflow-hidden shadow-2xl group-hover:shadow-[#FE7F2D]/10 transition-all flex items-center justify-center">
                         {brand.logo_url ? (
                           <Image
                             src={brand.logo_url}
                             alt={brand.business_name}
-                            width={200}
-                            height={200}
-                            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                            fill
+                            className="object-contain p-4 sm:p-6 transition-all duration-500 group-hover:scale-105"
                           />
                         ) : (
-                          <div className="text-6xl font-black text-[#FE7F2D]/10 group-hover:text-[#FE7F2D]/30 transition-colors uppercase tracking-widest">{brand.business_name.substring(0, 2)}</div>
+                          <div className="flex items-center justify-center w-full h-full text-6xl font-black text-[#FE7F2D]/10 group-hover:text-[#FE7F2D]/30 transition-colors uppercase tracking-widest">
+                            {brand.business_name.substring(0, 2)}
+                          </div>
                         )}
                       </div>
                       <div className="text-center space-y-2">
