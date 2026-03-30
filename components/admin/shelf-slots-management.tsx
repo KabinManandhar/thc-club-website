@@ -55,11 +55,15 @@ export function ShelfSlotsManagement() {
     total_slots: 4,
   })
 
+  const [pricingTiers, setPricingTiers] = useState<any[]>([])
+  const [selectedDuration, setSelectedDuration] = useState<"quarterly" | "half_yearly" | "yearly">("yearly")
+
   const [updateData, setUpdateData] = useState({
     status: "",
     brand_id: "",
     occupied_by: "",
     rent_amount: "",
+    duration: "yearly",
     occupied_from: "",
     occupied_until: "",
     notes: "",
@@ -92,12 +96,13 @@ export function ShelfSlotsManagement() {
 
   const fetchSlots = async () => {
     try {
-      const [slotsRes, shelvesRes, brandsRes, sectionsRes, offersRes] = await Promise.all([
+      const [slotsRes, shelvesRes, brandsRes, sectionsRes, offersRes, pricingRes] = await Promise.all([
         supabase.from("shelf_slots").select("*, brands(business_name), promotional_offers(*)").order("slot_number", { ascending: true }),
         supabase.from("shelves").select("*").order("name"),
         supabase.from("brands").select("id, business_name").order("business_name"),
         supabase.from("shelf_sections").select("*").order("name"),
-        supabase.from("promotional_offers").select("*").eq("is_active", true).order("name")
+        supabase.from("promotional_offers").select("*").eq("is_active", true).order("name"),
+        supabase.from("shelf_pricing_tiers").select("*")
       ])
 
       if (slotsRes.error) throw slotsRes.error
@@ -105,12 +110,14 @@ export function ShelfSlotsManagement() {
       if (brandsRes.error) throw brandsRes.error
       if (sectionsRes.error) throw sectionsRes.error
       if (offersRes.error) throw offersRes.error
+      if (pricingRes.error) throw pricingRes.error
 
       setSlots(slotsRes.data || [])
       setShelves(shelvesRes.data || [])
       setBrands(brandsRes.data || [])
       setSections(sectionsRes.data || [])
       setOffers(offersRes.data || [])
+      setPricingTiers(pricingRes.data || [])
 
       console.log("Loaded Infrastructure:", {
         slots: slotsRes.data?.length,
@@ -126,6 +133,20 @@ export function ShelfSlotsManagement() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const getAutoPrice = (slot: ShelfSlot, duration: string) => {
+    const section = sections.find(s => s.id === slot.section_id)
+    const tier = section?.section_tier || 'regular'
+    
+    const pricing = pricingTiers.find(p => p.duration === duration && p.section_tier === tier)
+    if (!pricing) return 0
+
+    const type = slot.shelf_type === 'mixed' ? 'eye_level' : slot.shelf_type
+    if (type === 'bottom') return pricing.bottom_price
+    if (type === 'eye_level') return pricing.eye_level_price
+    if (type === 'top_level') return pricing.top_level_price
+    return 0
   }
 
   const handleCreateShelf = async () => {
@@ -533,11 +554,13 @@ export function ShelfSlotsManagement() {
                                 slot={slot}
                                 onSelect={() => {
                                   setSelectedSlot(slot)
+                                  const autoPrice = getAutoPrice(slot, "yearly")
                                   setUpdateData({
                                     status: slot.status,
                                     brand_id: slot.brand_id || "none",
                                     occupied_by: slot.occupied_by || "",
-                                    rent_amount: slot.rent_amount?.toString() || "",
+                                    rent_amount: slot.rent_amount?.toString() || autoPrice.toString(),
+                                    duration: "yearly",
                                     occupied_from: slot.occupied_from || "",
                                     occupied_until: slot.occupied_until || "",
                                     notes: slot.notes || "",
@@ -576,11 +599,13 @@ export function ShelfSlotsManagement() {
                           slot={slot}
                           onSelect={() => {
                             setSelectedSlot(slot)
+                            const autoPrice = getAutoPrice(slot, "yearly")
                             setUpdateData({
                               status: slot.status,
                               brand_id: slot.brand_id || "none",
                               occupied_by: slot.occupied_by || "",
-                              rent_amount: slot.rent_amount?.toString() || "",
+                              rent_amount: slot.rent_amount?.toString() || autoPrice.toString(),
+                              duration: "yearly",
                               occupied_from: slot.occupied_from || "",
                               occupied_until: slot.occupied_until || "",
                               notes: slot.notes || "",
@@ -635,13 +660,39 @@ export function ShelfSlotsManagement() {
                 </div>
 
                 <div>
-                  <Label htmlFor="rent_amount">Monthly Rent (NPR)</Label>
+                  <Label>Lease Term (Auto Price Sync)</Label>
+                  <Select
+                    value={updateData.duration}
+                    onValueChange={(v) => {
+                      if (selectedSlot) {
+                        const newPrice = getAutoPrice(selectedSlot, v)
+                        setUpdateData(prev => ({ ...prev, duration: v, rent_amount: newPrice.toString() }))
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                       <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                       <SelectItem value="quarterly">Quarterly</SelectItem>
+                       <SelectItem value="half_yearly">Half Yearly</SelectItem>
+                       <SelectItem value="yearly">Yearly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="rent_amount">Monthly Rent (NPR)</Label>
+                <div className="relative">
                   <Input
                     id="rent_amount"
                     type="number"
                     value={updateData.rent_amount}
                     onChange={(e) => setUpdateData((prev) => ({ ...prev, rent_amount: e.target.value }))}
+                    className="pr-16"
                   />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-400 uppercase">npr/mo</div>
                 </div>
               </div>
 
