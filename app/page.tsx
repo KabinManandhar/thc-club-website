@@ -2,9 +2,8 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ArrowRight, BarChart3, Camera, CheckCircle2, Eye, Heart, Instagram, Lock, LogIn, Menu, Package, ShieldCheck, Users, X, Zap } from "lucide-react"
+import { ArrowLeft, ArrowRight, BarChart3, Camera, CheckCircle2, Eye, Heart, Instagram, Lock, LogIn, Menu, Package, ShieldCheck, TrendingUp, Users, X, Zap } from "lucide-react"
 import Image from "next/image"
-import Link from "next/link"
 import { useEffect, useState } from "react"
 
 import {
@@ -79,7 +78,7 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
         </div>
       </section>
 
-      {/* Store Gallery Teaser */}
+      {/* Store Gallery Teaser
       {storeImages && storeImages.length > 0 && (
         <section className="py-20 sm:py-32 bg-[#FFFCEB]">
           <div className="container mx-auto px-4 sm:px-6">
@@ -121,9 +120,9 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
             </div>
           </div>
         </section>
-      )}
+      )} */}
 
-      {/* Club Members Section Teaser */}
+      {/* Club Members Section Teaser
       <section className="py-20 sm:py-32 bg-white">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
@@ -174,25 +173,50 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
             )}
           </div>
         </div>
-      </section>
+      </section> */}
 
-      {/* Who It's For - Teaser */}
-      <section className="py-20 sm:py-32 bg-[#FFFCEB] border-y border-[#FE7F2D]/10">
+      {/* Who We're Building This For */}
+      <section className="py-24 sm:py-32 bg-[#FFFCEB] border-y border-[#FE7F2D]/10">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-16 sm:mb-24 space-y-6">
-              <h2 className="text-4xl sm:text-4xl lg:text-7xl font-black lowercase italic tracking-tighter">is this for you?</h2>
-              <p className="text-base sm:text-2xl text-[#010307]/50 max-w-3xl mx-auto italic lowercase font-medium">
-                We're built for creators and brands who are doing things with intention — whether you're just starting
-                or scaling up.
-              </p>
+            <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center mb-20 sm:mb-32">
+              <div className="space-y-6">
+                <div className="inline-flex items-center gap-2 bg-[#FE7F2D]/10 text-[#FE7F2D] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em]">
+                  the collective profile
+                </div>
+                <h2 className="text-4xl sm:text-6xl font-black lowercase italic tracking-tighter leading-none">
+                  we're not for <span className="text-[#FE7F2D]">everyone</span>. that's the point.
+                </h2>
+                <p className="text-lg sm:text-2xl text-[#010307]/50 italic font-medium leading-relaxed">
+                  THC Club is for brands building with intention. Doesn't matter if you're in food, fashion, lifestyle, art, or something that doesn't have a category yet.
+                </p>
+                <p className="text-base sm:text-lg text-[#010307]/80 italic">
+                  What matters is that you have something real to say — and you're done letting the system take a piece of every time you say it.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="p-8 bg-white border border-[#FE7F2D]/10 rounded-[3rem] shadow-xl group hover:border-[#FE7F2D]/30 transition-all">
+                  <h3 className="text-xl sm:text-2xl font-black italic text-[#010307] mb-2 lowercase">you belong here if you're —</h3>
+                  <p className="text-[#010307]/40 text-sm leading-relaxed lowercase italic">
+                    community-driven. creator-first. already selling online and ready to be felt in person. building something kathmandu hasn't seen yet. tired of the same old gatekeeping.
+                  </p>
+                </div>
+                <div className="p-8 bg-black border border-white/5 rounded-[3rem] shadow-2xl group">
+                  <h3 className="text-xl sm:text-2xl font-black italic text-[#FE7F2D] mb-2 lowercase">this isn't for you if you're —</h3>
+                  <p className="text-white/40 text-sm leading-relaxed lowercase italic">
+                    looking for a quick resale play. we curate every brand in this space. being here means something — and we protect that for every brand who's already in.
+                  </p>
+                </div>
+              </div>
             </div>
+
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
               {[
-                { title: "local product makers", desc: "handcrafted in nepal", emoji: "🏠" },
-                { title: "handmade + custom brands", desc: "one-of-a-kind creations", emoji: "✋" },
-                { title: "ethical fashion, food, home", desc: "conscious commerce", emoji: "🌱" },
-                { title: "niche or experimental", desc: "testing bold ideas", emoji: "🧪" },
+                { title: "community driven", desc: "built by the city", emoji: "🤝" },
+                { title: "creator first", desc: "intentional makers", emoji: "✨" },
+                { title: "ethical + local", desc: "produced in nepal", emoji: "🏔️" },
+                { title: "experimental", desc: "niche + bold", emoji: "🧪" },
               ].map((item, index) => (
                 <div
                   key={index}
@@ -204,8 +228,33 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
                 </div>
               ))}
             </div>
-            <div className="text-center mt-16 sm:mt-24">
-              <p className="text-xl sm:text-3xl font-black text-[#FE7F2D] lowercase italic">you bring the hustle. we'll bring the shelf.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Closing — Manifesto */}
+      <section className="py-24 sm:py-40 bg-white relative">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="max-w-4xl mx-auto text-center space-y-12">
+            <div className="inline-flex items-center gap-2 bg-[#010307]/5 text-[#010307]/40 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em]">
+              closing — manifesto
+            </div>
+            <h2 className="text-4xl sm:text-6xl lg:text-8xl font-black italic lowercase tracking-tighter leading-none">
+              a club for the ones <br />
+              <span className="text-[#FE7F2D]">building anyway.</span>
+            </h2>
+            <div className="space-y-8 max-w-2xl mx-auto">
+              <p className="text-lg sm:text-2xl text-[#010307]/60 font-medium italic leading-relaxed">
+                THC club isn't just retail space. it's what happens when a founder gets tired of being turned away and decides to build the door they kept being shut out of.
+              </p>
+              <p className="text-xl sm:text-3xl font-black text-[#FE7F2D] lowercase italic">
+                if you're building something real, there's a shelf here with your name on it.
+              </p>
+            </div>
+            <div className="pt-12">
+              <p className="text-3xl sm:text-5xl font-black italic lowercase tracking-tighter text-[#010307]/10">
+                welcome to the collective.
+              </p>
             </div>
           </div>
         </div>
@@ -224,7 +273,7 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
             <div className="space-y-4">
               <p className="text-lg sm:text-3xl font-black lowercase italic text-white/80 tracking-tight">108 shelf slots. curated community. exclusive access.</p>
               <p className="text-base sm:text-xl text-white/40 font-medium italic lowercase">if you're building something real, we want you here.</p>
-              <p className="text-2xl sm:text-4xl font-black text-[#FE7F2D] mt-8 italic lowercase">🖤 this is thc club.</p>
+              <p className="text-2xl sm:text-4xl font-black text-[#FE7F2D] mt-8 italic lowercase">🖤 this is THC club.</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">
               <Button
@@ -559,7 +608,7 @@ export default function LandingPage() {
 
                     {/* Logo instead of text */}
                     <div className="flex flex-col items-center lg:items-start">
-                      <h1 className="sr-only">thc club - the hidden collective club kathmandu</h1>
+                      <h1 className="sr-only">THC club - the hidden collective club kathmandu</h1>
                       <div className="flex justify-center lg:justify-start">
                         <Image
                           src="/logo.png"
@@ -584,18 +633,18 @@ export default function LandingPage() {
                           {[
                             {
                               icon: ShieldCheck,
-                              title: "01. apply for access",
-                              desc: "apply to join the collective. we curate energy, not just products. only the most intentional creators get a shelf."
+                              title: "01 — Apply",
+                              desc: "tell us what you make and why it belongs here. we go through every application — not to gatekeep, but because who we let in defines what this place becomes."
                             },
                             {
                               icon: Package,
-                              title: "02. secure a slot",
-                              desc: "once approved, book your dedicated shelf. 108 slots, first-come first-served. your story starts on our shelf."
+                              title: "02 — Choose your shelf",
+                              desc: "shelves are priced by positioning — eye-level and floor-level aren't the same, and we're upfront about that. you pick what works for your budget and your stage.."
                             },
                             {
                               icon: BarChart3,
-                              title: "03. live analytics",
-                              desc: "go live and monitor your sales pulsate in real-time via your club terminal. automated payouts, zero friction."
+                              title: "03 — Show up",
+                              desc: "stock it your way. let it run. walk in anytime to restock, rearrange, or just see your brand in the wild. you built it — it should feel like yours.."
                             }
                           ].map((item, index) => (
                             <CarouselItem key={index}>
@@ -722,10 +771,17 @@ export default function LandingPage() {
             <div className="container mx-auto px-4 sm:px-6">
               <div className="max-w-4xl mx-auto text-center space-y-12">
                 <div className="space-y-6">
-                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black lowercase italic tracking-tighter">what is thc club?</h2>
-                  <p className="text-base sm:text-xl lg:text-2xl text-[#010307]/60 font-medium italic leading-relaxed max-w-3xl mx-auto lowercase">
-                    nepal's first curated creative collective. we're a community of real creators sharing space, telling
-                    their stories, and making the city feel alive.
+                  <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black lowercase italic tracking-tighter">what is THC club?</h2>
+                  <p className="text-base sm:text-xl lg:text-2xl text-justify text-[#010307]/60 font-medium italic leading-relaxed max-w-3xl mx-auto">
+                    this place exists because the old ones said no.
+                    when i was building my first brand, i wanted one thing — a physical shelf. somewhere real people could touch what we made, not just scroll past it.
+                    <br />
+                    what i found instead: retail spaces charging 20–35% on every sale. not rent. a cut. every single time. and when i asked to just rent a small corner? turned away.
+                    <br />
+
+                    so i built what i needed. a space where brands like mine — scrappy, intentional, built with something to prove — could show up without the system taking what they earned.
+
+                    that space is THC club.
                   </p>
                   <div className="text-2xl font-black lowercase italic text-[#FE7F2D]">
                     it's a movement. it's a club. it's yours if you're real.
@@ -745,6 +801,161 @@ export default function LandingPage() {
                       <p className="text-[#010307]/60">{item.desc}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* The Reality Check — for brand partners */}
+          <section className="py-24 sm:py-32 bg-[#010307] text-white overflow-hidden relative">
+            <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+              <div className="absolute top-1/4 left-10 w-64 h-64 bg-[#FE7F2D] rounded-full blur-[120px]" />
+              <div className="absolute bottom-1/4 right-10 w-64 h-64 bg-white rounded-full blur-[120px]" />
+            </div>
+
+            <div className="container mx-auto px-4 sm:px-6 relative z-10">
+              <div className="max-w-6xl mx-auto">
+                <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+                  <div className="space-y-8">
+                    <div className="inline-flex items-center gap-2 bg-white/5 text-white/60 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em]">
+                      partner ecosystem
+                    </div>
+                    <h2 className="text-4xl sm:text-6xl font-black lowercase italic tracking-tighter leading-none">
+                      the <span className="text-[#FE7F2D]">reality</span> check.
+                    </h2>
+                    <p className="text-lg sm:text-2xl text-white/60 font-medium italic lowercase leading-relaxed">
+                      the numbers others don't talk about. here's what it actually costs to get your product in front of people in kathmandu today.
+                    </p>
+                    <div className="pt-4">
+                      <Button
+                        size="lg"
+                        className="bg-[#FE7F2D] hover:bg-white hover:text-black text-white font-black lowercase italic tracking-widest px-10 py-8 rounded-2xl h-auto"
+                        onClick={() => setAuthView("signup")}
+                      >
+                        apply first, pricing later.
+                      </Button>
+                      <p className="mt-4 text-[10px] text-white/30 font-bold uppercase tracking-widest italic">
+                        exact pricing is shared once you're ready to onboard.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-6">
+                    <div className="group p-8 sm:p-12 bg-white/5 rounded-[3rem] border border-white/10 hover:border-[#FE7F2D]/50 transition-all duration-500 hover:-translate-y-2">
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white/40 group-hover:text-[#FE7F2D] transition-colors">
+                          <TrendingUp className="w-6 h-6" />
+                        </div>
+                        <Badge variant="outline" className="border-white/10 text-white/40 font-black uppercase tracking-widest text-[8px]">traditional retail</Badge>
+                      </div>
+                      <h3 className="text-4xl sm:text-5xl font-black text-[#FE7F2D] mb-2 italic">20–35%</h3>
+                      <p className="text-sm sm:text-lg text-white/60 lowercase italic font-medium leading-tight">per sale at most retail spaces — before you've covered anything else.</p>
+                    </div>
+
+                    <div className="group p-8 sm:p-12 bg-white/5 rounded-[3rem] border border-white/10 hover:border-[#FE7F2D]/50 transition-all duration-500 hover:-translate-y-2">
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-white/40 group-hover:text-[#FE7F2D] transition-colors">
+                          <Package className="w-6 h-6" />
+                        </div>
+                        <Badge variant="outline" className="border-white/10 text-white/40 font-black uppercase tracking-widest text-[8px]">own storefront</Badge>
+                      </div>
+                      <h3 className="text-4xl sm:text-5xl font-black text-[#FE7F2D] mb-2 italic">Rs. 20–30k/mo</h3>
+                      <p className="text-sm sm:text-lg text-white/60 lowercase italic font-medium leading-tight">to rent your own storefront, every single month, regardless of sales.</p>
+                    </div>
+
+                    <div className="p-8 sm:p-12 bg-[#FE7F2D] rounded-[3rem] shadow-2xl shadow-orange-500/20 rotate-1 group">
+                      <h3 className="text-2xl sm:text-3xl font-black text-white lowercase italic mb-4 leading-tight">our model is different.</h3>
+                      <p className="text-sm sm:text-lg text-white/90 lowercase italic font-medium leading-snug">
+                        no 20–35% commission. no monthly panic. just a shelf, a spotlight, and a pricing structure built to actually make sense for a growing brand.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* For the customer walking in */}
+          <section className="py-24 sm:py-40 bg-[#FFFCEB] relative overflow-hidden">
+            <div className="container mx-auto px-4 sm:px-6">
+              <div className="max-w-6xl mx-auto">
+                <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-32">
+                  <div className="lg:w-1/2 relative space-y-10 order-2 lg:order-1">
+                    <div className="relative aspect-square rounded-[4rem] overflow-hidden border border-[#FE7F2D]/10 shadow-2xl rotate-2">
+                      <div className="relative w-full h-full overflow-hidden rounded-2xl group">
+                        <img
+                          src="/broski.png"
+                          alt="discovery at thc club"
+                          className="w-full h-full object-cover 
+               grayscale 
+               scale-100 
+               transition-all duration-700 ease-out
+               group-hover:grayscale-0 
+               group-hover:scale-110"
+                        />
+
+                        <div className="absolute inset-0 bg-black/20 
+                  transition-all duration-700 
+                  group-hover:bg-black/0" />
+
+                        <div className="absolute bottom-4 left-4 right-4 
+                  opacity-0 
+                  transition-all duration-500 
+                  group-hover:opacity-100">
+                          <p className="text-white text-sm italic lowercase">
+                            real brands. real shelves.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#FE7F2D]/20 to-transparent mix-blend-overlay" />
+                    </div>
+                    {/* Floating Tag */}
+                    <div className="absolute -bottom-10 -right-10 bg-white p-8 rounded-[3rem] shadow-2xl border border-[#FE7F2D]/10 -rotate-6 hidden sm:block">
+                      <p className="text-3xl font-black italic text-[#FE7F2D] leading-none mb-2">feel it.</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-[#010307]/30">the offline advantage</p>
+                    </div>
+                  </div>
+
+                  <div className="lg:w-1/2 space-y-10 order-1 lg:order-2">
+                    <div className="space-y-6">
+                      <div className="inline-flex items-center gap-2 bg-[#FE7F2D]/10 text-[#FE7F2D] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em]">
+                        for the customer
+                      </div>
+                      <h2 className="text-4xl sm:text-6xl font-black lowercase italic tracking-tighter leading-none">
+                        every great <span className="text-[#FE7F2D]">nepali</span> brand, in one room.
+                      </h2>
+                      <p className="text-lg sm:text-2xl text-[#010307]/60 font-medium italic leading-relaxed lowercase">
+                        tired of dming brands on instagram, waiting on delivery, or hoping the link still works? THC club is where the brands you follow online finally live offline.
+                      </p>
+                    </div>
+
+                    <div className="space-y-6 pt-6">
+                      <div className="flex items-start gap-6 group">
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-[#FE7F2D]/5 shadow-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <Heart className="w-5 h-5 text-[#FE7F2D]" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-black text-xl lowercase italic italic text-[#010307]">pick it up.</h4>
+                          <p className="text-[#010307]/40 text-sm italic italic">feel the quality. try it on. no more guessing.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-6 group">
+                        <div className="w-12 h-12 rounded-2xl bg-white border border-[#FE7F2D]/5 shadow-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                          <Zap className="w-5 h-5 text-[#FE7F2D]" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-black text-xl lowercase italic italic text-[#010307]">take it home today.</h4>
+                          <p className="text-[#010307]/40 text-sm italic italic">no cart. no checkout lag. no waiting. just you and the thing you actually wanted.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-10 bg-white/50 border border-white rounded-[3rem] relative">
+                      <p className="text-base sm:text-lg text-[#010307]/60 italic italic leading-relaxed lowercase">
+                        think of it as your gift hub — the one place in kathmandu where discovery happens in person.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
