@@ -1,12 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Users, MessageSquare, Package, TrendingUp, AlertCircle, Shield, Plus, ArrowUpRight, Check, X as CloseX, LayoutGrid, Zap, AlertTriangle, DollarSign, Receipt } from "lucide-react"
-import { supabase, type StockUpdateRequest, type BrandChangeRequest } from "@/lib/supabase"
-import { adminAuth } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { adminAuth } from "@/lib/auth"
+import { supabase, type BrandChangeRequest, type StockUpdateRequest } from "@/lib/supabase"
+import { cn } from "@/lib/utils"
+import { AlertCircle, AlertTriangle, ArrowUpRight, Building2, Check, X as CloseX, DollarSign, Layers, LayoutGrid, MessageSquare, Package, Plus, Shield, Target, TrendingUp, Users } from "lucide-react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 interface DashboardStats {
@@ -23,6 +25,12 @@ interface DashboardStats {
   pendingStockRequests: number
   pendingChangeRequests: number
   liveSettlementsCount: number
+  slotsByLevel: {
+    bottom: { available: number; total: number }
+    eye_level: { available: number; total: number }
+    top_level: { available: number; total: number }
+  }
+  pricingTiers: any[]
 }
 
 interface DashboardOverviewProps {
@@ -44,7 +52,16 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
     pendingStockRequests: 0,
     pendingChangeRequests: 0,
     liveSettlementsCount: 0,
+    slotsByLevel: {
+      bottom: { available: 0, total: 0 },
+      eye_level: { available: 0, total: 0 },
+      top_level: { available: 0, total: 0 }
+    },
+    pricingTiers: []
   })
+  const [projectionPlan, setProjectionPlan] = useState<"quarterly" | "half_yearly" | "yearly">("yearly")
+  const [projectionLevel, setProjectionLevel] = useState<"all" | "bottom" | "eye_level" | "top_level">("all")
+
   const [pendingStock, setPendingStock] = useState<StockUpdateRequest[]>([])
   const [pendingChanges, setPendingChanges] = useState<BrandChangeRequest[]>([])
   const [criticalStock, setCriticalStock] = useState<any[]>([])
@@ -66,18 +83,19 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
   const fetchStats = async () => {
     try {
-      const [brandsRes, enquiriesRes, bookingsRes, slotsRes, stockRes, changesRes, financeRes, brandSalesRes, payoutsRes] = await Promise.all([
+      const [brandsRes, enquiriesRes, bookingsRes, slotsRes, stockRes, changesRes, financeRes, brandSalesRes, payoutsRes, pricingRes] = await Promise.all([
         supabase.from("brands").select("onboarding_status"),
         supabase.from("enquiries").select("status"),
         supabase.from("shelf_bookings").select("status"),
-        supabase.from("shelf_slots").select("status"),
+        supabase.from("shelf_slots").select("status, shelf_type"),
         supabase.from("stock_update_requests").select("status").eq("status", "pending"),
         supabase.from("brand_change_requests").select("status").eq("status", "pending"),
         supabase.from("invoices").select("total_amount, ppf_amount").eq("status", "paid"),
         supabase.from("brand_sales").select("brand_id, month, year"),
-        supabase.from("payouts").select("brand_id, month, year")
+        supabase.from("payouts").select("brand_id, month, year"),
+        supabase.from("shelf_pricing_tiers").select("*")
       ])
-  
+
       const brandsData = brandsRes.data || []
       const enquiriesData = enquiriesRes.data || []
       const bookingsData = bookingsRes.data || []
@@ -87,13 +105,13 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
       const financeData = financeRes.data || []
       const salesData = brandSalesRes.data || []
       const payoutsData = payoutsRes.data || []
-  
+
       const finalizedKeys = new Set(payoutsData.map(p => `${p.brand_id}-${p.month}-${p.year}`))
       const pendingSettlements = salesData.filter(s => !finalizedKeys.has(`${s.brand_id}-${s.month}-${s.year}`))
-  
+
       const totalSales = financeData.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0)
       const totalFees = financeData.reduce((sum, inv) => sum + Number(inv.ppf_amount || 0), 0)
-  
+
       setStats({
         brandsCount: brandsData.length,
         pendingBrands: brandsData.filter((b) => b.onboarding_status === "pending").length,
@@ -107,7 +125,22 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         occupiedSlots: slotsData.filter((s) => s.status === "occupied").length,
         pendingStockRequests: stockData.length,
         pendingChangeRequests: changesData.length,
-        liveSettlementsCount: pendingSettlements.length
+        liveSettlementsCount: pendingSettlements.length,
+        slotsByLevel: {
+          bottom: {
+            available: slotsData.filter(s => s.status === 'available' && s.shelf_type === 'bottom').length,
+            total: slotsData.filter(s => s.shelf_type === 'bottom').length
+          },
+          eye_level: {
+            available: slotsData.filter(s => s.status === 'available' && s.shelf_type === 'eye_level').length,
+            total: slotsData.filter(s => s.shelf_type === 'eye_level').length
+          },
+          top_level: {
+            available: slotsData.filter(s => s.status === 'available' && (s.shelf_type === 'top_level' || s.shelf_type === 'mixed')).length,
+            total: slotsData.filter(s => s.shelf_type === 'top_level' || s.shelf_type === 'mixed').length
+          }
+        },
+        pricingTiers: pricingRes.data || []
       })
     } catch (error) {
       console.error("Error fetching stats:", error)
@@ -184,11 +217,11 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
     try {
       if (action === 'approve') {
         const data = request.new_data
-        
+
         if (request.request_type === 'product_add') {
           const { error } = await supabase.from('brand_products').insert({
-             brand_id: request.brand_id,
-             ...data
+            brand_id: request.brand_id,
+            ...data
           })
           if (error) throw error
         } else if (request.request_type === 'product_update' && request.target_id) {
@@ -204,9 +237,9 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         .from('brand_change_requests')
         .update({ status: action === 'approve' ? 'approved' : 'rejected' })
         .eq('id', request.id)
-      
+
       if (error) throw error
-      
+
       toast.success(`Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`)
       fetchRequests()
       fetchStats()
@@ -215,6 +248,29 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
     } finally {
       setProcessingId(null)
     }
+  }
+
+  const calculateProjectedRevenue = () => {
+    const pricing = stats.pricingTiers.find(t => t.duration === projectionPlan && t.section_tier === 'regular')
+    if (!pricing) return 0
+
+    const levels = {
+      bottom: pricing.bottom_price,
+      eye_level: pricing.eye_level_price,
+      top_level: pricing.top_level_price
+    }
+
+    if (projectionLevel === 'all') {
+      return (
+        (stats.slotsByLevel.bottom.total - stats.slotsByLevel.bottom.available) * levels.bottom +
+        (stats.slotsByLevel.eye_level.total - stats.slotsByLevel.eye_level.available) * levels.eye_level +
+        (stats.slotsByLevel.top_level.total - stats.slotsByLevel.top_level.available) * levels.top_level
+      )
+    }
+
+    const currentLevel = stats.slotsByLevel[projectionLevel as keyof typeof stats.slotsByLevel]
+    const price = levels[projectionLevel as keyof typeof levels]
+    return (currentLevel.total - currentLevel.available) * price
   }
 
   const statCards = [
@@ -303,8 +359,8 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
           const Icon = stat.icon
           const isFinancial = stat.title.includes("Sales") || stat.title.includes("Fee")
           return (
-            <Card 
-              key={stat.title} 
+            <Card
+              key={stat.title}
               className={`group border-black/5 shadow-sm hover:shadow-md transition-all rounded-2xl bg-white overflow-hidden cursor-pointer active:scale-95`}
               onClick={() => onTabChange(isFinancial ? "accounts" : (stat.title.includes("Brands") ? "brands" : "inbox"))}
             >
@@ -328,6 +384,123 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
             </Card>
           )
         })}
+      </div>
+
+      {/* REVENUE INSIGHTS & FORECASTER */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 border-black/5 shadow-sm rounded-2xl bg-white overflow-hidden">
+          <div className="px-8 py-6 border-b border-black/5 flex justify-between items-center bg-gray-50/30">
+            <div className="space-y-1">
+              <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                <Target className="w-4 h-4 text-[#FE7F2D]" /> Shelf Rental Insights
+              </CardTitle>
+              <p className="text-[10px] text-gray-400 font-bold lowercase">Occupied Revenue Projection based on chosen plan.</p>
+            </div>
+            <div className="flex bg-white border border-black/5 p-1 rounded-xl shadow-sm">
+              {['quarterly', 'half_yearly', 'yearly'].map(plan => (
+                <button
+                  key={plan}
+                  onClick={() => setProjectionPlan(plan as any)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+                    projectionPlan === plan ? "bg-black text-white" : "text-gray-400 hover:text-black"
+                  )}
+                >
+                  {plan.replace('_', ' ')}
+                </button>
+              ))}
+            </div>
+          </div>
+          <CardContent className="p-8">
+            <div className="grid sm:grid-cols-2 gap-12">
+              <div className="space-y-8">
+                {/* Level Toggles */}
+                <div className="space-y-3">
+                  <Label className="uppercase text-[9px] font-black text-gray-300 tracking-widest">Select view level</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {['all', 'bottom', 'eye_level', 'top_level'].map(lvl => (
+                      <button
+                        key={lvl}
+                        onClick={() => setProjectionLevel(lvl as any)}
+                        className={cn(
+                          "px-4 py-2 rounded-xl text-[10px] font-bold lowercase border transition-all",
+                          projectionLevel === lvl ? "bg-[#FE7F2D]/10 border-[#FE7F2D] text-[#FE7F2D]" : "bg-gray-50 border-transparent text-gray-400 hover:bg-gray-100"
+                        )}
+                      >
+                        {lvl.replace('_', ' ')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-6 pt-4">
+                  {(['bottom', 'eye_level', 'top_level'] as const).map(lvl => {
+                    const data = stats.slotsByLevel[lvl]
+                    const isSelected = projectionLevel === 'all' || projectionLevel === lvl
+                    return (
+                      <div key={lvl} className={cn("space-y-2 transition-opacity", !isSelected && "opacity-20 grayscale")}>
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                          <span className="text-gray-400">{lvl.replace('_', ' ')}</span>
+                          <span className="text-black">{data.total - data.available} / {data.total} <span className="text-gray-300 lowercase italic font-bold">slots taken</span></span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-full rounded-full transition-all duration-1000",
+                              lvl === 'eye_level' ? "bg-[#FE7F2D]" : lvl === 'bottom' ? "bg-blue-400" : "bg-purple-400"
+                            )}
+                            style={{ width: `${((data.total - data.available) / data.total) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-gray-50/50 rounded-[2rem] p-8 flex flex-col items-center justify-center text-center space-y-4 border border-black/5 relative overflow-hidden">
+                <div className="absolute top-0 left-0 p-4 opacity-5"><TrendingUp className="w-24 h-24" /></div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Monthly Forecast</p>
+                  <p className="text-5xl font-black tracking-tighter text-[#FE7F2D]">NPR {calculateProjectedRevenue().toLocaleString()}</p>
+                </div>
+                <div className="pt-4 space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-gray-400">
+                    <Layers className="w-3 h-3" />
+                    <span>Filter: <strong className="text-black">{projectionPlan}</strong> / <strong className="text-black">{projectionLevel}</strong></span>
+                  </div>
+                  <p className="text-[9px] text-gray-300 italic max-w-[200px] mx-auto">Projected revenue if all current occupied slots were on this plan.</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="border-black/5 shadow-sm rounded-2xl bg-black text-white p-6 relative overflow-hidden">
+            <div className="relative z-10 space-y-4">
+              <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-[#FE7F2D]"><Building2 className="w-5 h-5" /></div>
+              <div className="space-y-1">
+                <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest">Total Inventory</p>
+                <p className="text-3xl font-black tracking-tighter">{stats.occupiedSlots + stats.availableSlots} Units</p>
+              </div>
+              <p className="text-[10px] text-white/40 italic lowercase leading-relaxed">System tracking {stats.slotsByLevel.bottom.total + stats.slotsByLevel.eye_level.total + stats.slotsByLevel.top_level.total} slots across 3 physical showroom zones.</p>
+            </div>
+          </Card>
+
+          <Card
+            className="border-black/5 shadow-sm rounded-2xl bg-white p-6 hover:border-[#FE7F2D]/30 transition-all cursor-pointer group"
+            onClick={() => onTabChange("slots")}
+          >
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Global Occupancy</p>
+                <p className="text-2xl font-black text-black tracking-tighter">{((stats.occupiedSlots / (stats.occupiedSlots + stats.availableSlots)) * 100).toFixed(1)}%</p>
+              </div>
+              <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-[#FE7F2D] group-hover:text-white transition-all"><ArrowUpRight className="w-5 h-5" /></div>
+            </div>
+          </Card>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -359,11 +532,11 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
                           <p className="text-xs text-gray-500 font-bold">Brand: <span className="text-[#FE7F2D]">{(request.brands as any)?.business_name}</span></p>
                           <div className="flex items-center gap-3 mt-2">
                             <div className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold text-gray-600">
-                               Was: <span className="text-gray-900 font-black">{request.current_stock}</span>
+                              Was: <span className="text-gray-900 font-black">{request.current_stock}</span>
                             </div>
                             <ArrowUpRight className="w-3 h-3 text-gray-300" />
                             <div className="bg-green-50 px-2 py-0.5 rounded text-[10px] font-black text-green-700 border border-green-100">
-                               Now: {request.requested_stock}
+                              Now: {request.requested_stock}
                             </div>
                           </div>
                         </div>
@@ -405,7 +578,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
                           </div>
                           <p className="text-xs text-gray-500 font-bold">Brand: <span className="text-[#FE7F2D]">{(request.brands as any)?.business_name}</span></p>
                           <p className="text-[10px] text-gray-400 font-mono bg-gray-50 p-1 px-2 rounded mt-2 truncate max-w-[160px] sm:max-w-[200px]">
-                             {JSON.stringify(request.new_data)}
+                            {JSON.stringify(request.new_data)}
                           </p>
                         </div>
                       </div>
@@ -454,37 +627,6 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         {/* Quick Insights / Action Cards - Sticky Sidebar */}
         {!isSidebarHidden && (
           <div className="space-y-6 lg:sticky lg:top-4 h-fit animate-in fade-in slide-in-from-right-4 duration-500">
-            <Card className="border-gray-100 shadow-lg rounded-2xl overflow-hidden">
-              <CardHeader className="py-4">
-                <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-[#FE7F2D]" />
-                  Occupancy Pulse
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center text-xs font-bold text-gray-500">
-                  <span>Active Slots</span>
-                  <span className="text-gray-900 font-black">{stats.occupiedSlots} / 102</span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-3 relative overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-[#FE7F2D] to-orange-400 h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(254,127,45,0.4)]"
-                    style={{ width: `${(stats.occupiedSlots / 102) * 100}%` }}
-                  ></div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  <div className="bg-green-50/50 p-2 rounded-xl text-center border border-green-100/50">
-                    <p className="text-[10px] uppercase font-black text-green-700 tracking-tighter">Available</p>
-                    <p className="text-lg font-black text-green-800">{stats.availableSlots}</p>
-                  </div>
-                  <div className="bg-blue-50/50 p-2 rounded-xl text-center border border-blue-100/50">
-                    <p className="text-[10px] uppercase font-black text-blue-700 tracking-tighter">Capacity</p>
-                    <p className="text-lg font-black text-blue-800">{((stats.occupiedSlots / 102) * 100).toFixed(0)}%</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             <Card className="border-red-100 shadow-sm bg-white rounded-2xl overflow-hidden">
               <CardHeader className="py-4 bg-red-50/50 border-b border-red-50">
                 <CardTitle className="text-sm font-black text-red-800 uppercase tracking-widest flex items-center gap-2">

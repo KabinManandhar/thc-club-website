@@ -1,42 +1,35 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { adminAuth } from "@/lib/auth"
-import { supabase } from "@/lib/supabase"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { StoreImage, supabase } from "@/lib/supabase"
+import { cn } from "@/lib/utils"
 import {
+  Camera,
+  Check,
+  CheckCircle2,
+  Edit2,
+  ExternalLink,
+  FileText,
   HelpCircle,
+  History,
+  Image as ImageIcon,
   Info,
   Plus,
   RefreshCcw,
   Save,
   Settings,
-  Trash2,
-  Image as ImageIcon,
-  Camera,
-  Grid,
-  FileText,
   Shield,
-  History,
-  CheckCircle2,
-  AlertCircle,
-  Eye,
-  Edit3,
-  ExternalLink,
-  Edit2,
-  Check,
-  X
+  Trash2
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { StoreImage } from "@/lib/supabase"
-import { cn } from "@/lib/utils"
 
 export function ContentManagement() {
   const [content, setContent] = useState<any>(null)
@@ -55,11 +48,11 @@ export function ContentManagement() {
   const [sections, setSections] = useState<any[]>([])
   const [newImageSection, setNewImageSection] = useState("")
   const [uploadingImage, setUploadingImage] = useState(false)
-  
+
   // UI State
   const [activeTab, setActiveTab] = useState("contract")
   const [previewMode, setPreviewMode] = useState(false)
-  
+
   // Gallery Edit state
   const [editingImageId, setEditingImageId] = useState<string | null>(null)
   const [editSectionValue, setEditSectionValue] = useState("")
@@ -99,7 +92,7 @@ export function ContentManagement() {
     setSaving(true)
     try {
       const user = await adminAuth.getCurrentUser()
-      
+
       const { error } = await supabase.rpc("update_platform_content", {
         p_id: 1,
         p_contract_template: contractTemplate,
@@ -196,7 +189,7 @@ export function ContentManagement() {
         p_url: publicUrl,
         p_section: newImageSection,
       })
-      
+
       if (dbError) throw dbError
       if (dbData && !dbData.success) throw new Error(dbData.error || "Failed to save image metadata")
 
@@ -231,7 +224,7 @@ export function ContentManagement() {
 
       const { error } = await supabase.from("store_images").delete().eq("id", id)
       if (error) throw error
-      
+
       setStoreImages(prev => prev.filter(img => img.id !== id))
       toast.success("Image removed from gallery")
     } catch (err: any) {
@@ -270,7 +263,7 @@ export function ContentManagement() {
       <div className="relative mb-8 py-8 px-8 bg-white border border-black/5 rounded-[2.5rem] overflow-hidden shadow-sm">
         <div className="absolute top-0 right-0 w-64 h-64 bg-[#FE7F2D]/5 rounded-full blur-[80px] -mr-32 -mt-32" />
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#FE7F2D]/5 rounded-full blur-[60px] -ml-24 -mb-24" />
-        
+
         <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="space-y-1">
             <h2 className="text-3xl font-black tracking-tighter flex items-center gap-3 text-[#010307] lowercase italic leading-none">
@@ -283,7 +276,7 @@ export function ContentManagement() {
               the foundational narrative. manage legal frameworks and visuals.
             </p>
           </div>
-          
+
           <div className="flex items-center gap-2 w-full md:w-auto">
             <Button
               onClick={fetchContent}
@@ -316,7 +309,7 @@ export function ContentManagement() {
                 { id: "protocols", label: "Club Protocols", icon: CheckCircle2 },
                 { id: "gallery", label: "Store Gallery", icon: ImageIcon },
               ].map((tab) => (
-                <TabsTrigger 
+                <TabsTrigger
                   key={tab.id}
                   value={tab.id}
                   className={cn(
@@ -332,10 +325,10 @@ export function ContentManagement() {
             </TabsList>
 
             <div className="p-6 bg-[#FE7F2D]/5 rounded-[2rem] border border-[#FE7F2D]/10 mt-8">
-               <p className="text-[10px] font-black uppercase tracking-widest text-[#FE7F2D] mb-2">Live Status</p>
-               <p className="text-xs text-[#010307]/60 font-medium italic lowercase leading-relaxed">
-                 changes published here will be instantly visible to all brands and visitors.
-               </p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#FE7F2D] mb-2">Live Status</p>
+              <p className="text-xs text-[#010307]/60 font-medium italic lowercase leading-relaxed">
+                changes published here will be instantly visible to all brands and visitors.
+              </p>
             </div>
           </div>
 
@@ -349,22 +342,24 @@ export function ContentManagement() {
                 </div>
                 <div className="space-y-1">
                   <h3 className="font-black text-blue-900 tracking-tight text-lg lowercase italic leading-none">Template Variables</h3>
-                  <p className="text-blue-700/60 font-medium italic text-xs lowercase">
-                    Use handles. available: 
+                  <p className="text-blue-700/60 font-medium italic text-xs">
+                    Use handles. available:
                     <code className="bg-white/80 px-2 py-0.5 rounded font-mono text-blue-600 font-bold ml-2">{"{{"}BRAND_NAME{"}}"}</code>
+                    <code className="bg-white/80 px-2 py-0.5 rounded font-mono text-blue-600 font-bold ml-2">{"{{"}BRAND_EMAIL{"}}"}</code>
+                    <code className="bg-white/80 px-2 py-0.5 rounded font-mono text-blue-600 font-bold ml-2">{"{{"}BRAND_PHONE{"}}"}</code>
                   </p>
                 </div>
               </div>
               <Card className="border border-black/5 shadow-sm rounded-[2rem] bg-white overflow-hidden">
                 <div className="p-6 space-y-4">
-                   <div className="flex justify-between items-center pr-2">
-                      <Label className="uppercase text-[9px] font-black text-gray-400 tracking-widest">legal template engine</Label>
-                   </div>
-                   <Textarea
+                  <div className="flex justify-between items-center pr-2">
+                    <Label className="uppercase text-[9px] font-black text-gray-400 tracking-widest">legal template engine</Label>
+                  </div>
+                  <Textarea
                     value={contractTemplate}
                     onChange={(e) => setContractTemplate(e.target.value)}
                     className="min-h-[400px] font-mono whitespace-pre-wrap bg-gray-50/30 border-gray-100 rounded-[1.5rem] text-sm leading-relaxed p-6 focus:ring-[#FE7F2D]/10"
-                   />
+                  />
                 </div>
               </Card>
             </TabsContent>
@@ -454,7 +449,7 @@ export function ContentManagement() {
                     </div>
                   </Card>
                 ))}
-                
+
                 {faqs.length === 0 && (
                   <div className="text-center py-40 border-2 border-dashed border-gray-100 rounded-[4rem] text-gray-300">
                     <HelpCircle className="w-16 h-16 mx-auto mb-6 opacity-30" />
@@ -480,7 +475,7 @@ export function ContentManagement() {
                 {protocols.map((p, pIdx) => (
                   <Card key={pIdx} className="p-10 border border-gray-100 shadow-sm rounded-[3rem] relative bg-white group overflow-hidden">
                     <div className="absolute top-0 right-0 w-2 h-full bg-[#FE7F2D]/10" />
-                    
+
                     <Button
                       variant="ghost"
                       size="icon"
@@ -489,7 +484,7 @@ export function ContentManagement() {
                     >
                       <Trash2 className="w-5 h-5" />
                     </Button>
-    
+
                     <div className="space-y-10">
                       <div className="space-y-3 max-w-sm">
                         <Label className="uppercase text-[9px] font-black text-[#FE7F2D] tracking-widest ml-4 italic">group title</Label>
@@ -500,10 +495,10 @@ export function ContentManagement() {
                           className="font-black text-2xl border-none bg-transparent h-auto p-0 focus:ring-0 lowercase italic"
                         />
                       </div>
-    
+
                       <div className="space-y-6">
                         <div className="flex items-center gap-4 mb-2">
-                           <Label className="uppercase text-[9px] font-black text-gray-400 tracking-widest italic grow">specific protocol directives</Label>
+                          <Label className="uppercase text-[9px] font-black text-gray-400 tracking-widest italic grow">specific protocol directives</Label>
                         </div>
                         <div className="space-y-4">
                           {p.items.map((item, iIdx) => (
@@ -541,21 +536,21 @@ export function ContentManagement() {
                 ))}
               </div>
             </TabsContent>
-    
+
             {/* GALLERY */}
             <TabsContent value="gallery" className="mt-0 outline-none space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-[#010307] p-10 rounded-[3rem] gap-12 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-[#FE7F2D]/10 rounded-full blur-[80px] -mr-32 -mt-32" />
-                
+
                 <div className="space-y-2 relative z-10">
                   <h3 className="text-3xl font-black lowercase italic tracking-tight text-white">store <span className="text-[#FE7F2D]">curation</span></h3>
                   <p className="text-[10px] text-white/40 font-bold uppercase tracking-[0.2em]">Add high-fidelity visuals to the platform.</p>
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-6 w-full md:w-auto relative z-10">
                   <div className="flex-1 md:w-64 space-y-2">
                     <Label className="uppercase text-[8px] font-black text-white/40 tracking-widest ml-2 block">Zone Context</Label>
-                    <select 
+                    <select
                       value={newImageSection}
                       onChange={(e) => setNewImageSection(e.target.value)}
                       className="w-full rounded-2xl h-14 bg-white/5 border-white/10 text-white font-black text-sm px-6 focus:bg-white/10 focus:border-[#FE7F2D]/50 outline-none appearance-none cursor-pointer italic"
@@ -569,14 +564,14 @@ export function ContentManagement() {
                     </select>
                   </div>
                   <div className="mt-auto">
-                    <input 
-                      type="file" 
-                      id="gallery-upload" 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      id="gallery-upload"
+                      className="hidden"
                       onChange={handleUploadGalleryImage}
                       accept="image/*"
                     />
-                    <Button 
+                    <Button
                       onClick={() => document.getElementById('gallery-upload')?.click()}
                       disabled={uploadingImage || !newImageSection}
                       className="bg-[#FE7F2D] text-white hover:bg-white hover:text-black rounded-2xl h-14 px-10 font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-orange-500/20 active:scale-95 transition-all"
@@ -586,7 +581,7 @@ export function ContentManagement() {
                   </div>
                 </div>
               </div>
-    
+
               <Card className="border border-black/5 shadow-sm rounded-[2rem] bg-white overflow-hidden p-6">
                 <Table>
                   <TableHeader>
@@ -601,17 +596,17 @@ export function ContentManagement() {
                       <TableRow key={img.id} className="group border-gray-50 hover:bg-gray-50/50 transition-all h-20">
                         <TableCell>
                           <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm relative group/btn">
-                             <img 
-                               src={`${img.url}?width=100&quality=60`} 
-                               className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" 
-                               loading="lazy"
-                             />
+                            <img
+                              src={`${img.url}?width=100&quality=60`}
+                              className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
+                              loading="lazy"
+                            />
                           </div>
                         </TableCell>
                         <TableCell>
                           {editingImageId === img.id ? (
                             <div className="flex items-center gap-2">
-                              <select 
+                              <select
                                 value={editSectionValue}
                                 onChange={(e) => setEditSectionValue(e.target.value)}
                                 className="h-8 rounded-lg bg-gray-50 border-gray-100 px-2 text-[10px] font-bold lowercase italic outline-none"
@@ -620,8 +615,8 @@ export function ContentManagement() {
                                   <option key={sec.id} value={sec.name}>{sec.name}</option>
                                 ))}
                               </select>
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 onClick={() => handleUpdateImageSection(img.id)}
                                 disabled={updatingMetadata}
                                 className="h-8 w-8 rounded-lg p-0"
@@ -632,37 +627,37 @@ export function ContentManagement() {
                           ) : (
                             <div className="flex items-center gap-2">
                               <span className="font-black italic lowercase text-sm text-[#010307]">{img.section}</span>
-                              <Edit2 
+                              <Edit2
                                 onClick={() => {
                                   setEditingImageId(img.id)
                                   setEditSectionValue(img.section)
                                 }}
-                                className="w-3 h-3 text-gray-200 cursor-pointer hover:text-[#FE7F2D] opacity-0 group-hover:opacity-100" 
+                                className="w-3 h-3 text-gray-200 cursor-pointer hover:text-[#FE7F2D] opacity-0 group-hover:opacity-100"
                               />
                             </div>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                           <div className="flex items-center justify-end gap-1">
-                             <a 
-                               href={img.url} 
-                               target="_blank" 
-                               rel="noopener noreferrer"
-                               className="p-2 rounded-lg hover:bg-blue-50 text-gray-200 hover:text-blue-500"
-                             >
-                               <ExternalLink className="w-3.5 h-3.5" />
-                             </a>
-                             <Trash2 
-                               onClick={() => handleDeleteGalleryImage(img.id, img.url)}
-                               className="w-3.5 h-3.5 text-gray-200 cursor-pointer hover:text-red-500"
-                             />
-                           </div>
+                          <div className="flex items-center justify-end gap-1">
+                            <a
+                              href={img.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-2 rounded-lg hover:bg-blue-50 text-gray-200 hover:text-blue-500"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                            <Trash2
+                              onClick={() => handleDeleteGalleryImage(img.id, img.url)}
+                              className="w-3.5 h-3.5 text-gray-200 cursor-pointer hover:text-red-500"
+                            />
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-    
+
                 {storeImages.length === 0 && (
                   <div className="py-48 text-center bg-gray-50/50 rounded-[4rem] italic text-gray-300">
                     <ImageIcon className="w-16 h-16 mx-auto mb-6 opacity-20" />
@@ -674,14 +669,14 @@ export function ContentManagement() {
           </div>
         </div>
       </Tabs>
-    
+
       {content && (
         <div className="mt-20 flex flex-col items-center gap-4">
-           <div className="h-px w-24 bg-[#FE7F2D]/20" />
-           <p className="text-[9px] font-black uppercase tracking-[0.4em] text-gray-300 flex items-center gap-3">
-             <History className="w-3 h-3" />
-             sync log: last updated by {content.updated_by || 'Council'} • {new Date(content.updated_at).toLocaleDateString()}
-           </p>
+          <div className="h-px w-24 bg-[#FE7F2D]/20" />
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-gray-300 flex items-center gap-3">
+            <History className="w-3 h-3" />
+            sync log: last updated by {content.updated_by || 'Council'} • {new Date(content.updated_at).toLocaleDateString()}
+          </p>
         </div>
       )}
     </div>

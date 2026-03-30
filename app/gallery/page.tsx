@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button"
 import { supabase, StoreImage } from "@/lib/supabase"
+import { ImageLightbox } from "@/components/ui/lightbox"
 import { ArrowLeft, Expand, Grid, LayoutGrid, Maximize2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -10,7 +11,7 @@ import { useEffect, useState } from "react"
 export default function GalleryPage() {
   const [images, setImages] = useState<StoreImage[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedImage, setSelectedImage] = useState<StoreImage | null>(null)
+  const [lightbox, setLightbox] = useState({ isOpen: false, index: 0 })
 
   useEffect(() => {
     fetchImages()
@@ -29,6 +30,8 @@ export default function GalleryPage() {
       setLoading(false)
     }
   }
+
+  const imageUrls = images.map(img => img.url)
 
   return (
     <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk p-6 md:p-12 lg:p-20">
@@ -61,22 +64,24 @@ export default function GalleryPage() {
           </div>
         ) : (
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-8 space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-            {images.map((img) => (
+            {images.map((img, idx) => (
               <div 
                 key={img.id} 
-                className="break-inside-avoid group relative rounded-[2rem] overflow-hidden border border-[#FE7F2D]/5 shadow-xl hover:shadow-[#FE7F2D]/10 transition-all cursor-pointer"
-                onClick={() => setSelectedImage(img)}
+                className="break-inside-avoid group relative rounded-[2.5rem] overflow-hidden border border-[#FE7F2D]/5 shadow-xl hover:shadow-[#FE7F2D]/20 transition-all cursor-pointer bg-white"
+                onClick={() => setLightbox({ isOpen: true, index: idx })}
               >
-                <img 
-                  src={`${img.url}?width=600&quality=70`} 
-                  alt={img.section} 
-                  className="w-full h-auto object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-8 flex flex-col justify-end">
-                  <p className="text-white font-black italic lowercase text-2xl leading-tight">{img.section}</p>
-                  <div className="absolute top-6 right-6">
-                    <Maximize2 className="w-6 h-6 text-white/50" />
+                <div className="relative w-full overflow-hidden">
+                  <img 
+                    src={img.url} 
+                    alt={img.section} 
+                    className="w-full h-auto object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 p-8 flex flex-col justify-end">
+                    <p className="text-white font-black italic lowercase text-2xl leading-tight translate-y-4 group-hover:translate-y-0 transition-transform duration-500">{img.section}</p>
+                    <div className="absolute top-6 right-6 p-3 bg-white/10 backdrop-blur-md rounded-xl text-white opacity-0 group-hover:opacity-100 transition-all scale-75 group-hover:scale-100">
+                      <Maximize2 className="w-5 h-5" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -90,31 +95,12 @@ export default function GalleryPage() {
           </div>
         )}
 
-        {/* Lightbox */}
-        {selectedImage && (
-          <div 
-            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-6 md:p-12 animate-in fade-in duration-300"
-            onClick={() => setSelectedImage(null)}
-          >
-            <div className="relative max-w-6xl w-full max-h-[85vh] flex flex-col items-center">
-              <img 
-                src={`${selectedImage.url}?width=1600&quality=85`} 
-                alt={selectedImage.section}
-                className="max-w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl border border-white/10"
-              />
-              <div className="mt-8 text-center space-y-2">
-                <h3 className="text-3xl font-black italic text-[#FE7F2D] lowercase">{selectedImage.section}</h3>
-              </div>
-              <Button 
-                variant="ghost" 
-                className="absolute -top-12 right-0 text-white hover:text-[#FE7F2D] font-black uppercase text-xs tracking-widest"
-                onClick={() => setSelectedImage(null)}
-              >
-                Close (Esc)
-              </Button>
-            </div>
-          </div>
-        )}
+        <ImageLightbox 
+          images={imageUrls}
+          isOpen={lightbox.isOpen}
+          initialIndex={lightbox.index}
+          onClose={() => setLightbox({ ...lightbox, isOpen: false })}
+        />
       </div>
 
       <footer className="mt-40 border-t border-[#FE7F2D]/10 py-12 text-center">
