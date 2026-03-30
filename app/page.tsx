@@ -859,7 +859,7 @@ export default function LandingPage() {
                         </div>
                         <Badge variant="outline" className="border-white/10 text-white/40 font-black uppercase tracking-widest text-[8px]">own storefront</Badge>
                       </div>
-                      <h3 className="text-4xl sm:text-5xl font-black text-[#FE7F2D] mb-2 italic">Rs. 20–30k/mo</h3>
+                      <h3 className="text-4xl sm:text-5xl font-black text-[#FE7F2D] mb-2 italic">Rs. 20–30k+/mo</h3>
                       <p className="text-sm sm:text-lg text-white/60 lowercase italic font-medium leading-tight">to rent your own storefront, every single month, regardless of sales.</p>
                     </div>
 
@@ -886,22 +886,11 @@ export default function LandingPage() {
                         <img
                           src="/broski.png"
                           alt="discovery at thc club"
-                          className="w-full h-full object-cover 
-               grayscale 
-               scale-100 
-               transition-all duration-700 ease-out
-               group-hover:grayscale-0 
-               group-hover:scale-110"
+                          className="w-full h-full object-cover scale-100 transition-all duration-700 ease-out group-hover:grayscale-0 group-hover:scale-110"
                         />
 
-                        <div className="absolute inset-0 bg-black/20 
-                  transition-all duration-700 
-                  group-hover:bg-black/0" />
-
-                        <div className="absolute bottom-4 left-4 right-4 
-                  opacity-0 
-                  transition-all duration-500 
-                  group-hover:opacity-100">
+                        <div className="absolute inset-0 bg-black/20 transition-all duration-700 group-hover:bg-black/0" />
+                        <div className="absolute bottom-4 left-4 right-4 opacity-0 transition-all duration-500 group-hover:opacity-100">
                           <p className="text-white text-sm italic lowercase">
                             real brands. real shelves.
                           </p>
