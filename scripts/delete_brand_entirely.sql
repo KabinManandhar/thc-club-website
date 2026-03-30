@@ -95,8 +95,11 @@ BEGIN
     DELETE FROM approved_users WHERE id      = v_user_id;
   END IF;
 
-  -- Note: Supabase auth.users is not touched here (no direct SQL access).
-  -- Removing from approved_users is sufficient to block portal access.
+  -- ── Step 14: DELETE FROM Supabase Auth (Optional but requested for full cleanup)
+  -- This requires the function to have the right permissions to touch the auth schema.
+  IF v_email IS NOT NULL THEN
+    DELETE FROM auth.users WHERE email = v_email;
+  END IF;
 
 EXCEPTION
   WHEN OTHERS THEN
