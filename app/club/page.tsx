@@ -36,6 +36,7 @@ function ClubPageContent() {
   const [activeOffers, setActiveOffers] = useState<any[]>([])
   const [faqs, setFaqs] = useState<{ question: string; answer: string }[]>([])
   const [origins, setOrigins] = useState("")
+  const [storeImages, setStoreImages] = useState<any[]>([])
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("dashboard")
 
@@ -49,15 +50,17 @@ function ClubPageContent() {
 
   const fetchPublicConfig = async () => {
     try {
-      const [{ data: pt }, { data: ppf }, { data: offers }, { data: contentData }] = await Promise.all([
+      const [{ data: pt }, { data: ppf }, { data: offers }, { data: contentData }, { data: storeImagesData }] = await Promise.all([
         supabase.from("shelf_pricing_tiers").select("*"),
         supabase.from("ppf_tiers").select("*").order("min_sales_amount", { ascending: true }),
         supabase.from("promotional_offers").select("*").eq("is_active", true).order("created_at", { ascending: false }),
-        supabase.from("platform_content").select("faqs, terms_conditions, origins").eq("id", 1).single()
+        supabase.from("platform_content").select("faqs, terms_conditions, origins").eq("id", 1).single(),
+        supabase.from("store_images").select("*").order("created_at", { ascending: false })
       ])
       if (pt) setPricingTiers(pt)
       if (ppf) setPpfTiers(ppf)
       if (offers) setActiveOffers(offers)
+      if (storeImagesData) setStoreImages(storeImagesData)
       if (contentData) {
         setFaqs(contentData.faqs || [])
         setOrigins(contentData.origins || "")
@@ -204,7 +207,7 @@ function ClubPageContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <Image src="/logo.png" alt="THC Club" width={100} height={50} className="h-8 w-auto" />
-              <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D] text-[10px] lowercase font-bold tracking-wide px-4 py-1.5 rounded-full">partner access</Badge>
+              <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D] text-[10px] lowercase font-bold tracking-wide px-4 py-1.5 rounded-full">club access</Badge>
             </div>
             <Button
               variant="ghost"
@@ -286,6 +289,24 @@ function ClubPageContent() {
                   </div>
                 </Card>
               </div>
+
+            {/* Store Photos Row */}
+            {storeImages.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                {storeImages.slice(0, 4).map((img) => (
+                  <div key={img.id} className="group relative aspect-square rounded-[2rem] overflow-hidden border border-[#FE7F2D]/5 shadow-sm hover:shadow-xl transition-all">
+                    <img 
+                      src={img.url} 
+                      alt={img.section} 
+                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex flex-col justify-end">
+                      <p className="text-white font-black italic lowercase text-lg leading-tight">{img.section}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             </div>
 
             <section className="bg-white/30 backdrop-blur-sm border border-[#010307]/5 rounded-[3.5rem] p-10 sm:p-20 overflow-hidden relative group">
@@ -429,9 +450,23 @@ function ClubPageContent() {
 
               <h2 className="text-5xl font-black tracking-tighter lowercase italic text-center text-[#010307]">shelf <span className="italic opacity-30">tiers</span></h2>
 
+              {/* Space Visualization */}
+              {storeImages.length > 0 && (
+                <div className="flex overflow-x-auto gap-4 scrollbar-hide py-4 -mx-6 px-6">
+                  {storeImages.map((img) => (
+                    <div key={img.id} className="min-w-[280px] h-48 rounded-[2rem] overflow-hidden border border-[#FE7F2D]/5 shadow-md relative group">
+                      <img src={img.url} alt={img.section} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
+                      <div className="absolute bottom-4 left-6">
+                         <p className="text-white font-black italic lowercase text-sm bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full">{img.section}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="grid md:grid-cols-3 gap-6">
                 <Card className="border border-[#FE7F2D]/10 p-8 bg-white/50 rounded-[2rem] space-y-4 hover:border-[#FE7F2D]/30 transition-all">
-                  <h4 className="text-xl font-black lowercase italic">Low Level</h4>
+                  <h4 className="text-xl font-black lowercase italic">Bottom Level</h4>
                   <div className="space-y-1">
                     <p className="text-sm font-bold text-[#FE7F2D]">
                       Rs. {pricingTiers.find(t => t.duration === 'yearly')?.bottom_price || '900'}/mo (Yearly)

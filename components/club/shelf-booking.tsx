@@ -136,7 +136,7 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
                 <SelectContent className="rounded-2xl border-gray-100">
                   <SelectItem value="top">Top Level (Premium)</SelectItem>
                   <SelectItem value="eye">Eye-Level (Best Visibility)</SelectItem>
-                  <SelectItem value="low">Low Level (Standard)</SelectItem>
+                  <SelectItem value="low">Bottom Level (Standard)</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -206,7 +206,7 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
               <thead>
                 <tr className="border-b border-gray-50">
                   <th className="py-4 text-[10px] uppercase font-black tracking-widest text-gray-400">Duration</th>
-                  <th className="py-4 text-[10px] uppercase font-black tracking-widest text-gray-400 text-center">Low Level</th>
+                  <th className="py-4 text-[10px] uppercase font-black tracking-widest text-gray-400 text-center">Bottom Level</th>
                   <th className="py-4 text-[10px] uppercase font-black tracking-widest text-gray-400 text-center">Eye-Level</th>
                   <th className="py-4 text-[10px] uppercase font-black tracking-widest text-gray-400 text-center">Top Level</th>
                 </tr>

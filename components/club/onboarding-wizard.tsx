@@ -7,7 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DURATION_MONTHS, supabase, type Duration, type PromotionalOffer, type ShelfPricingTier, type ShelfType, type ShelfSection } from "@/lib/supabase"
-import { ArrowLeft, ArrowRight, Banknote, CheckCircle2, Clock, Info, Layout, Package, QrCode, Tag, Ticket, Users } from "lucide-react"
+import { ArrowLeft, ArrowRight, Banknote, Camera, CheckCircle2, Clock, Info, Layout, Package, QrCode, Tag, Ticket, Users } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -32,7 +32,7 @@ const LEVEL_INFO = {
     slots: "37–72",
   },
   bottom: {
-    label: "bottom / low level",
+    label: "bottom level",
     description: "budget-friendly standard placement. great for heavy or large items.",
     slots: "1–36",
   },
@@ -64,16 +64,19 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
     bottom: "1–36",
   })
   const [dynamicProtocols, setDynamicProtocols] = useState<{ title: string; items: string[] }[]>([])
+  const [storeImages, setStoreImages] = useState<any[]>([])
 
   useEffect(() => {
     Promise.all([
       supabase.from("shelf_sections").select("*"),
       supabase.from("shelf_pricing_tiers").select("*"),
       supabase.from("shelf_slots").select("shelf_type, slot_number"),
-      supabase.from("platform_content").select("protocols").eq("id", 1).single()
-    ]).then(([secRes, priceRes, slotsRes, protRes]) => {
+      supabase.from("platform_content").select("protocols").eq("id", 1).single(),
+      supabase.from("store_images").select("*")
+    ]).then(([secRes, priceRes, slotsRes, protRes, imgRes]) => {
       setSections(secRes.data || [])
       setPricingTiers(priceRes.data || [])
+      setStoreImages(imgRes.data || [])
       if (protRes.data) setDynamicProtocols(protRes.data.protocols || [])
 
       if (slotsRes.data) {
@@ -199,19 +202,38 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
         <div className="w-full max-w-3xl space-y-4">
           <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic">select your collective zone</h2><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">premium zones offer higher footfall exposure</p></div>
           <div className="grid grid-cols-1 gap-4">
-            {sections.map(sec => (
-              <div key={sec.id} onClick={() => setSelectedSection(sec)} className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex items-start gap-4 ${selectedSection?.id === sec.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
-                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center"><Layout className="w-6 h-6 text-[#FE7F2D]" /></div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-bold lowercase italic text-lg">{sec.name}</h3>
-                    {sec.section_tier === 'premium' && <Badge className="bg-orange-500 text-white text-[8px] font-black uppercase tracking-widest">Premium Zone</Badge>}
+            {sections.map(sec => {
+              const zoneImages = storeImages.filter(img => img.section.toLowerCase().includes(sec.name.toLowerCase()))
+              return (
+                <div key={sec.id} onClick={() => setSelectedSection(sec)} className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-4 ${selectedSection?.id === sec.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center"><Layout className="w-6 h-6 text-[#FE7F2D]" /></div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-bold lowercase italic text-lg">{sec.name}</h3>
+                        {sec.section_tier === 'premium' && <Badge className="bg-orange-500 text-white text-[8px] font-black uppercase tracking-widest">Premium Zone</Badge>}
+                      </div>
+                      <p className="text-sm text-gray-400 lowercase italic">{sec.description}</p>
+                    </div>
+                    {selectedSection?.id === sec.id && <CheckCircle2 className="w-6 h-6 text-[#FE7F2D]" />}
                   </div>
-                  <p className="text-sm text-gray-400 lowercase italic">{sec.description}</p>
+                  
+                  {zoneImages.length > 0 ? (
+                      <div className="grid grid-cols-4 gap-4">
+                        {zoneImages.slice(0, 4).map((img, i) => (
+                          <div key={i} className="aspect-video relative rounded-xl overflow-hidden grayscale hover:grayscale-0 transition-grayscale">
+                            <img src={img.url} className="w-full h-full object-cover" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                       <div className="py-8 bg-gray-50 rounded-xl flex items-center justify-center">
+                         <Camera className="w-6 h-6 text-gray-200" />
+                       </div>
+                    )}
                 </div>
-                {selectedSection?.id === sec.id && <CheckCircle2 className="w-6 h-6 text-[#FE7F2D]" />}
-              </div>
-            ))}
+              )
+            })}
           </div>
           <div className="flex justify-end pt-4"><Button disabled={!selectedSection} onClick={() => setStep(1)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Next Zone <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
         </div>
@@ -226,18 +248,30 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
           </div>
           {(["top_level", "eye_level", "bottom"] as ShelfType[]).map((type) => {
             const info = LEVEL_INFO[type]
+            const levelImages = storeImages.filter(img => img.section?.toLowerCase() === selectedSection?.name.toLowerCase())
+            
             return (
-              <div key={type} onClick={() => setShelfType(type)} className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex items-start gap-4 ${shelfType === type ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
-                <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center"><Package className="w-6 h-6 text-[#FE7F2D]" /></div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1"><h3 className="text-lg font-bold lowercase italic">{info.label}</h3></div>
-                  <p className="text-sm text-gray-400 lowercase italic">{info.description}</p>
-                  <div className="flex items-center gap-4 mt-2">
-                    <p className="text-xs font-bold text-[#FE7F2D] italic lowercase tracking-tight">from npr {getPrice('yearly', type).toLocaleString()}/mo ({selectedSection?.section_tier} rate)</p>
-                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-gray-100 text-gray-400">Slots: {slotRanges[type]}</Badge>
+              <div key={type} onClick={() => setShelfType(type)} className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-4 ${shelfType === type ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center"><Package className="w-6 h-6 text-[#FE7F2D]" /></div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1"><h3 className="text-lg font-bold lowercase italic">{info.label}</h3></div>
+                    <p className="text-sm text-gray-400 lowercase italic">{info.description}</p>
+                    <div className="flex items-center gap-4 mt-2">
+                      <p className="text-xs font-bold text-[#FE7F2D] italic lowercase tracking-tight">from npr {getPrice('yearly', type).toLocaleString()}/mo ({selectedSection?.section_tier} rate)</p>
+                      <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-gray-100 text-gray-400">Slots: {slotRanges[type]}</Badge>
+                    </div>
                   </div>
+                  {shelfType === type && <CheckCircle2 className="w-6 h-6 text-[#FE7F2D]" />}
                 </div>
-                {shelfType === type && <CheckCircle2 className="w-6 h-6 text-[#FE7F2D]" />}
+
+                {levelImages.length > 0 && (
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {levelImages.map(img => (
+                      <img key={img.id} src={img.url} alt={img.section} className="h-20 w-32 object-cover rounded-xl grayscale hover:grayscale-0 transition-all" />
+                    ))}
+                  </div>
+                )}
               </div>
             )
           })}

@@ -2,8 +2,9 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, BarChart3, Eye, Heart, Instagram, Lock, LogIn, Menu, Package, ShieldCheck, Users, X, Zap } from "lucide-react"
+import { ArrowRight, ArrowLeft, BarChart3, Camera, Eye, Heart, Instagram, LayoutGrid, Lock, LogIn, Menu, Package, ShieldCheck, Users, X, Zap, CheckCircle2 } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 import { useEffect, useState } from "react"
 
 import {
@@ -17,12 +18,13 @@ import { UserSignupForm } from "@/components/user-signup-form"
 import { supabase, type Brand } from "@/lib/supabase"
 import { userAuth } from "@/lib/user-auth"
 
-function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, origins }: {
+function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, origins, storeImages }: {
   brands: Brand[],
   isAuthenticated: boolean,
   setAuthView: (view: "none" | "login" | "signup") => void,
   setActiveTab: (tab: "home" | "members" | "origins") => void,
-  origins?: string
+  origins?: string,
+  storeImages?: any[]
 }) {
   return (
     <>
@@ -76,6 +78,50 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
           </div>
         </div>
       </section>
+
+      {/* Store Gallery Teaser */}
+      {storeImages && storeImages.length > 0 && (
+        <section className="py-20 sm:py-32 bg-[#FFFCEB]">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex flex-col md:flex-row justify-between items-end mb-16 sm:mb-24 gap-12">
+                <div className="space-y-6 text-left md:max-w-3xl">
+                  <h2 className="text-3xl sm:text-4xl lg:text-7xl font-black lowercase italic tracking-tighter leading-none">
+                    the <span className="text-[#FE7F2D]">hidden</span> space.
+                  </h2>
+                  <p className="text-lg sm:text-2xl text-[#010307]/40 font-medium italic lowercase">
+                    take a tour of 108 shelf slots across 3 rooms in bijeshwori. curated energy.
+                  </p>
+                </div>
+                <Link href="/gallery">
+                  <Button 
+                    variant="outline" 
+                    className="rounded-full border-[#FE7F2D]/20 text-[#010307] hover:bg-[#FE7F2D] hover:text-white font-black uppercase text-[10px] tracking-widest px-12 py-6 h-auto transition-all shadow-xl shadow-[#FE7F2D]/5"
+                  >
+                    view full collage ({storeImages.length})
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
+                {storeImages.slice(0, 4).map((img: any, idx: number) => (
+                  <div key={img.id} className={`group relative aspect-[4/5] rounded-[2rem] sm:rounded-[4rem] overflow-hidden border border-[#FE7F2D]/10 shadow-2xl transition-all duration-700 hover-lift ${idx % 2 === 1 ? 'translate-y-12' : ''}`}>
+                    <img 
+                      src={`${img.url}?width=400&quality=70`} 
+                      alt={img.section} 
+                      className="w-full h-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0 group-hover:scale-110"
+                      loading="lazy"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-8 flex flex-col justify-end">
+                      <p className="text-white font-black italic lowercase text-sm leading-tight grow">{img.section}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Club Members Section Teaser */}
       <section className="py-20 sm:py-32 bg-white">
@@ -214,12 +260,16 @@ export default function LandingPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [brands, setBrands] = useState<Brand[]>([])
-  const [activeTab, setActiveTab] = useState<"home" | "members" | "origins">("home")
+  const [activeTab, setActiveTab] = useState<"home" | "members" | "origins" | "gallery">("home")
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
   const [origins, setOrigins] = useState("")
+  const [storeImages, setStoreImages] = useState<any[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  
+  // Lightbox State
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null)
 
   useEffect(() => {
     if (!api) return
@@ -242,7 +292,17 @@ export default function LandingPage() {
     checkAuth()
     fetchBrands()
     fetchOrigins()
+    fetchStoreImages()
   }, [])
+
+  const fetchStoreImages = async () => {
+    try {
+      const { data } = await supabase.from("store_images").select("*").order("created_at", { ascending: false })
+      if (data) setStoreImages(data)
+    } catch (e) {
+      console.error("Failed to fetch store images", e)
+    }
+  }
 
   const fetchOrigins = async () => {
     try {
@@ -376,6 +436,13 @@ export default function LandingPage() {
               >
                 the collective
               </button>
+              <button
+                onClick={() => setActiveTab("gallery")}
+                className={`text-xs font-black lowercase italic tracking-widest transition-all ${activeTab === "gallery" ? "text-[#FE7F2D] border-b border-[#FE7F2D]" : "text-[#010307]/40 hover:text-[#010307]"
+                  }`}
+              >
+                store gallery
+              </button>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-6 shrink-0">
@@ -450,6 +517,15 @@ export default function LandingPage() {
               className={`block w-full text-left py-2 px-4 text-sm font-black lowercase italic tracking-widest ${activeTab === "members" ? "text-[#FE7F2D] bg-[#FE7F2D]/5 rounded-xl" : "text-[#010307]"}`}
             >
               the collective
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("gallery")
+                setIsMobileMenuOpen(false)
+              }}
+              className={`block w-full text-left py-2 px-4 text-sm font-black lowercase italic tracking-widest ${activeTab === "gallery" ? "text-[#FE7F2D] bg-[#FE7F2D]/5 rounded-xl" : "text-[#010307]"}`}
+            >
+              store gallery
             </button>
             <div className="pt-4 border-t border-[#FE7F2D]/10">
               {!isAuthenticated && (
@@ -675,8 +751,106 @@ export default function LandingPage() {
           </section>
 
           {/* SHARED SECTIONS FOR HOME */}
-          <CommonBanners brands={brands} isAuthenticated={isAuthenticated} setAuthView={setAuthView} setActiveTab={setActiveTab} origins={origins} />
+          <CommonBanners storeImages={storeImages} brands={brands} isAuthenticated={isAuthenticated} setAuthView={setAuthView} setActiveTab={setActiveTab} origins={origins} />
         </>
+      ) : activeTab === "gallery" ? (
+        <section className="py-20 sm:py-40 bg-[#FFFCEB] animate-in fade-in slide-in-from-bottom-12 duration-1000 min-h-screen">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="max-w-6xl mx-auto space-y-24">
+              <div className="text-center space-y-6">
+                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-[#FE7F2D]">the visual archive</p>
+                <h2 className="text-4xl sm:text-7xl lg:text-9xl font-black italic lowercase tracking-tighter leading-none">
+                  the <span className="text-[#FE7F2D]">club</span> tour.
+                </h2>
+                <p className="text-lg sm:text-2xl text-[#010307]/40 font-medium italic lowercase max-w-2xl mx-auto">
+                  curated energy. 108 slots. 3 rooms. zero fakes. take a walk through the collective.
+                </p>
+              </div>
+
+              {storeImages.length > 0 ? (
+                <div className="relative group">
+                  <Carousel
+                    opts={{
+                      align: "start",
+                      loop: true,
+                    }}
+                    className="w-full"
+                  >
+                    <CarouselContent className="-ml-4 sm:-ml-12">
+                      {storeImages.map((img, idx) => (
+                        <CarouselItem key={img.id} className="pl-4 sm:pl-12 basis-full md:basis-2/3 lg:basis-1/2">
+                          <div 
+                            onClick={() => setPreviewIdx(idx)}
+                            className="relative aspect-[16/11] bg-white rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl transition-all duration-700 hover:scale-[1.02] cursor-zoom-in"
+                          >
+                            <img 
+                              src={`${img.url}?width=800&quality=75`} 
+                              alt={img.section} 
+                              className="w-full h-full object-cover grayscale transition-all duration-1000 hover:grayscale-0"
+                              loading="lazy"
+                            />
+                            <div className="absolute top-6 left-6 sm:top-12 sm:left-12">
+                               <Badge className="bg-black/90 text-white border-none rounded-full px-4 py-2 font-black italic lowercase text-[10px] sm:text-sm backdrop-blur-md">
+                                 zone: {img.section}
+                               </Badge>
+                            </div>
+                            <div className="absolute bottom-6 right-6 sm:bottom-12 sm:right-12">
+                               <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-white/50 bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full italic">
+                                 frame {String(idx + 1).padStart(2, '0')}
+                               </p>
+                            </div>
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    
+                    <div className="flex justify-center gap-12 mt-20">
+                       <div className="flex items-center gap-3">
+                          <div className="w-12 h-0.5 bg-[#FE7F2D]/20 rounded-full overflow-hidden">
+                             <div className="h-full bg-[#FE7F2D] transition-all duration-500" style={{ width: `${((current + 1) / storeImages.length) * 100}%` }} />
+                          </div>
+                          <span className="text-xs font-black italic text-gray-300">
+                            {String(current + 1).padStart(2, '0')} / {String(storeImages.length).padStart(2, '0')}
+                          </span>
+                       </div>
+                    </div>
+                  </Carousel>
+                </div>
+              ) : (
+                <div className="text-center py-40 bg-white rounded-[5rem] border border-dashed border-[#FE7F2D]/10">
+                   <Camera className="w-16 h-16 text-[#FE7F2D]/20 mx-auto mb-6" />
+                   <p className="font-black italic lowercase text-[#010307]/20 text-2xl">visual archive opening soon...</p>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-12">
+                 <div className="p-12 bg-white rounded-[3rem] border border-black/5 space-y-6 flex flex-col justify-between">
+                    <p className="text-2xl font-black italic lowercase text-[#010307]">high fidelity curation.</p>
+                    <p className="text-[#010307]/60 font-medium italic lowercase leading-relaxed">
+                      every corner of the hidden collective is curated to highlight the creator. no crowded shelves, no visual noise. just the product and the light.
+                    </p>
+                 </div>
+                 <div className="p-12 bg-black text-white rounded-[3rem] border border-white/5 space-y-8">
+                    <p className="text-2xl font-black italic lowercase leading-none">zero fakes policy.</p>
+                    <div className="space-y-4">
+                       <div className="flex items-center gap-4">
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          <p className="text-sm font-bold lowercase opacity-80">vetted brand partners only.</p>
+                       </div>
+                       <div className="flex items-center gap-4">
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          <p className="text-sm font-bold lowercase opacity-80">original intellectual property.</p>
+                       </div>
+                       <div className="flex items-center gap-4">
+                          <CheckCircle2 className="w-5 h-5 text-green-500" />
+                          <p className="text-sm font-bold lowercase opacity-80">artisanal or small-batch focus.</p>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
       ) : activeTab === "origins" ? (
         <>
           <section className="py-20 sm:py-32 bg-[#FFFCEB] overflow-hidden min-h-[70vh] flex items-center">
@@ -761,7 +935,7 @@ export default function LandingPage() {
             </div>
           </section>
 
-          <CommonBanners brands={brands} isAuthenticated={isAuthenticated} setAuthView={setAuthView} setActiveTab={setActiveTab} origins={origins} />
+          <CommonBanners storeImages={storeImages} brands={brands} isAuthenticated={isAuthenticated} setAuthView={setAuthView} setActiveTab={setActiveTab} origins={origins} />
         </>
       ) : (
         <section className="py-12 sm:py-20 lg:py-32 bg-[#FFFCEB] min-h-[60vh]">
@@ -891,6 +1065,63 @@ export default function LandingPage() {
       </footer>
 
 
+      {/* PREVIEW LIGHTBOX */}
+      {previewIdx !== null && (
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center animate-in fade-in duration-300" onClick={() => setPreviewIdx(null)}>
+           {/* Close Button */}
+           <button 
+             onClick={() => setPreviewIdx(null)}
+             className="absolute top-10 right-10 text-white/40 hover:text-white transition-all z-10"
+           >
+             <X className="w-10 h-10" />
+           </button>
+
+           {/* Navigation Arrows */}
+           <button 
+             onClick={(e) => {
+               e.stopPropagation();
+               setPreviewIdx(prev => prev! > 0 ? prev! - 1 : storeImages.length - 1);
+             }}
+             className="absolute left-10 p-5 rounded-full hover:bg-white/10 text-white/40 hover:text-[#FE7F2D] transition-all"
+           >
+             <ArrowLeft className="w-12 h-12" />
+           </button>
+
+           <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setPreviewIdx(prev => prev! < storeImages.length - 1 ? prev! + 1 : 0);
+              }}
+              className="absolute right-10 p-5 rounded-full hover:bg-white/10 text-white/40 hover:text-[#FE7F2D] transition-all"
+           >
+             <ArrowRight className="w-12 h-12" />
+           </button>
+
+           {/* Image Frame */}
+           <div className="flex flex-col items-center gap-10 max-w-7xl max-h-[90vh] p-4" onClick={(e) => e.stopPropagation()}>
+              <div className="relative group/lb rounded-[2rem] sm:rounded-[4rem] overflow-hidden shadow-[0_0_100px_rgba(254,127,45,0.1)] border border-white/5">
+                <img 
+                  src={storeImages[previewIdx].url} 
+                  className="max-w-full max-h-[80vh] object-contain"
+                  alt="Store Preview"
+                />
+                <div className="absolute top-10 left-10">
+                   <Badge className="bg-[#FE7F2D] text-white border-none rounded-full px-6 py-3 font-black italic lowercase text-xl shadow-2xl">
+                     zone: {storeImages[previewIdx].section}
+                   </Badge>
+                </div>
+              </div>
+              <div className="text-center">
+                 <p className="text-white font-black italic lowercase text-2xl tracking-tighter opacity-80 uppercase">
+                   {storeImages[previewIdx].section} • {String(previewIdx + 1).padStart(2, '0')} / {String(storeImages.length).padStart(2, '0')}
+                 </p>
+                 <p className="text-white/20 text-[10px] uppercase font-black tracking-[0.5em] mt-2 italic">
+                   the hidden collective • high fidelity visual archive
+                 </p>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   )
 }

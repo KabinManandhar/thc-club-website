@@ -324,3 +324,13 @@ export const DURATION_MONTHS = {
 
 export type ShelfType = "bottom" | "eye_level" | "top_level"
 export type Duration = "quarterly" | "half_yearly" | "yearly"
+
+export interface StoreImage {
+  id: string
+  url: string
+  section: string
+  shelf?: string
+  alt_text?: string
+  metadata?: any
+  created_at: string
+}
