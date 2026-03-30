@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DURATION_MONTHS, supabase, type Duration, type PromotionalOffer, type ShelfPricingTier, type ShelfType, type ShelfSection } from "@/lib/supabase"
+import { ImageLightbox } from "@/components/ui/lightbox"
 import { ArrowLeft, ArrowRight, Banknote, Camera, CheckCircle2, Clock, Info, Layout, Package, QrCode, Tag, Ticket, Users } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
@@ -65,6 +66,16 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
   })
   const [dynamicProtocols, setDynamicProtocols] = useState<{ title: string; items: string[] }[]>([])
   const [storeImages, setStoreImages] = useState<any[]>([])
+
+  const [lbOpen, setLbOpen] = useState(false)
+  const [lbImages, setLbImages] = useState<string[]>([])
+  const [lbIndex, setLbIndex] = useState(0)
+
+  const openLightbox = (imgs: string[], idx: number) => {
+    setLbImages(imgs)
+    setLbIndex(idx)
+    setLbOpen(true)
+  }
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -228,8 +239,18 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                   {zoneImages.length > 0 ? (
                     <div className="grid grid-cols-4 gap-4">
                       {zoneImages.slice(0, 4).map((img, i) => (
-                        <div key={i} className="aspect-video relative rounded-xl overflow-hidden grayscale hover:grayscale-0 transition-all">
-                          <img src={img.url} className="w-full h-full object-cover" />
+                        <div 
+                          key={i} 
+                          className="aspect-video relative rounded-xl overflow-hidden grayscale hover:grayscale-0 transition-all cursor-pointer group"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openLightbox(zoneImages.map(zi => zi.url), i);
+                          }}
+                        >
+                          <img src={img.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                            <Camera className="w-4 h-4 text-white" />
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -399,6 +420,13 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
           <Button onClick={onComplete} className="bg-[#FE7F2D] hover:bg-black text-white px-12 h-12 rounded-2xl font-black italic lowercase transition-all">Go to Dashboard</Button>
         </div>
       )}
+
+      <ImageLightbox 
+        isOpen={lbOpen} 
+        onClose={() => setLbOpen(false)} 
+        images={lbImages} 
+        initialIndex={lbIndex} 
+      />
     </div>
   )
 }

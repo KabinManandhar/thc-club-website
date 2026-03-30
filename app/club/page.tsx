@@ -11,6 +11,7 @@ import { BrandShelfInfo } from "@/components/club/brand-shelf-info"
 import { InventoryManagement } from "@/components/club/inventory-management"
 import { OnboardingWizard } from "@/components/club/onboarding-wizard"
 import { ShelfBooking } from "@/components/club/shelf-booking"
+import { ImageLightbox } from "@/components/ui/lightbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,6 +40,15 @@ function ClubPageContent() {
   const [storeImages, setStoreImages] = useState<any[]>([])
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("dashboard")
+  const [lbOpen, setLbOpen] = useState(false)
+  const [lbImages, setLbImages] = useState<string[]>([])
+  const [lbIndex, setLbIndex] = useState(0)
+
+  const openLightbox = (imgs: string[], idx: number) => {
+    setLbImages(imgs)
+    setLbIndex(idx)
+    setLbOpen(true)
+  }
 
   useEffect(() => {
     if (searchParams.get("test_mode") === "true") {
@@ -293,8 +303,12 @@ function ClubPageContent() {
             {/* Store Photos Row */}
             {storeImages.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-                {storeImages.slice(0, 4).map((img) => (
-                  <div key={img.id} className="group relative aspect-square rounded-[2rem] overflow-hidden border border-[#FE7F2D]/5 shadow-sm hover:shadow-xl transition-all">
+                {storeImages.slice(0, 4).map((img, idx) => (
+                  <div 
+                    key={img.id} 
+                    className="group relative aspect-square rounded-[2rem] overflow-hidden border border-[#FE7F2D]/5 shadow-sm hover:shadow-xl transition-all cursor-pointer"
+                    onClick={() => openLightbox(storeImages.map(i => i.url), idx)}
+                  >
                     <img 
                       src={img.url} 
                       alt={img.section} 
@@ -302,6 +316,7 @@ function ClubPageContent() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex flex-col justify-end">
                       <p className="text-white font-black italic lowercase text-lg leading-tight">{img.section}</p>
+                      <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest mt-1">view full space →</p>
                     </div>
                   </div>
                 ))}
@@ -453,11 +468,18 @@ function ClubPageContent() {
               {/* Space Visualization */}
               {storeImages.length > 0 && (
                 <div className="flex overflow-x-auto gap-4 scrollbar-hide py-4 -mx-6 px-6">
-                  {storeImages.map((img) => (
-                    <div key={img.id} className="min-w-[280px] h-48 rounded-[2rem] overflow-hidden border border-[#FE7F2D]/5 shadow-md relative group">
+                  {storeImages.map((img, idx) => (
+                    <div 
+                      key={img.id} 
+                      className="min-w-[280px] h-48 rounded-[2rem] overflow-hidden border border-[#FE7F2D]/5 shadow-md relative group cursor-pointer"
+                      onClick={() => openLightbox(storeImages.map(i => i.url), idx)}
+                    >
                       <img src={img.url} alt={img.section} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
                       <div className="absolute bottom-4 left-6">
                          <p className="text-white font-black italic lowercase text-sm bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full">{img.section}</p>
+                      </div>
+                      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Badge className="bg-white/90 text-[#FE7F2D] font-black lowercase tracking-widest shadow-xl">enlarge</Badge>
                       </div>
                     </div>
                   ))}
@@ -654,6 +676,13 @@ function ClubPageContent() {
           <p className="text-[11px] font-bold text-[#010307]/10 lowercase tracking-[0.2em]">the hidden collective club © 2026</p>
         </div>
       </footer>
+
+      <ImageLightbox 
+        isOpen={lbOpen} 
+        onClose={() => setLbOpen(false)} 
+        images={lbImages} 
+        initialIndex={lbIndex} 
+      />
     </div>
   )
 }
