@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, ArrowLeft, BarChart3, Camera, Eye, Heart, Instagram, LayoutGrid, Lock, LogIn, Menu, Package, ShieldCheck, Users, X, Zap, CheckCircle2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, BarChart3, Camera, CheckCircle2, Eye, Heart, Instagram, Lock, LogIn, Menu, Package, ShieldCheck, Users, X, Zap } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
@@ -94,8 +94,8 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
                   </p>
                 </div>
                 <Link href="/gallery">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="rounded-full border-[#FE7F2D]/20 text-[#010307] hover:bg-[#FE7F2D] hover:text-white font-black uppercase text-[10px] tracking-widest px-12 py-6 h-auto transition-all shadow-xl shadow-[#FE7F2D]/5"
                   >
                     view full collage ({storeImages.length})
@@ -106,9 +106,9 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
                 {storeImages.slice(0, 4).map((img: any, idx: number) => (
                   <div key={img.id} className={`group relative aspect-[4/5] rounded-[2rem] sm:rounded-[4rem] overflow-hidden border border-[#FE7F2D]/10 shadow-2xl transition-all duration-700 hover-lift ${idx % 2 === 1 ? 'translate-y-12' : ''}`}>
-                    <img 
-                      src={`${img.url}?width=400&quality=70`} 
-                      alt={img.section} 
+                    <img
+                      src={`${img.url}?width=400&quality=70`}
+                      alt={img.section}
                       className="w-full h-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0 group-hover:scale-110"
                       loading="lazy"
                     />
@@ -267,7 +267,7 @@ export default function LandingPage() {
   const [origins, setOrigins] = useState("")
   const [storeImages, setStoreImages] = useState<any[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  
+
   // Lightbox State
   const [previewIdx, setPreviewIdx] = useState<number | null>(null)
 
@@ -779,74 +779,74 @@ export default function LandingPage() {
                     <CarouselContent className="-ml-4 sm:-ml-12">
                       {storeImages.map((img, idx) => (
                         <CarouselItem key={img.id} className="pl-4 sm:pl-12 basis-full md:basis-2/3 lg:basis-1/2">
-                          <div 
+                          <div
                             onClick={() => setPreviewIdx(idx)}
                             className="relative aspect-[16/11] bg-white rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl transition-all duration-700 hover:scale-[1.02] cursor-zoom-in"
                           >
-                            <img 
-                              src={`${img.url}?width=800&quality=75`} 
-                              alt={img.section} 
+                            <img
+                              src={`${img.url}?width=800&quality=75`}
+                              alt={img.section}
                               className="w-full h-full object-cover grayscale transition-all duration-1000 hover:grayscale-0"
                               loading="lazy"
                             />
                             <div className="absolute top-6 left-6 sm:top-12 sm:left-12">
-                               <Badge className="bg-black/90 text-white border-none rounded-full px-4 py-2 font-black italic lowercase text-[10px] sm:text-sm backdrop-blur-md">
-                                 zone: {img.section}
-                               </Badge>
+                              <Badge className="bg-black/90 text-white border-none rounded-full px-4 py-2 font-black italic lowercase text-[10px] sm:text-sm backdrop-blur-md">
+                                zone: {img.section}
+                              </Badge>
                             </div>
                             <div className="absolute bottom-6 right-6 sm:bottom-12 sm:right-12">
-                               <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-white/50 bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full italic">
-                                 frame {String(idx + 1).padStart(2, '0')}
-                               </p>
+                              <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-white/50 bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full italic">
+                                frame {String(idx + 1).padStart(2, '0')}
+                              </p>
                             </div>
                           </div>
                         </CarouselItem>
                       ))}
                     </CarouselContent>
-                    
+
                     <div className="flex justify-center gap-12 mt-20">
-                       <div className="flex items-center gap-3">
-                          <div className="w-12 h-0.5 bg-[#FE7F2D]/20 rounded-full overflow-hidden">
-                             <div className="h-full bg-[#FE7F2D] transition-all duration-500" style={{ width: `${((current + 1) / storeImages.length) * 100}%` }} />
-                          </div>
-                          <span className="text-xs font-black italic text-gray-300">
-                            {String(current + 1).padStart(2, '0')} / {String(storeImages.length).padStart(2, '0')}
-                          </span>
-                       </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-0.5 bg-[#FE7F2D]/20 rounded-full overflow-hidden">
+                          <div className="h-full bg-[#FE7F2D] transition-all duration-500" style={{ width: `${((current + 1) / storeImages.length) * 100}%` }} />
+                        </div>
+                        <span className="text-xs font-black italic text-gray-300">
+                          {String(current + 1).padStart(2, '0')} / {String(storeImages.length).padStart(2, '0')}
+                        </span>
+                      </div>
                     </div>
                   </Carousel>
                 </div>
               ) : (
                 <div className="text-center py-40 bg-white rounded-[5rem] border border-dashed border-[#FE7F2D]/10">
-                   <Camera className="w-16 h-16 text-[#FE7F2D]/20 mx-auto mb-6" />
-                   <p className="font-black italic lowercase text-[#010307]/20 text-2xl">visual archive opening soon...</p>
+                  <Camera className="w-16 h-16 text-[#FE7F2D]/20 mx-auto mb-6" />
+                  <p className="font-black italic lowercase text-[#010307]/20 text-2xl">visual archive opening soon...</p>
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-12">
-                 <div className="p-12 bg-white rounded-[3rem] border border-black/5 space-y-6 flex flex-col justify-between">
-                    <p className="text-2xl font-black italic lowercase text-[#010307]">high fidelity curation.</p>
-                    <p className="text-[#010307]/60 font-medium italic lowercase leading-relaxed">
-                      every corner of the hidden collective is curated to highlight the creator. no crowded shelves, no visual noise. just the product and the light.
-                    </p>
-                 </div>
-                 <div className="p-12 bg-black text-white rounded-[3rem] border border-white/5 space-y-8">
-                    <p className="text-2xl font-black italic lowercase leading-none">zero fakes policy.</p>
-                    <div className="space-y-4">
-                       <div className="flex items-center gap-4">
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                          <p className="text-sm font-bold lowercase opacity-80">vetted brand partners only.</p>
-                       </div>
-                       <div className="flex items-center gap-4">
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                          <p className="text-sm font-bold lowercase opacity-80">original intellectual property.</p>
-                       </div>
-                       <div className="flex items-center gap-4">
-                          <CheckCircle2 className="w-5 h-5 text-green-500" />
-                          <p className="text-sm font-bold lowercase opacity-80">artisanal or small-batch focus.</p>
-                       </div>
+                <div className="p-12 bg-white rounded-[3rem] border border-black/5 space-y-6 flex flex-col justify-between">
+                  <p className="text-2xl font-black italic lowercase text-[#010307]">high fidelity curation.</p>
+                  <p className="text-[#010307]/60 font-medium italic lowercase leading-relaxed">
+                    every corner of the hidden collective is curated to highlight the creator. no crowded shelves, no visual noise. just the product and the light.
+                  </p>
+                </div>
+                <div className="p-12 bg-black text-white rounded-[3rem] border border-white/5 space-y-8">
+                  <p className="text-2xl font-black italic lowercase leading-none">zero fakes policy.</p>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      <p className="text-sm font-bold lowercase opacity-80">vetted brand partners only.</p>
                     </div>
-                 </div>
+                    <div className="flex items-center gap-4">
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      <p className="text-sm font-bold lowercase opacity-80">original intellectual property.</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      <p className="text-sm font-bold lowercase opacity-80">artisanal or small-batch focus.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -963,7 +963,7 @@ export default function LandingPage() {
                             alt={brand.business_name}
                             width={200}
                             height={200}
-                            className="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all duration-700"
+                            className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
                           />
                         ) : (
                           <div className="text-6xl font-black text-[#FE7F2D]/10 group-hover:text-[#FE7F2D]/30 transition-colors uppercase tracking-widest">{brand.business_name.substring(0, 2)}</div>
@@ -1068,58 +1068,58 @@ export default function LandingPage() {
       {/* PREVIEW LIGHTBOX */}
       {previewIdx !== null && (
         <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center animate-in fade-in duration-300" onClick={() => setPreviewIdx(null)}>
-           {/* Close Button */}
-           <button 
-             onClick={() => setPreviewIdx(null)}
-             className="absolute top-10 right-10 text-white/40 hover:text-white transition-all z-10"
-           >
-             <X className="w-10 h-10" />
-           </button>
+          {/* Close Button */}
+          <button
+            onClick={() => setPreviewIdx(null)}
+            className="absolute top-10 right-10 text-white/40 hover:text-white transition-all z-10"
+          >
+            <X className="w-10 h-10" />
+          </button>
 
-           {/* Navigation Arrows */}
-           <button 
-             onClick={(e) => {
-               e.stopPropagation();
-               setPreviewIdx(prev => prev! > 0 ? prev! - 1 : storeImages.length - 1);
-             }}
-             className="absolute left-10 p-5 rounded-full hover:bg-white/10 text-white/40 hover:text-[#FE7F2D] transition-all"
-           >
-             <ArrowLeft className="w-12 h-12" />
-           </button>
+          {/* Navigation Arrows */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewIdx(prev => prev! > 0 ? prev! - 1 : storeImages.length - 1);
+            }}
+            className="absolute left-10 p-5 rounded-full hover:bg-white/10 text-white/40 hover:text-[#FE7F2D] transition-all"
+          >
+            <ArrowLeft className="w-12 h-12" />
+          </button>
 
-           <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setPreviewIdx(prev => prev! < storeImages.length - 1 ? prev! + 1 : 0);
-              }}
-              className="absolute right-10 p-5 rounded-full hover:bg-white/10 text-white/40 hover:text-[#FE7F2D] transition-all"
-           >
-             <ArrowRight className="w-12 h-12" />
-           </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setPreviewIdx(prev => prev! < storeImages.length - 1 ? prev! + 1 : 0);
+            }}
+            className="absolute right-10 p-5 rounded-full hover:bg-white/10 text-white/40 hover:text-[#FE7F2D] transition-all"
+          >
+            <ArrowRight className="w-12 h-12" />
+          </button>
 
-           {/* Image Frame */}
-           <div className="flex flex-col items-center gap-10 max-w-7xl max-h-[90vh] p-4" onClick={(e) => e.stopPropagation()}>
-              <div className="relative group/lb rounded-[2rem] sm:rounded-[4rem] overflow-hidden shadow-[0_0_100px_rgba(254,127,45,0.1)] border border-white/5">
-                <img 
-                  src={storeImages[previewIdx].url} 
-                  className="max-w-full max-h-[80vh] object-contain"
-                  alt="Store Preview"
-                />
-                <div className="absolute top-10 left-10">
-                   <Badge className="bg-[#FE7F2D] text-white border-none rounded-full px-6 py-3 font-black italic lowercase text-xl shadow-2xl">
-                     zone: {storeImages[previewIdx].section}
-                   </Badge>
-                </div>
+          {/* Image Frame */}
+          <div className="flex flex-col items-center gap-10 max-w-7xl max-h-[90vh] p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="relative group/lb rounded-[2rem] sm:rounded-[4rem] overflow-hidden shadow-[0_0_100px_rgba(254,127,45,0.1)] border border-white/5">
+              <img
+                src={storeImages[previewIdx].url}
+                className="max-w-full max-h-[80vh] object-contain"
+                alt="Store Preview"
+              />
+              <div className="absolute top-10 left-10">
+                <Badge className="bg-[#FE7F2D] text-white border-none rounded-full px-6 py-3 font-black italic lowercase text-xl shadow-2xl">
+                  zone: {storeImages[previewIdx].section}
+                </Badge>
               </div>
-              <div className="text-center">
-                 <p className="text-white font-black italic lowercase text-2xl tracking-tighter opacity-80 uppercase">
-                   {storeImages[previewIdx].section} • {String(previewIdx + 1).padStart(2, '0')} / {String(storeImages.length).padStart(2, '0')}
-                 </p>
-                 <p className="text-white/20 text-[10px] uppercase font-black tracking-[0.5em] mt-2 italic">
-                   the hidden collective • high fidelity visual archive
-                 </p>
-              </div>
-           </div>
+            </div>
+            <div className="text-center">
+              <p className="text-white font-black italic lowercase text-2xl tracking-tighter opacity-80 uppercase">
+                {storeImages[previewIdx].section} • {String(previewIdx + 1).padStart(2, '0')} / {String(storeImages.length).padStart(2, '0')}
+              </p>
+              <p className="text-white/20 text-[10px] uppercase font-black tracking-[0.5em] mt-2 italic">
+                the hidden collective • high fidelity visual archive
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
