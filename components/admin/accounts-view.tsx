@@ -442,7 +442,6 @@ export function AccountsManagement() {
             <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 italic">Treasury Position</h4>
             <div className="text-4xl font-black italic tracking-tighter uppercase flex items-center gap-4">
                thc club consolidated
-               <Badge className="bg-[#FE7F2D] text-white border-none font-black text-[10px] px-3">Live</Badge>
             </div>
          </div>
          

@@ -151,19 +151,23 @@ export function ShelfRentalRevenueMetrics() {
   const pendingBookings = bookings.filter(b => b.status === "pending")
   
   const activeMonthlyRevenue = activeBookings.reduce((s, b) => s + (b.monthly_rent || 0), 0)
-  const totalContractValue = bookings.reduce((s, b) => s + (b.total_amount || 0), 0)
   const pipelineValue = pendingBookings.reduce((s, b) => s + (b.total_amount || 0), 0)
   
-  const confirmedLeaseRevenue = activeBookings.reduce(
-    (s, b) => s + (b.monthly_rent || 0) * (DURATION_MONTHS[b.duration as keyof typeof DURATION_MONTHS] || 1), 0
-  )
+  const premiumMetrics = {
+    revenue: activeBookings.filter(b => b.section_tier === 'premium').reduce((s, b) => s + (b.monthly_rent || 0), 0),
+    occupied: slotStats.premium.bottom.occupied + slotStats.premium.eye_level.occupied + slotStats.premium.top_level.occupied,
+    total: slotStats.premium.bottom.total + slotStats.premium.eye_level.total + slotStats.premium.top_level.total
+  }
 
-  const premiumCount = bookings.filter(b => b.section_tier === "premium").length
-  const regularCount = bookings.filter(b => b.section_tier === "regular").length
+  const regularMetrics = {
+    revenue: activeBookings.filter(b => b.section_tier === 'regular' || !b.section_tier).reduce((s, b) => s + (b.monthly_rent || 0), 0),
+    occupied: slotStats.regular.bottom.occupied + slotStats.regular.eye_level.occupied + slotStats.regular.top_level.occupied,
+    total: slotStats.regular.bottom.total + slotStats.regular.eye_level.total + slotStats.regular.top_level.total
+  }
 
   const mainMetrics = [
     {
-      label: "Active Monthly Revenue",
+      label: "Live Monthly Revenue",
       value: `NPR ${activeMonthlyRevenue.toLocaleString()}`,
       sub: `${activeBookings.length} active leases`,
       icon: DollarSign,
@@ -172,22 +176,22 @@ export function ShelfRentalRevenueMetrics() {
       badge: "LIVE"
     },
     {
-      label: "Confirmed Lease Revenue",
-      value: `NPR ${confirmedLeaseRevenue.toLocaleString()}`,
-      sub: "active total committed val",
-      icon: ShieldCheck,
-      color: "text-blue-500",
-      bg: "bg-blue-50",
-      badge: "LOCKED"
+      label: "Premium Zone Yield",
+      value: `NPR ${premiumMetrics.revenue.toLocaleString()}`,
+      sub: `${premiumMetrics.occupied}/${premiumMetrics.total} premium slots taken`,
+      icon: Zap,
+      color: "text-yellow-500",
+      bg: "bg-yellow-50",
+      badge: "PREMIUM"
     },
     {
-       label: "Total Contract Value",
-       value: `NPR ${totalContractValue.toLocaleString()}`,
-       sub: `${bookings.length} total records`,
-       icon: BarChart3,
-       color: "text-purple-500",
-       bg: "bg-purple-50",
-       badge: "GROSS"
+       label: "Regular Zone Yield",
+       value: `NPR ${regularMetrics.revenue.toLocaleString()}`,
+       sub: `${regularMetrics.occupied}/${regularMetrics.total} regular slots taken`,
+       icon: Building2,
+       color: "text-blue-500",
+       bg: "bg-blue-50",
+       badge: "STANDARD"
     },
     {
       label: "Pipeline Value",
@@ -214,7 +218,7 @@ export function ShelfRentalRevenueMetrics() {
         </div>
         <div className="flex items-center gap-3">
            <Badge className="bg-white border-black/5 border text-gray-400 font-black uppercase text-[10px] tracking-widest px-4 py-2 rounded-xl shadow-sm">
-             {premiumCount} Premium · {regularCount} Regular
+             {bookings.filter(b => b.section_tier === 'premium').length} Premium · {bookings.filter(b => b.section_tier === 'regular' || !b.section_tier).length} Regular
            </Badge>
         </div>
       </div>
