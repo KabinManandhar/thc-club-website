@@ -717,7 +717,7 @@ export default function LandingPage() {
                           priority
                         />
                         <div className="absolute -bottom-2 -right-2 sm:-bottom-8 sm:-right-8 bg-[#FE7F2D] text-white p-3 sm:p-6 rounded-xl sm:rounded-[2rem] shadow-2xl border-4 border-[#FFFCEB] rotate-12 transition-all group-hover:rotate-6 z-20 group-hover:scale-110">
-                          <p className="text-sm sm:text-2xl font-black italic lowercase leading-none">zero fakes.</p>
+                          <p className="text-sm sm:text-2xl font-black italic lowercase leading-none">here for you!.</p>
                           <p className="text-[6px] sm:text-[10px] font-black uppercase tracking-widest mt-1 sm:mt-2 opacity-60 whitespace-nowrap">Verified Collective</p>
                         </div>
 
@@ -963,7 +963,7 @@ export default function LandingPage() {
                   the <span className="text-[#FE7F2D]">club</span> tour.
                 </h2>
                 <p className="text-lg sm:text-2xl text-[#010307]/40 font-medium italic lowercase max-w-2xl mx-auto">
-                  curated energy. 108 slots. 3 rooms. zero fakes. take a walk through the collective.
+                  curated energy. 108 slots. 3 rooms. here for you!. take a walk through the collective.
                 </p>
               </div>
 
@@ -1031,7 +1031,7 @@ export default function LandingPage() {
                   </p>
                 </div>
                 <div className="p-12 bg-black text-white rounded-[3rem] border border-white/5 space-y-8">
-                  <p className="text-2xl font-black italic lowercase leading-none">zero fakes policy.</p>
+                  <p className="text-2xl font-black italic lowercase leading-none">here for you! policy.</p>
                   <div className="space-y-4">
                     <div className="flex items-center gap-4">
                       <CheckCircle2 className="w-5 h-5 text-green-500" />
