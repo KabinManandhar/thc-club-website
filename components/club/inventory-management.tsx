@@ -185,17 +185,30 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
 
    return (
     <div className="space-y-12">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-3xl font-black flex items-center gap-3 tracking-tighter lowercase italic">
-            <Package className="w-8 h-8 text-[#FE7F2D]" />
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8 mb-12">
+        <div className="space-y-1">
+          <h2 className="text-4xl font-black flex items-center gap-4 tracking-tighter lowercase italic leading-none">
+            <span className="p-3 bg-[#FE7F2D]/10 rounded-2xl">
+              <Package className="w-8 h-8 text-[#FE7F2D]" />
+            </span>
             product catalog
           </h2>
-          <p className="text-[#010307]/40 font-medium text-sm italic lowercase">access your synchronized inventory.</p>
+          <p className="text-[#010307]/40 font-medium text-sm italic lowercase ml-1">access your synchronized inventory.</p>
         </div>
-        <Button onClick={openAdd} className="bg-[#FE7F2D] text-white hover:bg-[#FE7F2D]/90 px-8 py-3 rounded-2xl font-bold lowercase text-[11px] tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all h-12">
-          <PlusCircle className="mr-2 h-4 w-4" /> add new product
-        </Button>
+
+        <div className="flex flex-wrap items-stretch gap-4 w-full md:w-auto">
+          <Card className="flex-1 md:w-64 border border-[#FE7F2D]/10 bg-white/50 backdrop-blur-md rounded-3xl p-6 shadow-sm flex flex-col justify-center gap-1 group hover:border-[#FE7F2D]/30 transition-all">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FE7F2D]/60 italic">Total Shelf Value</span>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-black italic tracking-tighter">NPR {products.reduce((acc, p) => acc + (p.price * p.stock_quantity), 0).toLocaleString()}</span>
+              <span className="text-[11px] font-bold text-green-500 uppercase tracking-widest bg-green-50 px-2 py-0.5 rounded-lg">live</span>
+            </div>
+          </Card>
+
+          <Button onClick={openAdd} className="bg-[#FE7F2D] text-white hover:bg-black px-10 h-auto rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all">
+            <PlusCircle className="mr-2 h-4 w-4" /> add product
+          </Button>
+        </div>
       </div>
       
       {/* Pending Verification Section */}

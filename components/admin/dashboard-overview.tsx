@@ -25,6 +25,7 @@ interface DashboardStats {
   pendingStockRequests: number
   pendingChangeRequests: number
   liveSettlementsCount: number
+  totalInventoryValue: number
   slotsByLevel: {
     bottom: { available: number; total: number }
     eye_level: { available: number; total: number }
@@ -52,6 +53,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
     pendingStockRequests: 0,
     pendingChangeRequests: 0,
     liveSettlementsCount: 0,
+    totalInventoryValue: 0,
     slotsByLevel: {
       bottom: { available: 0, total: 0 },
       eye_level: { available: 0, total: 0 },
@@ -83,7 +85,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
 
   const fetchStats = async () => {
     try {
-      const [brandsRes, enquiriesRes, bookingsRes, slotsRes, stockRes, changesRes, financeRes, brandSalesRes, payoutsRes, pricingRes] = await Promise.all([
+      const [brandsRes, enquiriesRes, bookingsRes, slotsRes, stockRes, changesRes, financeRes, brandSalesRes, payoutsRes, pricingRes, brandProductsRes] = await Promise.all([
         supabase.from("brands").select("onboarding_status"),
         supabase.from("enquiries").select("status"),
         supabase.from("shelf_bookings").select("status"),
@@ -93,7 +95,8 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         supabase.from("invoices").select("total_amount, ppf_amount").eq("status", "paid"),
         supabase.from("brand_sales").select("brand_id, month, year"),
         supabase.from("payouts").select("brand_id, month, year"),
-        supabase.from("shelf_pricing_tiers").select("*")
+        supabase.from("shelf_pricing_tiers").select("*"),
+        supabase.from("brand_products").select("price, stock_quantity")
       ])
 
       const brandsData = brandsRes.data || []
@@ -126,6 +129,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         pendingStockRequests: stockData.length,
         pendingChangeRequests: changesData.length,
         liveSettlementsCount: pendingSettlements.length,
+        totalInventoryValue: (brandProductsRes.data || []).reduce((acc: number, p: any) => acc + ((p.price * p.stock_quantity) || 0), 0),
         slotsByLevel: {
           bottom: {
             available: slotsData.filter(s => s.status === 'available' && s.shelf_type === 'bottom').length,
@@ -299,10 +303,10 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
       bgColor: "bg-purple-50",
     },
     {
-      title: "System Inbox",
-      value: stats.enquiriesCount,
-      pending: stats.newEnquiries,
-      icon: MessageSquare,
+      title: "Platform Shelf Value",
+      value: `NPR ${stats.totalInventoryValue.toLocaleString()}`,
+      pending: 0,
+      icon: Package,
       color: "text-orange-600",
       bgColor: "bg-orange-50",
     },

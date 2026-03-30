@@ -30,6 +30,7 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
     totalSales: 0,
     totalOrders: 0,
     activeProducts: 0,
+    totalStockValue: 0,
   })
   const [lowStockProducts, setLowStockProducts] = useState<any[]>([])
   const [activeBooking, setActiveBooking] = useState<any>(null)
@@ -60,11 +61,13 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
 
       const totalSales = sales.reduce((sum, s) => sum + (s.gross_sales || 0), 0)
       const totalOrders = sales.length
-
+      const totalStockValue = products.reduce((sum, p) => sum + ((p.price * p.stock_quantity) || 0), 0)
+ 
       setStats({
         totalSales,
         totalOrders,
-        activeProducts: products.length
+        activeProducts: products.length,
+        totalStockValue
       })
 
     } catch (error) {
@@ -184,6 +187,16 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
           </div>
           <p className="text-[10px] font-bold lowercase text-[#010307]/30 tracking-widest mb-1 italic">active catalog</p>
           <h3 className="text-2xl font-black text-[#010307] tracking-tighter italic">{stats.activeProducts} items</h3>
+        </Card>
+
+        <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-2xl bg-white p-6 group transition-all">
+          <div className="flex justify-between items-start mb-4">
+             <div className="w-10 h-10 bg-[#FE7F2D]/10 rounded-xl flex items-center justify-center text-[#FE7F2D]">
+                <Activity className="w-5 h-5" />
+             </div>
+          </div>
+          <p className="text-[10px] font-bold lowercase text-[#010307]/30 tracking-widest mb-1 italic">stock value</p>
+          <h3 className="text-2xl font-black text-[#010307] tracking-tighter italic">npr {stats.totalStockValue.toLocaleString()}</h3>
         </Card>
 
         <Card className="border-none shadow-xl rounded-2xl bg-[#010307] p-6 group transition-all relative overflow-hidden">

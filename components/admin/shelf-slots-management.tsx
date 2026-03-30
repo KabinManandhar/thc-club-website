@@ -68,6 +68,8 @@ export function ShelfSlotsManagement() {
     occupied_until: "",
     notes: "",
     applied_promo_id: "",
+    slot_number: 0,
+    shelf_type: "eye_level" as "bottom" | "eye_level" | "top_level",
   })
 
   // Edit / Delete Shelf State
@@ -303,6 +305,75 @@ export function ShelfSlotsManagement() {
     })
   }
 
+  const handleAddSlot = async (shelf: Shelf) => {
+    try {
+      const targetSection = sections.find(s => s.id === shelf.section_id)
+      if (!targetSection) {
+        toast.error("Section not found.")
+        return
+      }
+
+      const maxSlotNumber = slots.reduce((max, s) => Math.max(max, s.slot_number), 0)
+      
+      const newSlot = {
+        shelf_id: shelf.id,
+        shelf_name: shelf.name,
+        section: targetSection.name,
+        section_id: targetSection.id,
+        shelf_type: shelf.shelf_type === 'mixed' ? 'eye_level' : shelf.shelf_type,
+        slot_number: maxSlotNumber + 1,
+        status: 'available'
+      }
+
+      const { data: createdSlot, error } = await supabase.from("shelf_slots").insert([newSlot]).select().single()
+      if (error) throw error
+
+      // Keep shelf total_slots in sync
+      await supabase.from("shelves").update({ total_slots: (shelf.total_slots || 0) + 1 }).eq("id", shelf.id)
+
+      fetchSlots()
+      toast.success(`Slot #${maxSlotNumber + 1} added to ${shelf.name}`)
+      
+      // Auto-open management for the new slot
+      setSelectedSlot(createdSlot)
+      setUpdateData({
+        status: 'available',
+        brand_id: "none",
+        occupied_by: "",
+        rent_amount: getAutoPrice(createdSlot, "yearly").toString(),
+        duration: "yearly",
+        occupied_from: "",
+        occupied_until: "",
+        notes: "",
+        applied_promo_id: "none",
+        slot_number: createdSlot.slot_number,
+        shelf_type: createdSlot.shelf_type as any
+      })
+    } catch (error: any) {
+      toast.error(error.message)
+    }
+  }
+
+  const handleDeleteSlot = async (id: string, shelfId: string) => {
+    if (!confirm("Caution: Are you sure you want to permanently remove this specific slot? This action is irreversible.")) return
+    try {
+      const { error } = await supabase.from("shelf_slots").delete().eq("id", id)
+      if (error) throw error
+
+      // Decrement total_slots for that shelf
+      const shelf = shelves.find(s => s.id === shelfId)
+      if (shelf) {
+        await supabase.from("shelves").update({ total_slots: Math.max(0, (shelf.total_slots || 1) - 1) }).eq("id", shelfId)
+      }
+
+      setSelectedSlot(null)
+      fetchSlots()
+      toast.success("Slot removed from registry.")
+    } catch (error: any) {
+      toast.error(error.message)
+    }
+  }
+
   const updateSlot = async (id: string, updates: Partial<ShelfSlot>) => {
     try {
       const { error } = await supabase
@@ -527,13 +598,20 @@ export function ShelfSlotsManagement() {
                           <Package className="w-4 h-4 text-[#FE7F2D]" />
                           {shelf.name}
                         </CardTitle>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">{shelf.size}</Badge>
-                          {shelf.is_movable && <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs hidden sm:inline-flex">Movable</Badge>}
+                        <div className="flex items-center gap-1.5 translate-x-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => handleAddSlot(shelf)}
+                            title="Add Slot"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 ml-2 hover:bg-gray-200"
+                            className="h-7 w-7 hover:bg-gray-200"
                             onClick={() => {
                               setEditingShelf(shelf)
                               setIsEditShelfOpen(true)
@@ -565,6 +643,8 @@ export function ShelfSlotsManagement() {
                                     occupied_until: slot.occupied_until || "",
                                     notes: slot.notes || "",
                                     applied_promo_id: slot.applied_promo_id || "none",
+                                    slot_number: slot.slot_number,
+                                    shelf_type: slot.shelf_type as any,
                                   })
                                 }}
                               />
@@ -610,6 +690,8 @@ export function ShelfSlotsManagement() {
                               occupied_until: slot.occupied_until || "",
                               notes: slot.notes || "",
                               applied_promo_id: slot.applied_promo_id || "none",
+                              slot_number: slot.slot_number,
+                              shelf_type: slot.shelf_type as any,
                             })
                           }}
                         />
@@ -635,9 +717,34 @@ export function ShelfSlotsManagement() {
                 <div className="grid grid-cols-2 gap-y-2 text-sm text-gray-600">
                   <p><strong>Section:</strong> {selectedSlot.section || "N/A"}</p>
                   <p><strong>Shelf:</strong> {selectedSlot.shelf_name || "N/A"}</p>
-                  <p><strong>Slot Number:</strong> #{selectedSlot.slot_number}</p>
-                  <p><strong>Tier:</strong> {selectedSlot.shelf_type.replace("_", " ")}</p>
                   <p><strong>Current Status:</strong> {selectedSlot.status}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Slot Display #</Label>
+                  <Input 
+                    type="number" 
+                    value={updateData.slot_number} 
+                    onChange={e => setUpdateData(prev => ({ ...prev, slot_number: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div>
+                  <Label>Vertical Tier</Label>
+                  <Select
+                    value={updateData.shelf_type}
+                    onValueChange={(v: any) => setUpdateData(prev => ({ ...prev, shelf_type: v }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="bottom">Bottom Level</SelectItem>
+                      <SelectItem value="eye_level">Eye Level</SelectItem>
+                      <SelectItem value="top_level">Top Level</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -666,7 +773,13 @@ export function ShelfSlotsManagement() {
                     onValueChange={(v) => {
                       if (selectedSlot) {
                         const newPrice = getAutoPrice(selectedSlot, v)
-                        setUpdateData(prev => ({ ...prev, duration: v, rent_amount: newPrice.toString() }))
+                        setUpdateData(prev => ({ 
+                          ...prev, 
+                          duration: v, 
+                          rent_amount: newPrice.toString(),
+                          slot_number: selectedSlot.slot_number,
+                          shelf_type: selectedSlot.shelf_type as any
+                        }))
                       }
                     }}
                   >
@@ -770,11 +883,16 @@ export function ShelfSlotsManagement() {
                       applied_promo_id: (updateData.applied_promo_id && updateData.applied_promo_id !== 'none') ? updateData.applied_promo_id : null,
                       occupied_by: updateData.occupied_by || null,
                       rent_amount: updateData.rent_amount ? Number(updateData.rent_amount) : null,
+                      slot_number: updateData.slot_number,
+                      shelf_type: updateData.shelf_type as any
                     })
                   }
                   className="bg-[#FE7F2D] hover:bg-[#FE7F2D]/90 text-white flex-1"
                 >
                   Save Changes
+                </Button>
+                <Button variant="destructive" onClick={() => handleDeleteSlot(selectedSlot.id, selectedSlot.shelf_id || "")} className="w-12 px-0 shrink-0">
+                   <Trash2 className="h-4 w-4" />
                 </Button>
                 <Button variant="outline" onClick={() => setSelectedSlot(null)}>Cancel</Button>
               </div>

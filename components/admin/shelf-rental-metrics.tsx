@@ -1,27 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { supabase } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 import {
-  LayoutGrid,
-  TrendingUp,
-  DollarSign,
-  Calendar,
-  Clock,
-  CheckCircle2,
   Building2,
-  Target,
+  Clock,
+  DollarSign,
   Layers,
-  Search,
-  ArrowUpRight,
-  ShieldCheck,
-  Zap,
-  BarChart3
+  Target,
+  TrendingUp,
+  Zap
 } from "lucide-react"
+import { useEffect, useState } from "react"
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-green-50 text-green-700 border-green-200",
@@ -42,7 +35,7 @@ export function ShelfRentalRevenueMetrics() {
   const [projectionPlan, setProjectionPlan] = useState<"quarterly" | "half_yearly" | "yearly">("yearly")
   const [projectionLevel, setProjectionLevel] = useState<"all" | "bottom" | "eye_level" | "top_level">("all")
   const [pricingTiers, setPricingTiers] = useState<any[]>([])
-  
+
   const [slotStats, setSlotStats] = useState({
     regular: {
       bottom: { occupied: 0, total: 0 },
@@ -68,12 +61,12 @@ export function ShelfRentalRevenueMetrics() {
         supabase.from("shelf_slots").select("status, shelf_type, shelf_sections(section_tier)"),
         supabase.from("shelf_pricing_tiers").select("*")
       ])
-      
+
       setBookings(bookingsRes.data || [])
       setPricingTiers(pricingRes.data || [])
-      
+
       const slots = slotsRes.data || []
-      
+
       const newStats = {
         regular: {
           bottom: { occupied: 0, total: 0 },
@@ -110,7 +103,7 @@ export function ShelfRentalRevenueMetrics() {
 
   const calculateProjectedRevenue = () => {
     let total = 0
-    
+
     // Regular Revenue
     const regPricing = pricingTiers.find(t => t.duration === projectionPlan && t.section_tier === 'regular')
     if (regPricing) {
@@ -149,10 +142,10 @@ export function ShelfRentalRevenueMetrics() {
   // ── Data Aggregations ──────────────────────────────────────────────────
   const activeBookings = bookings.filter(b => b.status === "active")
   const pendingBookings = bookings.filter(b => b.status === "pending")
-  
+
   const activeMonthlyRevenue = activeBookings.reduce((s, b) => s + (b.monthly_rent || 0), 0)
   const pipelineValue = pendingBookings.reduce((s, b) => s + (b.total_amount || 0), 0)
-  
+
   const premiumMetrics = {
     revenue: activeBookings.filter(b => b.section_tier === 'premium').reduce((s, b) => s + (b.monthly_rent || 0), 0),
     occupied: slotStats.premium.bottom.occupied + slotStats.premium.eye_level.occupied + slotStats.premium.top_level.occupied,
@@ -185,13 +178,13 @@ export function ShelfRentalRevenueMetrics() {
       badge: "PREMIUM"
     },
     {
-       label: "Regular Zone Yield",
-       value: `NPR ${regularMetrics.revenue.toLocaleString()}`,
-       sub: `${regularMetrics.occupied}/${regularMetrics.total} regular slots taken`,
-       icon: Building2,
-       color: "text-blue-500",
-       bg: "bg-blue-50",
-       badge: "STANDARD"
+      label: "Regular Zone Yield",
+      value: `NPR ${regularMetrics.revenue.toLocaleString()}`,
+      sub: `${regularMetrics.occupied}/${regularMetrics.total} regular slots taken`,
+      icon: Building2,
+      color: "text-blue-500",
+      bg: "bg-blue-50",
+      badge: "STANDARD"
     },
     {
       label: "Pipeline Value",
@@ -217,9 +210,9 @@ export function ShelfRentalRevenueMetrics() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-           <Badge className="bg-white border-black/5 border text-gray-400 font-black uppercase text-[10px] tracking-widest px-4 py-2 rounded-xl shadow-sm">
-             {bookings.filter(b => b.section_tier === 'premium').length} Premium · {bookings.filter(b => b.section_tier === 'regular' || !b.section_tier).length} Regular
-           </Badge>
+          <Badge className="bg-white border-black/5 border text-gray-400 font-black uppercase text-[10px] tracking-widest px-4 py-2 rounded-xl shadow-sm">
+            {bookings.filter(b => b.section_tier === 'premium').length} Premium · {bookings.filter(b => b.section_tier === 'regular' || !b.section_tier).length} Regular
+          </Badge>
         </div>
       </div>
 
@@ -243,7 +236,7 @@ export function ShelfRentalRevenueMetrics() {
                 <p className="text-[10px] font-bold text-gray-300 mt-2 lowercase italic">{m.sub}</p>
               </div>
               <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:scale-110 transition-transform">
-                 <Icon className="w-24 h-24" />
+                <Icon className="w-24 h-24" />
               </div>
             </Card>
           )
@@ -257,12 +250,12 @@ export function ShelfRentalRevenueMetrics() {
           <div className="px-8 py-7 border-b border-black/5 flex justify-between items-center bg-gray-50/30">
             <div className="space-y-1">
               <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 text-gray-400">
-                <Target className="w-4 h-4 text-[#FE7F2D]" /> Predictive Yield Engine
+                <Target className="w-4 h-4 text-[#FE7F2D]" /> Estimate Yield Engine
               </CardTitle>
             </div>
             <div className="flex bg-white border border-black/5 p-1 rounded-xl shadow-sm">
               {['quarterly', 'half_yearly', 'yearly'].map(plan => (
-                <button 
+                <button
                   key={plan}
                   onClick={() => setProjectionPlan(plan as any)}
                   className={cn(
@@ -302,7 +295,7 @@ export function ShelfRentalRevenueMetrics() {
                     const prem = slotStats.premium[lvl]
                     const total = reg.total + prem.total
                     const occupied = reg.occupied + prem.occupied
-                    
+
                     const isSelected = projectionLevel === 'all' || projectionLevel === lvl
                     return (
                       <div key={lvl} className={cn("space-y-3 transition-opacity", !isSelected && "opacity-20 grayscale")}>
@@ -311,7 +304,7 @@ export function ShelfRentalRevenueMetrics() {
                           <span className="text-black font-black">{occupied} <span className="text-gray-300 font-bold lowercase italic tracking-tight">occupied</span> / {total} <span className="text-gray-300 font-bold lowercase italic tracking-tight">total</span></span>
                         </div>
                         <div className="h-3 bg-gray-100 rounded-full overflow-hidden shadow-inner">
-                          <div 
+                          <div
                             className={cn(
                               "h-full rounded-full transition-all duration-1000",
                               lvl === 'eye_level' ? "bg-[#FE7F2D]" : lvl === 'bottom' ? "bg-blue-400" : "bg-purple-400"
@@ -357,10 +350,10 @@ export function ShelfRentalRevenueMetrics() {
               <p className="text-[10px] font-black text-[#FE7F2D] uppercase tracking-widest">Global Occupancy Pulse</p>
               <p className="text-5xl font-black tracking-tighter">
                 {(() => {
-                  const t = slotStats.regular.bottom.total + slotStats.regular.eye_level.total + slotStats.regular.top_level.total + 
-                            slotStats.premium.bottom.total + slotStats.premium.eye_level.total + slotStats.premium.top_level.total;
-                  const o = slotStats.regular.bottom.occupied + slotStats.regular.eye_level.occupied + slotStats.regular.top_level.occupied + 
-                            slotStats.premium.bottom.occupied + slotStats.premium.eye_level.occupied + slotStats.premium.top_level.occupied;
+                  const t = slotStats.regular.bottom.total + slotStats.regular.eye_level.total + slotStats.regular.top_level.total +
+                    slotStats.premium.bottom.total + slotStats.premium.eye_level.total + slotStats.premium.top_level.total;
+                  const o = slotStats.regular.bottom.occupied + slotStats.regular.eye_level.occupied + slotStats.regular.top_level.occupied +
+                    slotStats.premium.bottom.occupied + slotStats.premium.eye_level.occupied + slotStats.premium.top_level.occupied;
                   return ((o / (t || 1)) * 100).toFixed(1);
                 })()}%
               </p>
@@ -374,10 +367,10 @@ export function ShelfRentalRevenueMetrics() {
                 <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Available Capacity</p>
                 <p className="text-4xl font-black tracking-tighter text-black">
                   {(() => {
-                    const t = slotStats.regular.bottom.total + slotStats.regular.eye_level.total + slotStats.regular.top_level.total + 
-                              slotStats.premium.bottom.total + slotStats.premium.eye_level.total + slotStats.premium.top_level.total;
-                    const o = slotStats.regular.bottom.occupied + slotStats.regular.eye_level.occupied + slotStats.regular.top_level.occupied + 
-                              slotStats.premium.bottom.occupied + slotStats.premium.eye_level.occupied + slotStats.premium.top_level.occupied;
+                    const t = slotStats.regular.bottom.total + slotStats.regular.eye_level.total + slotStats.regular.top_level.total +
+                      slotStats.premium.bottom.total + slotStats.premium.eye_level.total + slotStats.premium.top_level.total;
+                    const o = slotStats.regular.bottom.occupied + slotStats.regular.eye_level.occupied + slotStats.regular.top_level.occupied +
+                      slotStats.premium.bottom.occupied + slotStats.premium.eye_level.occupied + slotStats.premium.top_level.occupied;
                     return t - o;
                   })()}
                 </p>
@@ -388,8 +381,8 @@ export function ShelfRentalRevenueMetrics() {
               </div>
             </div>
             <div className="pt-4 border-t border-gray-50 flex justify-between items-center relative z-10">
-               <span className="text-[9px] font-black text-gray-300 uppercase">Growth Potential</span>
-               <span className="text-xs font-black text-green-600">+ NPR {(pricingTiers.find(t => t.duration === 'yearly')?.eye_level_price || 0).toLocaleString()} /mo</span>
+              <span className="text-[9px] font-black text-gray-300 uppercase">Growth Potential</span>
+              <span className="text-xs font-black text-green-600">+ NPR {(pricingTiers.find(t => t.duration === 'yearly')?.eye_level_price || 0).toLocaleString()} /mo</span>
             </div>
           </Card>
         </div>
@@ -424,13 +417,13 @@ export function ShelfRentalRevenueMetrics() {
                 <tr key={b.id} className="hover:bg-gray-50/40 transition-colors group">
                   <td className="px-10 py-7">
                     <div className="flex items-center gap-4">
-                       <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center font-black text-gray-400 shrink-0 group-hover:bg-black group-hover:text-white transition-colors shadow-sm">
-                          {b.brands?.business_name?.substring(0, 1)}
-                       </div>
-                       <div>
-                         <p className="font-black text-gray-900 tracking-tight text-sm">{b.brands?.business_name || "---"}</p>
-                         <p className="text-[9px] text-gray-400 font-mono tracking-tighter uppercase">{b.id.substring(0, 12)}</p>
-                       </div>
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center font-black text-gray-400 shrink-0 group-hover:bg-black group-hover:text-white transition-colors shadow-sm">
+                        {b.brands?.business_name?.substring(0, 1)}
+                      </div>
+                      <div>
+                        <p className="font-black text-gray-900 tracking-tight text-sm">{b.brands?.business_name || "---"}</p>
+                        <p className="text-[9px] text-gray-400 font-mono tracking-tighter uppercase">{b.id.substring(0, 12)}</p>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-7">

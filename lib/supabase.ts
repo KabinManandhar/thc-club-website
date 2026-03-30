@@ -115,6 +115,7 @@ export interface Brand {
   bank_account_details?: any
   is_active: boolean
   last_interaction_at?: string
+  total_stock_value?: number
   created_at: string
   updated_at: string
 }

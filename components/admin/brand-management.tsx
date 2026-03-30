@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { supabase, type Brand, type BrandChangeRequest, type BrandContract, type BrandProduct, type Enquiry, type Invoice, type ShelfBooking, type VisitRequest } from "@/lib/supabase"
 import { generateSKU } from "@/lib/utils"
-import { AlertCircle, ArrowLeft, BarChart3, Calendar, Check, ChevronRight, Clock, X as CloseX, DollarSign, FileText, Image as ImageIcon, Info, Instagram, LayoutGrid, Mail, MessageSquare, Package, Phone, Search, ShieldCheck, StickyNote, Trash2, Users } from "lucide-react"
+import { AlertCircle, ArrowLeft, BarChart3, Calendar, Check, ChevronRight, Clock, X as CloseX, DollarSign, FileText, Image as ImageIcon, Info, Instagram, LayoutGrid, Mail, MessageSquare, Package, Phone, Search, ShieldCheck, StickyNote, Trash2, TrendingUp, Users } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -90,11 +90,27 @@ export function BrandManagement() {
   }
 
   const fetchBrands = async () => {
-    const { data } = await supabase
+    const { data: brandsRes } = await supabase
       .from("brands")
       .select("*")
       .order("updated_at", { ascending: false })
-    setBrands(data || [])
+    
+    // Fetch total stock value across all brands efficiently
+    const { data: stockData } = await supabase
+      .from("brand_products")
+      .select("brand_id, stock_quantity, price")
+
+    const stockSummary: Record<string, number> = {}
+    stockData?.forEach(p => {
+      stockSummary[p.brand_id] = (stockSummary[p.brand_id] || 0) + ((p.stock_quantity * p.price) || 0)
+    })
+
+    const brandsWithStock = (brandsRes || []).map(b => ({
+      ...b,
+      total_stock_value: stockSummary[b.id] || 0
+    }))
+
+    setBrands(brandsWithStock)
     setLoading(false)
   }
 
@@ -307,6 +323,10 @@ export function BrandManagement() {
                   <Badge className={`${STATUS_COLORS[selectedBrand.onboarding_status]} px-4 py-1 rounded-full font-black uppercase tracking-wider text-[10px]`}>
                     {selectedBrand.onboarding_status.replace("_", " ")}
                   </Badge>
+                  <Badge className="bg-orange-50 text-[#FE7F2D] border border-[#FE7F2D]/10 px-4 py-1.5 rounded-full font-black uppercase tracking-widest text-[9px] shadow-sm ml-auto md:ml-2 flex items-center gap-2">
+                    <TrendingUp className="w-3 h-3" />
+                    Shelf Value: NPR {(selectedBrand.total_stock_value || 0).toLocaleString()}
+                  </Badge>
                 </div>
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
                   <div className="flex items-center gap-2 text-xs text-gray-400 font-bold uppercase tracking-widest">
@@ -412,7 +432,7 @@ export function BrandManagement() {
                               <BarChart3 className="w-5 h-5 text-green-600" />
                             </div>
                             <div>
-                              <p className="text-[10px] uppercase font-black text-gray-400 tracking-wider leading-none mb-1">Total Venue Revenue</p>
+                              <p className="text-[10px] uppercase font-black text-gray-400 tracking-wider leading-none mb-1">Total Brand Revenue</p>
                               <p className="font-bold text-gray-900">NPR {invoices.reduce((acc, inv) => acc + (inv.total_amount || 0), 0).toLocaleString()}</p>
                             </div>
                           </div>
@@ -534,7 +554,32 @@ export function BrandManagement() {
                     )}
                   </TabsContent>
 
-                  <TabsContent value="products" className="mt-0 outline-none">
+                  <TabsContent value="products" className="mt-0 outline-none space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card className="p-8 bg-orange-50/30 border border-orange-500/10 rounded-[2rem] shadow-sm group">
+                        <div className="flex items-center gap-5">
+                          <div className="w-14 h-14 bg-[#FE7F2D] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-orange-500/20 group-hover:scale-105 transition-transform">
+                            <TrendingUp className="w-7 h-7" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-1">Total Stock Worth</p>
+                            <h4 className="text-3xl font-black text-[#FE7F2D] tracking-tighter italic">NPR {(selectedBrand.total_stock_value || 0).toLocaleString()}</h4>
+                          </div>
+                        </div>
+                      </Card>
+                      <Card className="p-8 bg-gray-50/50 border border-black/5 rounded-[2rem] shadow-sm group">
+                        <div className="flex items-center gap-5">
+                          <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center text-white shadow-xl shadow-black/10 group-hover:scale-105 transition-transform">
+                            <Package className="w-7 h-7" />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-1">Catalog Depth</p>
+                            <h4 className="text-3xl font-black text-gray-900 tracking-tighter italic">{products.length} Active SKUs</h4>
+                          </div>
+                        </div>
+                      </Card>
+                    </div>
+
                     <div className="table-responsive">
                       <Table>
                         <TableHeader>
@@ -542,6 +587,7 @@ export function BrandManagement() {
                             <TableHead className="px-4">Product</TableHead>
                             <TableHead>Price</TableHead>
                             <TableHead>Stock</TableHead>
+                            <TableHead>Inventory Value</TableHead>
                             <TableHead className="text-right px-4">Action</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -569,6 +615,9 @@ export function BrandManagement() {
                                   <div className={`w-2 h-2 rounded-full ${p.stock_quantity > 10 ? 'bg-green-500' : p.stock_quantity > 0 ? 'bg-amber-500' : 'bg-red-500'}`} />
                                   <span className="font-black italic text-gray-600 tabular-nums">{p.stock_quantity}</span>
                                 </div>
+                              </TableCell>
+                              <TableCell className="font-mono text-xs font-black text-[#FE7F2D] whitespace-nowrap">
+                                NPR {(p.price * p.stock_quantity).toLocaleString()}
                               </TableCell>
                               <TableCell className="text-right px-4">
                                 <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 font-black text-[10px] uppercase">
@@ -929,6 +978,7 @@ export function BrandManagement() {
           <TableHead className="w-[30%] px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Brand Portfolio</TableHead>
           <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Communication</TableHead>
           <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Vibe Check</TableHead>
+          <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Shelf Value</TableHead>
           <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Latest Pulse</TableHead>
           <TableHead className="w-[80px] px-6 py-4"></TableHead>
         </TableRow>
@@ -986,6 +1036,12 @@ export function BrandManagement() {
                 <Badge className={`${STATUS_COLORS[b.onboarding_status] || "bg-gray-100 text-gray-700"} px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border-none`}>
                   {b.onboarding_status.replace("_", " ")}
                 </Badge>
+              </TableCell>
+              <TableCell className="px-6">
+                <div className="flex flex-col">
+                  <span className="text-xs font-black text-gray-900 leading-none">NPR {(b.total_stock_value || 0).toLocaleString()}</span>
+                  <span className="text-[9px] text-gray-300 font-bold uppercase tracking-tighter mt-1">physical worth</span>
+                </div>
               </TableCell>
               <TableCell className="px-6">
                 <div className="flex items-center gap-3">
