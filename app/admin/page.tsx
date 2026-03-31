@@ -89,13 +89,24 @@ function AdminDashboardContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FFFCEB] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
+      <div className="min-h-screen bg-[#FFFCEB] flex flex-col items-center justify-center gap-6">
+
+        {/* Main GIF */}
+        <img
+          src="/thc_club.gif"
+          alt="loading"
+          className="w-[70vw] max-w-[500px] h-auto object-contain"
+        />
+
+        {/* Bouncing Broski */}
+        <img
+          src="/broski.png"
+          alt="loading helper"
+          className="w-16 sm:w-20 h-auto animate-bounce"
+        />
+
       </div>
-    );
+    )
   }
 
   if (!isAuthenticated) {

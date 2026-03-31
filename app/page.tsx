@@ -12,6 +12,7 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel"
+import Marquee from "@/components/ui/marquee"
 import { UserLoginForm } from "@/components/user-login-form"
 import { UserSignupForm } from "@/components/user-signup-form"
 import { supabase, type Brand } from "@/lib/supabase"
@@ -397,13 +398,36 @@ export default function LandingPage() {
     window.location.href = "/club"
   }
 
+  // if (isLoading) {
+  //   return (
+  //     <div className="min-h-screen bg-[#FFFCEB] flex items-center justify-center">
+  //       <div className="text-center">
+  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D] mx-auto mb-4"></div>
+  //         <p className="text-[#010307]/60 font-medium lowercase tracking-wide text-sm">opening the club...</p>
+  //       </div>
+  //     </div>
+  //   )
+  // }
+
+ 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FFFCEB] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D] mx-auto mb-4"></div>
-          <p className="text-[#010307]/60 font-medium lowercase tracking-wide text-sm">opening the club...</p>
-        </div>
+      <div className="min-h-screen bg-[#FFFCEB] flex flex-col items-center justify-center gap-6">
+
+        {/* Main GIF */}
+        <img
+          src="/thc_club.gif"
+          alt="loading"
+          className="w-[70vw] max-w-[500px] h-auto object-contain"
+        />
+
+        {/* Bouncing Broski */}
+        <img
+          src="/broski.png"
+          alt="loading helper"
+          className="w-16 sm:w-20 h-auto animate-bounce"
+        />
+
       </div>
     )
   }
@@ -431,18 +455,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk">
       {/* Persistent Marquee */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-[#FFFCEB] text-[#010307] py-1.5 sm:py-3 overflow-hidden border-b border-[#FE7F2D]/20">
-        <div className="animate-marquee whitespace-nowrap">
-          {[1, 2, 3, 4].map((i) => (
-            <span key={i} className="inline-block px-4 sm:px-12 text-[10px] sm:text-sm font-bold tracking-wide ">
-              the first rule of <span className="thc-highlight">THC Club</span> is you talk about{" "}
-              <span className="thc-highlight">THC Club</span>. the second rule of{" "}
-              <span className="thc-highlight">THC Club</span> is you TALK ABOUT{" "}
-              <span className="thc-highlight">THC Club</span>.
-            </span>
-          ))}
-        </div>
-      </div>
+      <Marquee />
 
       {/* Navigation */}
       <nav className="sticky top-8 sm:top-12 z-40 bg-[#FFFCEB]/95 backdrop-blur-sm border-b border-[#FE7F2D]/20 mt-8 sm:mt-12">

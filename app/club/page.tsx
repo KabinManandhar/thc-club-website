@@ -11,10 +11,10 @@ import { BrandShelfInfo } from "@/components/club/brand-shelf-info"
 import { InventoryManagement } from "@/components/club/inventory-management"
 import { OnboardingWizard } from "@/components/club/onboarding-wizard"
 import { ShelfBooking } from "@/components/club/shelf-booking"
-import { ImageLightbox } from "@/components/ui/lightbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ImageLightbox } from "@/components/ui/lightbox"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { supabase } from "@/lib/supabase"
 import { userAuth, type ApprovedUser } from "@/lib/user-auth"
@@ -149,11 +149,22 @@ function ClubPageContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FFFCEB] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D] mx-auto mb-4"></div>
-          <p className="text-[#010307]/60 font-medium lowercase tracking-wide text-sm">opening the club portal...</p>
-        </div>
+      <div className="min-h-screen bg-[#FFFCEB] flex flex-col items-center justify-center gap-6">
+
+        {/* Main GIF */}
+        <img
+          src="/thc_club.gif"
+          alt="loading"
+          className="w-[70vw] max-w-[500px] h-auto object-contain"
+        />
+
+        {/* Bouncing Broski */}
+        <img
+          src="/broski.png"
+          alt="loading helper"
+          className="w-16 sm:w-20 h-auto animate-bounce"
+        />
+
       </div>
     )
   }
@@ -300,28 +311,28 @@ function ClubPageContent() {
                 </Card>
               </div>
 
-            {/* Store Photos Row */}
-            {storeImages.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
-                {storeImages.slice(0, 4).map((img, idx) => (
-                  <div 
-                    key={img.id} 
-                    className="group relative aspect-square rounded-[2rem] overflow-hidden border border-[#FE7F2D]/5 shadow-sm hover:shadow-xl transition-all cursor-pointer"
-                    onClick={() => openLightbox(storeImages.map(i => i.url), idx)}
-                  >
-                    <img 
-                      src={img.url} 
-                      alt={img.section} 
-                      className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex flex-col justify-end">
-                      <p className="text-white font-black italic lowercase text-lg leading-tight">{img.section}</p>
-                      <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest mt-1">view full space →</p>
+              {/* Store Photos Row */}
+              {storeImages.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                  {storeImages.slice(0, 4).map((img, idx) => (
+                    <div
+                      key={img.id}
+                      className="group relative aspect-square rounded-[2rem] overflow-hidden border border-[#FE7F2D]/5 shadow-sm hover:shadow-xl transition-all cursor-pointer"
+                      onClick={() => openLightbox(storeImages.map(i => i.url), idx)}
+                    >
+                      <img
+                        src={img.url}
+                        alt={img.section}
+                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-110"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-6 flex flex-col justify-end">
+                        <p className="text-white font-black italic lowercase text-lg leading-tight">{img.section}</p>
+                        <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest mt-1">view full space →</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
             </div>
 
             <section className="bg-white/30 backdrop-blur-sm border border-[#010307]/5 rounded-[3.5rem] p-10 sm:p-20 overflow-hidden relative group">
@@ -469,14 +480,14 @@ function ClubPageContent() {
               {storeImages.length > 0 && (
                 <div className="flex overflow-x-auto gap-4 scrollbar-hide py-4 -mx-6 px-6">
                   {storeImages.map((img, idx) => (
-                    <div 
-                      key={img.id} 
+                    <div
+                      key={img.id}
                       className="min-w-[280px] h-48 rounded-[2rem] overflow-hidden border border-[#FE7F2D]/5 shadow-md relative group cursor-pointer"
                       onClick={() => openLightbox(storeImages.map(i => i.url), idx)}
                     >
                       <img src={img.url} alt={img.section} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
                       <div className="absolute bottom-4 left-6">
-                         <p className="text-white font-black italic lowercase text-sm bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full">{img.section}</p>
+                        <p className="text-white font-black italic lowercase text-sm bg-black/40 backdrop-blur-md px-4 py-1.5 rounded-full">{img.section}</p>
                       </div>
                       <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Badge className="bg-white/90 text-[#FE7F2D] font-black lowercase tracking-widest shadow-xl">enlarge</Badge>
@@ -677,11 +688,11 @@ function ClubPageContent() {
         </div>
       </footer>
 
-      <ImageLightbox 
-        isOpen={lbOpen} 
-        onClose={() => setLbOpen(false)} 
-        images={lbImages} 
-        initialIndex={lbIndex} 
+      <ImageLightbox
+        isOpen={lbOpen}
+        onClose={() => setLbOpen(false)}
+        images={lbImages}
+        initialIndex={lbIndex}
       />
     </div>
   )
