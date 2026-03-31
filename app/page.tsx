@@ -17,6 +17,7 @@ import { UserLoginForm } from "@/components/user-login-form"
 import { UserSignupForm } from "@/components/user-signup-form"
 import { supabase, type Brand } from "@/lib/supabase"
 import { userAuth } from "@/lib/user-auth"
+import FullScreenBanner from "@/components/ui/home-banner"
 
 function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, origins, storeImages }: {
   brands: Brand[],
@@ -409,7 +410,7 @@ export default function LandingPage() {
   //   )
   // }
 
- 
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#FFFCEB] flex flex-col items-center justify-center gap-6">
@@ -454,6 +455,8 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk">
+      <FullScreenBanner />
+
       {/* Persistent Marquee */}
       <Marquee />
 
@@ -1159,9 +1162,9 @@ export default function LandingPage() {
                   <Users className="w-3 h-3" />
                   the collective
                 </div>
-                <h2 className="text-4xl sm:text-6xl lg:text-8xl font-black lowercase italic tracking-tighter">our club members</h2>
+                <h2 className="text-4xl sm:text-6xl lg:text-8xl font-black lowercase italic tracking-tighter">our  <span className="text-[#FE7F2D]">club</span> members</h2>
                 <p className="text-lg sm:text-2xl text-[#010307]/60 font-medium italic lowercase max-w-3xl mx-auto leading-relaxed">
-                  a curated gallery of nepal's most intentional creators. from hand-made ceramics to ethical fashion, this is the crew building the future.
+                  a curated gallery of nepal's most intentional brands, this is the crew building the future.
                 </p>
               </div>
 
