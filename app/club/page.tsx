@@ -11,6 +11,7 @@ import { BrandShelfInfo } from "@/components/club/brand-shelf-info"
 import { InventoryManagement } from "@/components/club/inventory-management"
 import { OnboardingWizard } from "@/components/club/onboarding-wizard"
 import { ShelfBooking } from "@/components/club/shelf-booking"
+import { WhyTHCClub } from "@/components/club/why-thc-club"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -51,7 +52,8 @@ function ClubPageContent() {
   }
 
   useEffect(() => {
-    if (searchParams.get("test_mode") === "true") {
+    const isLocalhost = typeof window !== "undefined" && window.location.origin === "http://localhost:3000"
+    if (isLocalhost && searchParams.get("isTest") === "true") {
       localStorage.setItem("thc_test_mode", "true")
     }
     checkAuth()
@@ -87,13 +89,13 @@ function ClubPageContent() {
         window.location.href = "/"
         return
       }
-      const isDev = process.env.NEXT_PUBLIC_APP_ENV === 'development' || process.env.NODE_ENV === 'development'
-      const isTestMode = typeof window !== 'undefined' && isDev && localStorage.getItem('thc_test_mode') === 'true'
+      const isLocalhost = typeof window !== "undefined" && window.location.origin === "http://localhost:3000"
+      const isTestMode = isLocalhost && localStorage.getItem("thc_test_mode") === "true"
 
       let user = await userAuth.getCurrentUser()
 
       if (!user && isTestMode) {
-        user = { email: 'dev@thcclub.com', business_name: 'Dev Brand (Test)', id: 'test-user' } as any
+        user = { email: "dev@thcclub.com", business_name: "Dev Brand (Test)", id: "test-user" } as any
       }
 
       setCurrentUser(user)
@@ -445,183 +447,7 @@ function ClubPageContent() {
           </TabsContent>
 
           {/* why us */}
-          <TabsContent value="whyus" className="space-y-12 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="max-w-4xl mx-auto space-y-10">
-
-              {/* section heading */}
-              <h2 className="text-5xl font-black tracking-tighter lowercase italic text-center text-[#010307]">
-                why <span className="italic opacity-30">thc club</span>
-              </h2>
-
-              {/* opening line */}
-              <p className="text-center text-sm text-[#010307]/50 italic max-w-xl mx-auto -mt-4">
-                the gap between creating and being seen is where most brands die. we built this to close it.
-              </p>
-
-              {/* ── PROBLEM VS SOLUTION GRID ── */}
-              <div className="space-y-4">
-
-                {/* money */}
-                <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden">
-                  <div className="px-8 sm:px-12 py-8 border-b border-[#FE7F2D]/10">
-                    <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest mb-1">the money problem</p>
-                    <h3 className="text-2xl font-black tracking-tighter lowercase italic text-[#010307]">they take a cut. every time. forever.</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#FE7F2D]/10">
-                    <div className="px-8 sm:px-12 py-8 space-y-4">
-                      <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest">traditional retail</p>
-                      {[
-                        "20–35% commission on every single sale — no ceiling, no credit back",
-                        "the more you sell, the more you pay them. you carry the risk, they take the upside",
-                        "payment timelines are unpredictable — weeks or months to receive what you earned",
-                        "no way to verify their sales numbers. you trust their records blindly",
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span className="mt-1 w-4 h-4 rounded-full border border-[#010307]/20 flex-shrink-0 flex items-center justify-center">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#010307]/20" />
-                          </span>
-                          <p className="text-sm text-[#010307]/60 italic">{item}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="px-8 sm:px-12 py-8 space-y-4 bg-[#FE7F2D]/[0.03]">
-                      <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest">thc club</p>
-                      {[
-                        "flat shelf rental — your cost is fixed and predictable regardless of how much you sell",
-                        "PPF of 3–10% based only on that month's sales. resets monthly. slow month? back to 3%",
-                        "monthly payouts on a clear schedule. 14 days advance notice of any changes",
-                        "sales tracked transparently. no black box, no trust required",
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span className="mt-1 w-4 h-4 rounded-full bg-[#FE7F2D]/20 flex-shrink-0 flex items-center justify-center">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#FE7F2D]" />
-                          </span>
-                          <p className="text-sm text-[#010307]/70 italic">{item}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
-
-                {/* control */}
-                <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden">
-                  <div className="px-8 sm:px-12 py-8 border-b border-[#FE7F2D]/10">
-                    <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest mb-1">the control problem</p>
-                    <h3 className="text-2xl font-black tracking-tighter lowercase italic text-[#010307]">your brand. someone else's rules.</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#FE7F2D]/10">
-                    <div className="px-8 sm:px-12 py-8 space-y-4">
-                      <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest">traditional retail</p>
-                      {[
-                        "zero say over how your product is displayed — it goes where they put it",
-                        "need to restock or adjust pricing? schedule it around their availability",
-                        "your brand sits next to whoever they decided to onboard — no curation on your end",
-                        "they can ask you to remove your products with little notice and limited recourse",
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span className="mt-1 w-4 h-4 rounded-full border border-[#010307]/20 flex-shrink-0 flex items-center justify-center">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#010307]/20" />
-                          </span>
-                          <p className="text-sm text-[#010307]/60 italic">{item}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="px-8 sm:px-12 py-8 space-y-4 bg-[#FE7F2D]/[0.03]">
-                      <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest">thc club</p>
-                      {[
-                        "your shelf is yours — stock it, arrange it, present your brand exactly how you want",
-                        "access anytime. restock on your schedule, adjust pricing without asking anyone",
-                        "every brand in this space is curated. your neighbours make sense for your brand",
-                        "clear partner agreement. you know exactly where you stand from day one",
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span className="mt-1 w-4 h-4 rounded-full bg-[#FE7F2D]/20 flex-shrink-0 flex items-center justify-center">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#FE7F2D]" />
-                          </span>
-                          <p className="text-sm text-[#010307]/70 italic">{item}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
-
-                {/* visibility */}
-                <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden">
-                  <div className="px-8 sm:px-12 py-8 border-b border-[#FE7F2D]/10">
-                    <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest mb-1">the visibility problem</p>
-                    <h3 className="text-2xl font-black tracking-tighter lowercase italic text-[#010307]">one of fifty products in a room.</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#FE7F2D]/10">
-                    <div className="px-8 sm:px-12 py-8 space-y-4">
-                      <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest">traditional retail</p>
-                      {[
-                        "commission spaces promote themselves, not you. your product fights for attention alone",
-                        "no data on foot traffic, customer behaviour, or which products are being picked up",
-                        "slow months mean dead stock sitting on a shelf you're paying commission on",
-                        "no onboarding or support — you drop off your products and figure it out yourself",
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span className="mt-1 w-4 h-4 rounded-full border border-[#010307]/20 flex-shrink-0 flex items-center justify-center">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#010307]/20" />
-                          </span>
-                          <p className="text-sm text-[#010307]/60 italic">{item}</p>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="px-8 sm:px-12 py-8 space-y-4 bg-[#FE7F2D]/[0.03]">
-                      <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest">thc club</p>
-                      {[
-                        "shared footfall from sayummy's café — customers already in discovery mode when they walk in",
-                        "featured social content, discovery reels, and brand spotlights included in select bundles",
-                        "rent credits at higher sales volumes — the better you do, the less your fixed cost becomes",
-                        "full onboarding support and a partner agreement built to make you feel welcome, not managed",
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-3">
-                          <span className="mt-1 w-4 h-4 rounded-full bg-[#FE7F2D]/20 flex-shrink-0 flex items-center justify-center">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#FE7F2D]" />
-                          </span>
-                          <p className="text-sm text-[#010307]/70 italic">{item}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
-
-              </div>
-
-              {/* ── RESEARCH STATS ── */}
-              <div>
-                <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest mb-4 text-center">what the research says</p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { num: "37%", label: "more likely to visit a brand in person when they have physical retail presence", source: "vispera" },
-                    { num: "28%", label: "of all retail purchases are unplanned — discovery environments drive this", source: "nielsen" },
-                    { num: "64%", label: "of shoppers still prefer buying in person for considered and gift purchases", source: "mdpi" },
-                    { num: "71%", label: "cite convenience as the top reason they consolidate shopping in one place", source: "salsify" },
-                  ].map((stat, i) => (
-                    <Card key={i} className="p-6 border border-[#FE7F2D]/10 bg-white/50 rounded-3xl text-center space-y-2">
-                      <p className="text-4xl font-black tracking-tighter italic text-[#010307]">{stat.num}</p>
-                      <p className="text-xs text-[#010307]/50 italic leading-relaxed">{stat.label}</p>
-                      <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest">{stat.source}</p>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-
-              {/* ── CLOSING STATEMENT ── */}
-              <Card className="p-10 sm:p-14 border border-[#FE7F2D]/10 bg-white/50 rounded-[2.5rem] text-center space-y-4">
-                <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest">the bottom line</p>
-                <h3 className="text-3xl sm:text-4xl font-black tracking-tighter lowercase italic text-[#010307] leading-tight">
-                  you built something worth showing.<br />
-                  <span className="opacity-30">we built the room to show it in.</span>
-                </h3>
-                <p className="text-sm text-[#010307]/50 italic max-w-lg mx-auto">
-                  thc club isn't just retail space. it's what happens when a founder gets tired of being turned away and decides to build the door they kept being shut out of.
-                </p>
-              </Card>
-
-            </div>
-          </TabsContent>
+          <WhyTHCClub value='whyus'/>
 
           {/* --- SLOT SPACE --- */}
           <TabsContent value="slots" className="space-y-12 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
