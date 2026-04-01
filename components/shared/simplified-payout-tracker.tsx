@@ -68,8 +68,8 @@ export function SimplifiedPayoutTracker({ brandId, isAdmin = false }: Props) {
          .from("brand_settlements")
          .select("*")
          .eq("brand_id", brandId)
-         .order("period_year", { ascending: false })
-         .order("period_month", { ascending: false })
+         .order("year", { ascending: false })
+         .order("month", { ascending: false })
 
       setSettlements(setRes || [])
       setLoading(false)

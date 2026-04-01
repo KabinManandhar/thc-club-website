@@ -30,6 +30,7 @@ export default function FullScreenBanner() {
             )}
             onClick={(e) => e.target === e.currentTarget && handleClose()}
         >
+
             <div
                 className={cn(
                     "relative w-[min(480px,88vw)] bg-[#0a0a0a] rounded-sm overflow-hidden",
@@ -62,7 +63,7 @@ export default function FullScreenBanner() {
                 {/* Footer */}
                 <div className="flex items-center justify-between px-4 py-2.5 border-t border-white/[0.06]">
                     <span className="text-[10px] tracking-[0.18em] uppercase text-[#FE7F2D]/50 font-mono">
-                        the hidden collective club
+                        welcome to the hidden collective club
                     </span>
 
                     <button

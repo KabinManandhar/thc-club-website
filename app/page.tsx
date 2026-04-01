@@ -12,12 +12,12 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel"
+import FullScreenBanner from "@/components/ui/home-banner"
 import Marquee from "@/components/ui/marquee"
 import { UserLoginForm } from "@/components/user-login-form"
 import { UserSignupForm } from "@/components/user-signup-form"
 import { supabase, type Brand } from "@/lib/supabase"
 import { userAuth } from "@/lib/user-auth"
-import FullScreenBanner from "@/components/ui/home-banner"
 
 function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, origins, storeImages }: {
   brands: Brand[],
@@ -893,73 +893,142 @@ export default function LandingPage() {
 
           {/* For the customer walking in */}
           <section className="py-24 sm:py-40 bg-[#FFFCEB] relative overflow-hidden">
+
+            {/* Soft radial glow on image side */}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[#FE7F2D]/5 blur-[120px] pointer-events-none" />
+
             <div className="container mx-auto px-4 sm:px-6">
               <div className="max-w-6xl mx-auto">
                 <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-32">
+
+                  {/* ── IMAGE SIDE ── */}
                   <div className="lg:w-1/2 relative space-y-10 order-2 lg:order-1">
-                    <div className="relative aspect-square rounded-[4rem] overflow-hidden border border-[#FE7F2D]/10 shadow-2xl rotate-2">
+
+                    {/* Ghost ring behind card for depth */}
+                    <div className="absolute inset-[-16px] rounded-[4.5rem] border border-[#FE7F2D]/8 rotate-1 pointer-events-none" />
+
+                    <div
+                      className="relative aspect-square rounded-[4rem] overflow-hidden border border-[#FE7F2D]/10 shadow-2xl rotate-2
+                           transition-all duration-700 ease-out hover:rotate-0 hover:scale-[1.015]"
+                    >
                       <div className="relative w-full h-full overflow-hidden rounded-2xl group">
                         <img
                           src="/broski.png"
                           alt="discovery at thc club"
-                          className="w-full h-full object-cover scale-100 transition-all duration-700 ease-out group-hover:grayscale-0 group-hover:scale-110"
+                          className="w-full h-full object-cover scale-100 transition-all duration-700 ease-out
+                               group-hover:grayscale-0 group-hover:scale-110"
                         />
 
                         <div className="absolute inset-0 bg-black/20 transition-all duration-700 group-hover:bg-black/0" />
-                        <div className="absolute bottom-4 left-4 right-4 opacity-0 transition-all duration-500 group-hover:opacity-100">
-                          <p className="text-white text-sm italic lowercase">
+
+                        {/* Caption: slides up from bottom on hover */}
+                        <div
+                          className="absolute bottom-0 inset-x-0 px-5 py-4
+                               translate-y-full opacity-0
+                               transition-all duration-500 ease-out
+                               group-hover:translate-y-0 group-hover:opacity-100
+                               bg-gradient-to-t from-black/55 to-transparent"
+                        >
+                          <p className="text-white text-sm italic lowercase tracking-wide">
                             real brands. real shelves.
                           </p>
                         </div>
                       </div>
-                      <div className="absolute inset-0 bg-gradient-to-t from-[#FE7F2D]/20 to-transparent mix-blend-overlay" />
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#FE7F2D]/20 to-transparent mix-blend-overlay pointer-events-none" />
                     </div>
-                    {/* Floating Tag */}
-                    <div className="absolute -bottom-10 -right-10 bg-white p-8 rounded-[3rem] shadow-2xl border border-[#FE7F2D]/10 -rotate-6 hidden sm:block">
+
+                    {/* Floating tag — offset so it clears the card */}
+                    <div
+                      className="absolute -bottom-4 -right-2 sm:-right-8 z-10
+                           bg-white p-6 sm:p-8 rounded-[3rem] shadow-2xl border border-[#FE7F2D]/10 -rotate-6
+                           hidden sm:block
+                           transition-all duration-500 ease-out
+                           hover:rotate-0 hover:scale-105 hover:shadow-[0_20px_60px_rgba(254,127,45,0.14)]"
+                    >
                       <p className="text-3xl font-black italic text-[#FE7F2D] leading-none mb-2">feel it.</p>
                       <p className="text-[10px] font-black uppercase tracking-widest text-[#010307]/30">the offline advantage</p>
                     </div>
                   </div>
 
+                  {/* ── CONTENT SIDE ── */}
                   <div className="lg:w-1/2 space-y-10 order-1 lg:order-2">
+
                     <div className="space-y-6">
                       <div className="inline-flex items-center gap-2 bg-[#FE7F2D]/10 text-[#FE7F2D] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em]">
                         for the customer
                       </div>
+
                       <h2 className="text-4xl sm:text-6xl font-black lowercase italic tracking-tighter leading-none">
-                        every great <span className="text-[#FE7F2D]">nepali</span> brand, in one room.
+                        every great{" "}
+                        <span className="relative inline-block text-[#FE7F2D]">
+                          nepali
+                          {/* Animated underline */}
+                          <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#FE7F2D]/25 rounded-full" />
+                        </span>{" "}
+                        brand, in one room.
                       </h2>
+
                       <p className="text-lg sm:text-2xl text-[#010307]/60 font-medium italic leading-relaxed lowercase">
                         tired of dming brands on instagram, waiting on delivery, or hoping the link still works? THC club is where the brands you follow online finally live offline.
                       </p>
                     </div>
 
-                    <div className="space-y-6 pt-6">
-                      <div className="flex items-start gap-6 group">
-                        <div className="w-12 h-12 rounded-2xl bg-white border border-[#FE7F2D]/5 shadow-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                          <Heart className="w-5 h-5 text-[#FE7F2D]" />
+                    {/* Feature rows */}
+                    <div className="space-y-4 pt-6">
+                      {[
+                        {
+                          Icon: Heart,
+                          title: "pick it up.",
+                          body: "feel the quality. try it on. no more guessing.",
+                        },
+                        {
+                          Icon: Zap,
+                          title: "take it home today.",
+                          body: "no cart. no checkout lag. no waiting. just you and the thing you actually wanted.",
+                        },
+                      ].map(({ Icon, title, body }) => (
+                        <div
+                          key={title}
+                          className="flex items-start gap-6 group
+                               -mx-4 px-4 py-4 rounded-2xl
+                               transition-all duration-300 ease-out
+                               hover:bg-white/70 hover:shadow-[0_4px_32px_rgba(254,127,45,0.07)]
+                               hover:translate-x-1.5"
+                        >
+                          <div
+                            className="w-12 h-12 rounded-2xl bg-white border border-[#FE7F2D]/5 shadow-xl
+                                 flex items-center justify-center shrink-0
+                                 transition-all duration-300
+                                 group-hover:scale-110 group-hover:border-[#FE7F2D]/20
+                                 group-hover:shadow-[0_8px_28px_rgba(254,127,45,0.18)]"
+                          >
+                            <Icon className="w-5 h-5 text-[#FE7F2D]" />
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="font-black text-xl lowercase italic text-[#010307]">{title}</h4>
+                            <p className="text-[#010307]/40 text-sm italic">{body}</p>
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <h4 className="font-black text-xl lowercase italic italic text-[#010307]">pick it up.</h4>
-                          <p className="text-[#010307]/40 text-sm italic italic">feel the quality. try it on. no more guessing.</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-6 group">
-                        <div className="w-12 h-12 rounded-2xl bg-white border border-[#FE7F2D]/5 shadow-xl flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                          <Zap className="w-5 h-5 text-[#FE7F2D]" />
-                        </div>
-                        <div className="space-y-1">
-                          <h4 className="font-black text-xl lowercase italic italic text-[#010307]">take it home today.</h4>
-                          <p className="text-[#010307]/40 text-sm italic italic">no cart. no checkout lag. no waiting. just you and the thing you actually wanted.</p>
-                        </div>
-                      </div>
+                      ))}
                     </div>
 
-                    <div className="p-10 bg-white/50 border border-white rounded-[3rem] relative">
-                      <p className="text-base sm:text-lg text-[#010307]/60 italic italic leading-relaxed lowercase">
+                    {/* Pull quote */}
+                    <div
+                      className="relative p-8 sm:p-10 bg-white/50 border border-white rounded-[3rem]
+                           transition-all duration-500 ease-out
+                           hover:bg-white/80 hover:-translate-y-1
+                           hover:shadow-[0_12px_48px_rgba(254,127,45,0.08)]"
+                    >
+                      {/* Decorative quote mark */}
+                      <span className="absolute top-5 right-7 text-7xl font-black text-[#FE7F2D]/10 leading-none select-none pointer-events-none">
+                        "
+                      </span>
+                      <p className="text-base sm:text-lg text-[#010307]/60 italic leading-relaxed lowercase">
                         think of it as your gift hub — the one place in kathmandu where discovery happens in person.
                       </p>
                     </div>
+
                   </div>
                 </div>
               </div>
