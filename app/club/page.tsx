@@ -445,7 +445,7 @@ function ClubPageContent() {
           </TabsContent>
 
           {/* why us */}
-          <TabsContent value="why" className="space-y-12 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <TabsContent value="whyus" className="space-y-12 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="max-w-4xl mx-auto space-y-10">
 
               {/* section heading */}
