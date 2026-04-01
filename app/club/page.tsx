@@ -447,7 +447,7 @@ function ClubPageContent() {
           </TabsContent>
 
           {/* why us */}
-          <WhyTHCClub value='whyus'/>
+          <WhyTHCClub value='whyus' onTabChange={setActiveTab}/>
 
           {/* --- SLOT SPACE --- */}
           <TabsContent value="slots" className="space-y-12 py-10 animate-in fade-in slide-in-from-bottom-4 duration-700">

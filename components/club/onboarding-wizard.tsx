@@ -2,13 +2,13 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { DURATION_MONTHS, supabase, type Duration, type PromotionalOffer, type ShelfPricingTier, type ShelfType, type ShelfSection } from "@/lib/supabase"
 import { ImageLightbox } from "@/components/ui/lightbox"
-import { ArrowLeft, ArrowRight, Banknote, Camera, CheckCircle2, Clock, Info, Layout, Package, QrCode, Tag, Ticket, Users } from "lucide-react"
+import { DURATION_MONTHS, supabase, type Duration, type PromotionalOffer, type ShelfPricingTier, type ShelfSection, type ShelfType } from "@/lib/supabase"
+import { ArrowLeft, ArrowRight, Banknote, Camera, CheckCircle2, Clock, Info, Layout, Package, QrCode, Tag, Users } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -66,6 +66,8 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
   })
   const [dynamicProtocols, setDynamicProtocols] = useState<{ title: string; items: string[] }[]>([])
   const [storeImages, setStoreImages] = useState<any[]>([])
+  const [shelfAvailability, setShelfAvailability] = useState<{ sectionId: string, type: ShelfType, remaining: number }[]>([])
+  const [sectionCapacity, setSectionCapacity] = useState<Record<string, { total: number, remaining: number }>>({})
 
   const [lbOpen, setLbOpen] = useState(false)
   const [lbImages, setLbImages] = useState<string[]>([])
@@ -89,7 +91,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
     Promise.all([
       supabase.from("shelf_sections").select("*"),
       supabase.from("shelf_pricing_tiers").select("*"),
-      supabase.from("shelf_slots").select("shelf_type, slot_number"),
+      supabase.from("shelf_slots").select("shelf_type, slot_number, status, section_id"),
       supabase.from("platform_content").select("protocols").eq("id", 1).single(),
       supabase.from("store_images").select("*")
     ]).then(([secRes, priceRes, slotsRes, protRes, imgRes]) => {
@@ -100,21 +102,49 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
 
       if (slotsRes.data) {
         const ranges: Record<string, { min: number; max: number }> = {}
+        const availabilityMap: Record<string, { total: number, remaining: number }> = {}
+        const levelAvail: { sectionId: string, type: ShelfType, remaining: number }[] = []
+
         slotsRes.data.forEach(s => {
-          const type = s.shelf_type || 'mixed'
-          if (type === 'mixed') return
-          if (!ranges[type]) {
-            ranges[type] = { min: s.slot_number, max: s.slot_number }
-          } else {
-            ranges[type].min = Math.min(ranges[type].min, s.slot_number)
-            ranges[type].max = Math.max(ranges[type].max, s.slot_number)
+          const type = s.shelf_type as ShelfType
+          const sId = s.section_id
+          const isOcc = s.status !== 'available'
+
+          if (type !== null) {
+            if (!ranges[type]) {
+              ranges[type] = { min: s.slot_number, max: s.slot_number }
+            } else {
+              ranges[type].min = Math.min(ranges[type].min, s.slot_number)
+              ranges[type].max = Math.max(ranges[type].max, s.slot_number)
+            }
+          }
+
+          // Section level stats
+          if (sId) {
+            if (!availabilityMap[sId]) availabilityMap[sId] = { total: 0, remaining: 0 }
+            availabilityMap[sId].total++
+            if (!isOcc) availabilityMap[sId].remaining++
+
+            // Level level stats
+            if (type !== null) {
+              const existing = levelAvail.find(la => la.sectionId === sId && la.type === type)
+              if (existing) {
+                if (!isOcc) existing.remaining++
+              } else {
+                levelAvail.push({ sectionId: sId, type, remaining: isOcc ? 0 : 1 })
+              }
+            }
           }
         })
+
         const newRanges: Record<string, string> = {}
         Object.entries(ranges).forEach(([k, v]) => {
           newRanges[k] = `${v.min}–${v.max}`
         })
+
         setSlotRanges(prev => ({ ...prev, ...newRanges }))
+        setSectionCapacity(availabilityMap)
+        setShelfAvailability(levelAvail)
       }
     })
   }, [])
@@ -136,7 +166,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
         .eq("promo_code", promoCode.toUpperCase())
         .eq("is_active", true)
         .single()
-      
+
       if (error || !data) {
         toast.error("Invalid or expired promo code.")
         setActiveOffer(null)
@@ -158,9 +188,9 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
   const baseTotal = monthlyRent * (duration ? DURATION_MONTHS[duration] : 0)
   let discountAmount = 0
   if (activeOffer) {
-    discountAmount = activeOffer.discount_type === "percentage" 
-    ? baseTotal * (activeOffer.discount_value / 100) 
-    : activeOffer.discount_value
+    discountAmount = activeOffer.discount_type === "percentage"
+      ? baseTotal * (activeOffer.discount_value / 100)
+      : activeOffer.discount_value
   }
   const totalAmount = Math.max(0, baseTotal - discountAmount)
 
@@ -186,7 +216,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
 
       if (bookingError) throw bookingError
       if (activeOffer) {
-         await supabase.rpc('increment_offer_uses', { offer_id: activeOffer.id })
+        await supabase.rpc('increment_offer_uses', { offer_id: activeOffer.id })
       }
 
       if (!isSecondary) {
@@ -230,17 +260,28 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-bold lowercase italic text-lg">{sec.name}</h3>
                         {sec.section_tier === 'premium' && <Badge className="bg-orange-500 text-white text-[8px] font-black uppercase tracking-widest">Premium Zone</Badge>}
+                        {sectionCapacity[sec.id] && sectionCapacity[sec.id].remaining <= 3 && sectionCapacity[sec.id].remaining > 0 && (
+                          <Badge className="bg-red-500 text-white text-[8px] font-black uppercase tracking-widest animate-pulse">Few Shelves Left</Badge>
+                        )}
+                        {sectionCapacity[sec.id] && sectionCapacity[sec.id].remaining === 0 && (
+                          <Badge className="bg-gray-400 text-white text-[8px] font-black uppercase tracking-widest">Zone Full</Badge>
+                        )}
                       </div>
                       <p className="text-sm text-gray-400 lowercase italic">{sec.description}</p>
+                      {sectionCapacity[sec.id] && (
+                        <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest mt-1">
+                          {sectionCapacity[sec.id].remaining} available space left in this zone
+                        </p>
+                      )}
                     </div>
                     {selectedSection?.id === sec.id && <CheckCircle2 className="w-6 h-6 text-[#FE7F2D]" />}
                   </div>
-                  
+
                   {zoneImages.length > 0 ? (
                     <div className="grid grid-cols-4 gap-4">
                       {zoneImages.slice(0, 4).map((img, i) => (
-                        <div 
-                          key={i} 
+                        <div
+                          key={i}
                           className="aspect-video relative rounded-xl overflow-hidden grayscale hover:grayscale-0 transition-all cursor-pointer group"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -280,11 +321,21 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center"><Package className="w-6 h-6 text-[#FE7F2D]" /></div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1"><h3 className="text-lg font-bold lowercase italic">{info.label}</h3></div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="text-lg font-bold lowercase italic">{info.label}</h3>
+                      {selectedSection && (shelfAvailability.find(la => la.sectionId === selectedSection.id && la.type === type)?.remaining ?? 10) <= 2 && (
+                        <Badge className="bg-red-500 text-white text-[7px] font-black uppercase tracking-widest">High Demand</Badge>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-400 lowercase italic">{info.description}</p>
                     <div className="flex items-center gap-4 mt-2">
                       <p className="text-xs font-bold text-[#FE7F2D] italic lowercase tracking-tight">from npr {getPrice('yearly', type).toLocaleString()}/mo ({selectedSection?.section_tier} rate)</p>
                       <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-gray-100 text-gray-400">Slots: {slotRanges[type]}</Badge>
+                      {selectedSection && (
+                        <p className="text-[10px] text-[#FE7F2D]/60 font-black uppercase tracking-tighter italic">
+                          {shelfAvailability.find(la => la.sectionId === selectedSection.id && la.type === type)?.remaining || 0} slots available
+                        </p>
+                      )}
                     </div>
                   </div>
                   {shelfType === type && <CheckCircle2 className="w-6 h-6 text-[#FE7F2D]" />}
@@ -397,7 +448,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               <div className="flex justify-between pt-6"><span className="font-black text-xl lowercase italic">estimated total due</span><span className="text-3xl font-black text-[#FE7F2D] tracking-tighter">NPR {(totalAmount + 800).toLocaleString()}</span></div>
             </CardContent>
           </Card>
-          
+
           <div className="flex gap-3 items-center p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
             <div className="flex-1 space-y-1"><Label className="text-[8px] font-black uppercase tracking-widest text-gray-400">Promotional Offer Index</Label><Input placeholder="CODE" value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} className="h-10 rounded-xl font-black uppercase border-gray-100" /></div>
             <Button onClick={handleValidateCode} disabled={!promoCode || isValidating} className="mt-5 h-10 bg-[#FE7F2D] text-white hover:bg-black rounded-xl">Claim</Button>
@@ -421,11 +472,11 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
         </div>
       )}
 
-      <ImageLightbox 
-        isOpen={lbOpen} 
-        onClose={() => setLbOpen(false)} 
-        images={lbImages} 
-        initialIndex={lbIndex} 
+      <ImageLightbox
+        isOpen={lbOpen}
+        onClose={() => setLbOpen(false)}
+        images={lbImages}
+        initialIndex={lbIndex}
       />
     </div>
   )
