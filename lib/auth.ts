@@ -1,4 +1,3 @@
-import bcrypt from "bcryptjs"
 import { supabase } from "./supabase"
 
 export interface AdminUser {
@@ -17,53 +16,42 @@ export interface AuthState {
 export const adminAuth = {
   async login(email: string, password: string): Promise<{ user: AdminUser | null; error: string | null }> {
     try {
-      // 1. Fetch admin via SECURITY DEFINER RPC (bypasses RLS on admin_users)
-      const { data: admins, error: rpcError } = await supabase
-        .rpc("verify_admin_login", { p_email: email.toLowerCase() })
-
-      if (rpcError) {
-        console.error("Admin RPC error:", rpcError)
-        return { user: null, error: "Login failed. Please try again." }
-      }
-
-      if (!admins || admins.length === 0) {
-        return { user: null, error: "Invalid credentials" }
-      }
-
-      const adminRow = admins[0]
-
-      // 2. Verify bcrypt hash
-      const isMatch = await bcrypt.compare(password, adminRow.password_hash)
-      if (!isMatch) {
-        return { user: null, error: "Invalid credentials" }
-      }
-
-      // 3. Create session in admin_sessions (publicly accessible via RLS allow_all)
-      const sessionToken = crypto.randomUUID()
-      const expiresAt = new Date()
-      expiresAt.setHours(expiresAt.getHours() + 24) // 24 hour session
-
-      const { error: sessionError } = await supabase.from("admin_sessions").insert({
-        admin_id: adminRow.id,
-        session_token: sessionToken,
-        expires_at: expiresAt.toISOString(),
+      // 1. Authenticate Natively with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase(),
+        password,
       })
 
-      if (sessionError) {
-        console.error("Admin session insert error:", sessionError)
-        // Continue anyway — don't block login over session tracking
+      if (authError || !authData.user) {
+        console.error("Supabase Auth Error:", authError)
+        return { user: null, error: "Invalid credentials or account has not been migrated to Supabase Auth." }
       }
 
-      // 4. Update last login via RPC
-      await supabase.rpc("update_admin_login_time", { p_admin_id: adminRow.id })
+      const sessionToken = authData.session.access_token
 
-      // 5. Store session locally
+      // 2. Fetch admin privileges from admin_users to verify they are an admin
+      const { data: admins, error: dbError } = await supabase
+        .from("admin_users")
+        .select("*")
+        .eq("email", email.toLowerCase())
+        .single()
+
+      if (dbError || !admins || !admins.is_active) {
+        // Cleanup local session if they aren't actually an admin
+        await supabase.auth.signOut()
+        return { user: null, error: "Unauthorized access. Your account does not have Admin privileges." }
+      }
+
+      // 3. Update last login via RPC 
+      try { await supabase.rpc("update_admin_login_time", { p_admin_id: admins.id }) } catch (e) {}
+
+      // 4. Store session locally
       const user: AdminUser = {
-        id: adminRow.id,
-        email: adminRow.email,
-        name: adminRow.name,
-        role: adminRow.role,
-        is_active: adminRow.is_active,
+        id: admins.id,
+        email: admins.email,
+        name: admins.name,
+        role: admins.role,
+        is_active: admins.is_active,
       }
 
       localStorage.setItem("admin_session", sessionToken)
@@ -78,10 +66,7 @@ export const adminAuth = {
 
   async logout(): Promise<void> {
     try {
-      const sessionToken = localStorage.getItem("admin_session")
-      if (sessionToken) {
-        await supabase.from("admin_sessions").delete().eq("session_token", sessionToken)
-      }
+      await supabase.auth.signOut()
       localStorage.removeItem("admin_session")
       localStorage.removeItem("admin_user")
     } catch (err) {
@@ -91,23 +76,12 @@ export const adminAuth = {
 
   async getCurrentUser(): Promise<AdminUser | null> {
     try {
-      const sessionToken = localStorage.getItem("admin_session")
+      const { data: { session } } = await supabase.auth.getSession()
       const userStr = localStorage.getItem("admin_user")
 
-      if (!sessionToken || !userStr) return null
+      if (!session || !userStr) return null
 
-      // Validate session against database (admin_sessions is publicly readable)
-      const { data: sessions } = await supabase
-        .from("admin_sessions")
-        .select("id, expires_at")
-        .eq("session_token", sessionToken)
-        .gt("expires_at", new Date().toISOString())
-
-      if (!sessions || sessions.length === 0) {
-        await this.logout()
-        return null
-      }
-
+      // If session exists, user is authenticated
       return JSON.parse(userStr) as AdminUser
     } catch (err) {
       console.error("Get current admin error:", err)
@@ -116,33 +90,14 @@ export const adminAuth = {
   },
 
   async verifySession(): Promise<boolean> {
-    if (typeof window !== "undefined") {
-      const isLocalhost = window.location.origin === "http://localhost:3000"
-      const isTestSession = localStorage.getItem("thc_test_mode") === "true"
-      if (isLocalhost && isTestSession) return true
-    }
     const user = await this.getCurrentUser()
     return user !== null
   },
 
   async updatePassword(password: string): Promise<{ success: boolean; error: string | null }> {
     try {
-      const user = await this.getCurrentUser()
-      const sessionToken = localStorage.getItem("admin_session")
-      
-      if (!user || !sessionToken) return { success: false, error: "Not properly authenticated" }
-
-      const passwordHash = await bcrypt.hash(password, 10)
-      
-      const { data, error } = await supabase.rpc("update_admin_password_securely", {
-        p_admin_id: user.id,
-        p_session_token: sessionToken,
-        p_new_password_hash: passwordHash,
-      })
-
-      if (error) throw error
-      if (data && !data.success) throw new Error(data.error || "Update failed")
-
+      const { error } = await supabase.auth.updateUser({ password })
+      if (error) return { success: false, error: error.message }
       return { success: true, error: null }
     } catch (err: any) {
       console.error("Admin update password error:", err)
