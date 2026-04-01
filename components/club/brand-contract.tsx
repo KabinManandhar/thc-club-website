@@ -253,7 +253,7 @@ export function BrandContract({ brandId, brandName }: BrandContractProps) {
               <div className="space-y-2">
                 <h3 className="text-2xl font-black italic lowercase tracking-tight">Physical Agreement Recorded</h3>
                 <p className="text-sm text-gray-400 font-medium italic lowercase max-w-sm mx-auto leading-relaxed">
-                  Your partnership agreement was signed in person and has been manually uploaded to the club's treasury.
+                  Your partnership agreement was signed in person and has been manually uploaded to the club's database.
                 </p>
               </div>
               <Button asChild className="bg-blue-600 hover:bg-black text-white rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 px-10 transition-all shadow-xl shadow-blue-500/20">

@@ -297,6 +297,16 @@ export interface ShelfPricingTier {
   top_level_price: number
 }
 
+export interface Expense {
+  id: string
+  date: string
+  amount: number
+  category: string
+  description: string
+  recorded_by?: string
+  created_at: string
+}
+
 export interface PPFTier {
   id: string
   tier_name: string
