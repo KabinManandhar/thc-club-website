@@ -461,7 +461,7 @@ function ClubPageContent() {
                   </div>
                   <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                     <div className="space-y-2 text-center md:text-left">
-                      <Badge className="bg-white text-[#FE7F2D] hover:bg-white font-black lowercase tracking-widest px-4 py-1">
+                      <Badge className="bg-white text-[#FE7F2D] hover:bg-white font-black tracking-widest px-4 py-1">
                         {activeOffers[0].promo_code ? `use code: ${activeOffers[0].promo_code}` : "platform offer"}
                       </Badge>
                       <h3 className="text-3xl font-black italic lowercase tracking-tighter">{activeOffers[0].name}</h3>

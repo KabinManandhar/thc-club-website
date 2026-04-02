@@ -157,17 +157,19 @@ export function AccountsManagement() {
   }, [fetchData])
 
   const handleSaveExpense = async () => {
-    if (!expenseForm.amount || !expenseForm.description) return toast.error("Please fill in all required fields.")
+    const numericAmount = parseFloat(expenseForm.amount)
+    if (isNaN(numericAmount) || numericAmount <= 0) return toast.error("Please enter a valid amount.")
+    if (!expenseForm.description) return toast.error("Please provide a description.")
+
     setIsSavingExpense(true)
     try {
       const { error } = await supabase.from("expenses").insert({
-        amount: parseFloat(expenseForm.amount),
+        amount: numericAmount,
         category: expenseForm.category,
         description: expenseForm.description,
         date: expenseForm.date
       })
       if (error) {
-        // Wait, if table missing, notify user:
         if (error.code === '42P01') {
           toast.error("Expenses table missing in database. Please run migrations.")
           return
@@ -179,7 +181,8 @@ export function AccountsManagement() {
       setExpenseForm({ amount: "", category: "salary", description: "", date: new Date().toISOString().split("T")[0] })
       fetchData()
     } catch (err: any) {
-      toast.error("Failed to save expense.")
+      console.error("Expense save error:", err)
+      toast.error("Failed to save expense. Please check your database permissions.")
     } finally {
       setIsSavingExpense(false)
     }
@@ -253,7 +256,7 @@ export function AccountsManagement() {
           <DialogContent className="max-w-md rounded-[2rem] p-8 border-none shadow-2xl bg-white">
             <DialogHeader className="mb-6">
               <DialogTitle className="text-2xl font-black lowercase italic">record an expense</DialogTitle>
-              <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-gray-400">deducted from operating net margins.</DialogDescription>
+              <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-gray-400">internal operational record kept for auditing.</DialogDescription>
             </DialogHeader>
             <div className="space-y-5">
               <div className="space-y-2">
@@ -310,7 +313,7 @@ export function AccountsManagement() {
                   <div className="w-1.5 h-1.5 rounded-full bg-white opacity-80 animate-bounce [animation-delay:-0.3s]"></div>
                   <div className="w-1.5 h-1.5 rounded-full bg-white opacity-80 animate-bounce [animation-delay:-0.15s]"></div>
                   <div className="w-1.5 h-1.5 rounded-full bg-white opacity-80 animate-bounce"></div>
-                </div> : 'Deduct from Ledger'}
+                </div> : 'Add Expense'}
               </Button>
             </div>
           </DialogContent>
