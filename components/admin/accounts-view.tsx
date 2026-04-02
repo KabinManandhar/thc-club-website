@@ -19,7 +19,9 @@ import {
   Receipt,
   Search,
   TrendingDown,
-  Wallet
+  Wallet,
+  Trash2,
+  Edit
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -53,6 +55,7 @@ export function AccountsManagement() {
   const [isExpenseOpen, setIsExpenseOpen] = useState(false)
   const [expenseForm, setExpenseForm] = useState({ amount: "", category: "salary", description: "", date: new Date().toISOString().split("T")[0] })
   const [isSavingExpense, setIsSavingExpense] = useState(false)
+  const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -163,21 +166,34 @@ export function AccountsManagement() {
 
     setIsSavingExpense(true)
     try {
-      const { error } = await supabase.from("expenses").insert({
-        amount: numericAmount,
-        category: expenseForm.category,
-        description: expenseForm.description,
-        date: expenseForm.date
-      })
-      if (error) {
-        if (error.code === '42P01') {
-          toast.error("Expenses table missing in database. Please run migrations.")
-          return
+      if (editingExpenseId) {
+        const { error } = await supabase.from("expenses").update({
+          amount: numericAmount,
+          category: expenseForm.category,
+          description: expenseForm.description,
+          date: expenseForm.date
+        }).eq("id", editingExpenseId)
+        if (error) throw error
+        toast.success("Expense updated successfully.")
+      } else {
+        const { error } = await supabase.from("expenses").insert({
+          amount: numericAmount,
+          category: expenseForm.category,
+          description: expenseForm.description,
+          date: expenseForm.date
+        })
+        if (error) {
+          if (error.code === '42P01') {
+            toast.error("Expenses table missing in database. Please run migrations.")
+            return
+          }
+          throw error
         }
-        throw error
+        toast.success("Expense recorded successfully.")
       }
-      toast.success("Expense recorded successfully.")
+
       setIsExpenseOpen(false)
+      setEditingExpenseId(null)
       setExpenseForm({ amount: "", category: "salary", description: "", date: new Date().toISOString().split("T")[0] })
       fetchData()
     } catch (err: any) {
@@ -186,6 +202,33 @@ export function AccountsManagement() {
     } finally {
       setIsSavingExpense(false)
     }
+  }
+
+  const handleDeleteExpense = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this expense record?")) return
+    try {
+      const { error } = await supabase.from("expenses").delete().eq("id", id)
+      if (error) throw error
+      toast.success("Expense deleted.")
+      fetchData()
+    } catch (err) {
+      toast.error("Failed to delete expense.")
+    }
+  }
+
+  const startEditExpense = (entry: FinancialEntry) => {
+    // Find original categorical data
+    const original = expenses.find(e => e.id === entry.id)
+    if (!original) return
+
+    setEditingExpenseId(entry.id)
+    setExpenseForm({
+      amount: original.amount.toString(),
+      category: original.category,
+      description: original.description,
+      date: original.date
+    })
+    setIsExpenseOpen(true)
   }
 
   const filteredEntries = entries.filter(entry => {
@@ -255,7 +298,9 @@ export function AccountsManagement() {
           </DialogTrigger>
           <DialogContent className="max-w-md rounded-[2rem] p-8 border-none shadow-2xl bg-white">
             <DialogHeader className="mb-6">
-              <DialogTitle className="text-2xl font-black lowercase italic">record an expense</DialogTitle>
+              <DialogTitle className="text-2xl font-black lowercase italic">
+                {editingExpenseId ? "update expense record" : "record an expense"}
+              </DialogTitle>
               <DialogDescription className="text-[10px] font-black uppercase tracking-widest text-gray-400">internal operational record kept for auditing.</DialogDescription>
             </DialogHeader>
             <div className="space-y-5">
@@ -313,7 +358,7 @@ export function AccountsManagement() {
                   <div className="w-1.5 h-1.5 rounded-full bg-white opacity-80 animate-bounce [animation-delay:-0.3s]"></div>
                   <div className="w-1.5 h-1.5 rounded-full bg-white opacity-80 animate-bounce [animation-delay:-0.15s]"></div>
                   <div className="w-1.5 h-1.5 rounded-full bg-white opacity-80 animate-bounce"></div>
-                </div> : 'Add Expense'}
+                </div> : editingExpenseId ? 'Update Record' : 'Add Expense'}
               </Button>
             </div>
           </DialogContent>
@@ -542,6 +587,16 @@ export function AccountsManagement() {
                             <Button size="icon" variant="outline" className="h-9 w-9 rounded-full bg-white hover:bg-black hover:text-white border-black/5 shadow-sm" onClick={() => setSelectedEntry(entry)}>
                               <Receipt className="w-4 h-4" />
                             </Button>
+                            {entry.type === 'expense' && (
+                              <>
+                                <Button size="icon" variant="outline" className="h-9 w-9 rounded-full bg-white hover:bg-[#FE7F2D] hover:text-white border-black/5 shadow-sm" onClick={() => startEditExpense(entry)}>
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button size="icon" variant="outline" className="h-9 w-9 rounded-full bg-white hover:bg-red-500 hover:text-white border-black/5 shadow-sm" onClick={() => handleDeleteExpense(entry.id)}>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </TableRow>
