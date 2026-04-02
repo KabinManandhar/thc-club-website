@@ -422,38 +422,57 @@ export function AccountsManagement() {
       </div>
 
       {/* Primary KPI Dashboards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Retained PPF Revenue */}
-        <Card className="border border-green-500/10 rounded-[2rem] bg-green-50 p-6 space-y-3 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/10 blur-2xl -mr-12 -mt-12 group-hover:bg-green-500/20 transition-all"></div>
-          <p className="text-[10px] font-black text-green-700/50 uppercase tracking-widest relative z-10">Retained Margin (PPF)</p>
-          <p className="text-3xl font-black italic text-green-600 tracking-tighter relative z-10">{fmt(totalPPFRetained)}</p>
-          <p className="text-xs font-bold text-green-700/40 italic relative z-10">Generated from {fmt(totalInflowProduct)} GMV</p>
+        <Card className="border-none rounded-[2.5rem] bg-white p-8 space-y-4 relative overflow-hidden group shadow-xl shadow-gray-200/50">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-blue-500/10 transition-all duration-700"></div>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Retained Margin (PPF)</p>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center"><TrendingDown className="w-4 h-4 text-blue-500 rotate-180" /></div>
+          </div>
+          <p className="text-4xl font-black italic text-gray-900 tracking-tighter">{fmt(totalPPFRetained)}</p>
+          <div className="flex items-center gap-2">
+            <div className="h-1 flex-1 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-blue-500 w-[70%]" />
+            </div>
+            <p className="text-[10px] font-bold text-gray-400 italic">Target 80%</p>
+          </div>
         </Card>
 
         {/* Shelf Income */}
-        <Card className="border border-[#FE7F2D]/10 rounded-[2rem] bg-orange-50 p-6 space-y-3 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-[#FE7F2D]/10 blur-2xl -mr-12 -mt-12 group-hover:bg-[#FE7F2D]/20 transition-all"></div>
-          <p className="text-[10px] font-black text-[#FE7F2D]/50 uppercase tracking-widest relative z-10">Total Rental Income</p>
-          <p className="text-3xl font-black italic text-[#FE7F2D] tracking-tighter relative z-10">{fmt(totalShelfIncome)}</p>
-          <p className="text-xs font-bold text-[#FE7F2D]/40 italic relative z-10">Brand subscriptions</p>
+        <Card className="border-none rounded-[2.5rem] bg-white p-8 space-y-4 relative overflow-hidden group shadow-xl shadow-gray-200/50">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#FE7F2D]/5 blur-3xl -mr-16 -mt-16 group-hover:bg-[#FE7F2D]/10 transition-all duration-700"></div>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Rental Income</p>
+            <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center"><Landmark className="w-4 h-4 text-[#FE7F2D]" /></div>
+          </div>
+          <p className="text-4xl font-black italic text-gray-900 tracking-tighter">{fmt(totalShelfIncome)}</p>
+          <p className="text-[10px] font-bold text-gray-400 italic lowercase tracking-tight">Across all confirmed subscriptions</p>
         </Card>
 
         {/* Operating Expenses */}
-        <Card className="border border-red-500/10 rounded-[2rem] bg-red-50 p-6 space-y-3 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-red-500/10 blur-2xl -mr-12 -mt-12 group-hover:bg-red-500/20 transition-all"></div>
-          <p className="text-[10px] font-black text-red-700/50 uppercase tracking-widest relative z-10">Operating Expenses</p>
-          <p className="text-3xl font-black italic text-red-500 tracking-tighter relative z-10">- {fmt(totalOperationalExpenses)}</p>
-          <p className="text-xs font-bold text-red-700/40 italic relative z-10">Manual deductions</p>
+        <Card className="border-none rounded-[2.5rem] bg-white p-8 space-y-4 relative overflow-hidden group shadow-xl shadow-gray-200/50">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-red-500/10 transition-all duration-700"></div>
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Operational Spend</p>
+            <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center"><TrendingDown className="w-4 h-4 text-red-500" /></div>
+          </div>
+          <p className="text-4xl font-black italic text-red-500 tracking-tighter">{fmt(totalOperationalExpenses)}</p>
+          <p className="text-[10px] font-bold text-gray-400 italic lowercase tracking-tight">Manual operational entries</p>
         </Card>
 
         {/* Net Free Cash Flow */}
-        <Card className="border border-black/5 rounded-[2rem] bg-[#010307] p-6 space-y-3 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-[#FE7F2D]/10 blur-2xl -mr-12 -mt-12 group-hover:bg-[#FE7F2D]/20 transition-all"></div>
-          <p className="text-[10px] font-black text-white/40 uppercase tracking-widest relative z-10">Net Operating Profit</p>
-          <p className="text-3xl font-black italic text-white tracking-tighter relative z-10">{fmt(netProfit)}</p>
-          <p className="text-xs font-bold text-white/40 italic relative z-10">After all expenses & payouts</p>
+        <Card className="border-none rounded-[2.5rem] bg-[#010307] p-8 space-y-4 relative overflow-hidden group shadow-2xl shadow-black/20">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-[#FE7F2D]/20 blur-3xl -mr-20 -mt-20 group-hover:bg-[#FE7F2D]/30 transition-all duration-700"></div>
+          <div className="flex items-center justify-between relative z-10">
+            <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Net Operating Profit</p>
+            <div className="px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-[8px] font-black text-[#FE7F2D] uppercase tracking-widest">Live Flow</div>
+          </div>
+          <p className="text-4xl font-black italic text-white tracking-tighter relative z-10">{fmt(netProfit)}</p>
+          <div className="flex items-center gap-2 relative z-10">
+             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+             <p className="text-[10px] font-bold text-white/30 italic">Positive health detected</p>
+          </div>
         </Card>
       </div>
 
@@ -500,23 +519,24 @@ export function AccountsManagement() {
         </div>
 
         {/* Master Ledger List */}
-        <Card className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden border border-black/5">
+        <Card className="border border-black/5 shadow-xl rounded-[2.5rem] bg-white overflow-hidden">
           <div className="overflow-x-auto min-w-[800px]">
             <Table>
-              <TableHeader className="bg-gray-50/50">
+              <TableHeader className="bg-gray-50/20 backdrop-blur-sm border-b border-black/5">
                 <TableRow className="border-none hover:bg-transparent">
-                  <TableHead className="px-8 py-5 h-auto font-black text-[9px] uppercase tracking-widest text-[#010307]/40 w-[180px]">Chronology</TableHead>
-                  <TableHead className="py-5 h-auto font-black text-[9px] uppercase tracking-widest text-[#010307]/40 w-[120px]">Type</TableHead>
-                  <TableHead className="py-5 h-auto font-black text-[9px] uppercase tracking-widest text-[#010307]/40 w-[200px]">Entity</TableHead>
-                  <TableHead className="py-5 h-auto font-black text-[9px] uppercase tracking-widest text-[#010307]/40 text-left">Description / Note</TableHead>
-                  <TableHead className="py-5 h-auto font-black text-[9px] uppercase tracking-widest text-[#010307]/40 text-right">Volume</TableHead>
-                  <TableHead className="px-8 py-5 h-auto font-black text-[9px] uppercase tracking-widest text-[#010307]/40 text-right">Net Impact</TableHead>
+                  <TableHead className="px-8 py-6 h-auto font-black text-[9px] uppercase tracking-[0.2em] text-[#010307]/30 w-[180px]">Chronology</TableHead>
+                  <TableHead className="py-6 h-auto font-black text-[9px] uppercase tracking-[0.2em] text-[#010307]/30 w-[120px]">Type</TableHead>
+                  <TableHead className="py-6 h-auto font-black text-[9px] uppercase tracking-[0.2em] text-[#010307]/30 w-[200px]">Entity</TableHead>
+                  <TableHead className="py-6 h-auto font-black text-[9px] uppercase tracking-[0.2em] text-[#010307]/30 text-left">Description / Note</TableHead>
+                  <TableHead className="py-6 h-auto font-black text-[9px] uppercase tracking-[0.2em] text-[#010307]/30 text-right">Volume</TableHead>
+                  <TableHead className="py-6 h-auto font-black text-[9px] uppercase tracking-[0.2em] text-[#010307]/30 text-right">Net Impact</TableHead>
+                  <TableHead className="px-8 py-6 h-auto font-black text-[9px] uppercase tracking-[0.2em] text-[#010307]/30 text-center w-[120px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-gray-50/50">
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-[400px]">
+                    <TableCell colSpan={7} className="h-[400px]">
                       <div className="flex flex-col items-center justify-center gap-4 text-gray-300">
                         <div className="w-8 h-8 border-4 border-gray-100 border-t-[#FE7F2D] rounded-full animate-spin"></div>
                         <p className="text-[10px] font-black uppercase tracking-widest">syncing bank nodes...</p>
@@ -525,10 +545,10 @@ export function AccountsManagement() {
                   </TableRow>
                 ) : filteredEntries.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="h-[400px]">
+                    <TableCell colSpan={7} className="h-[400px]">
                       <div className="flex flex-col items-center justify-center gap-2 text-gray-300 text-center">
                         <PiggyBank className="w-10 h-10 mb-2 opacity-50" />
-                        <p className="text-sm font-black italic lowercase">no records established.</p>
+                        <p className="text-xl font-black italic lowercase tracking-tight text-gray-900">no records established.</p>
                         <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Try adjusting your filters or date selectors.</p>
                       </div>
                     </TableCell>
@@ -539,8 +559,8 @@ export function AccountsManagement() {
                     const TypeIcon = style.icon
                     const isInflow = entry.net_impact >= 0
                     return (
-                      <TableRow key={`${entry.type}-${entry.id}`} className="hover:bg-[#FE7F2D]/[0.02] transition-colors border-none group">
-                        <td className="px-8 py-5 align-top">
+                      <TableRow key={`${entry.type}-${entry.id}`} className="hover:bg-gray-50/50 transition-all border-none group duration-300">
+                        <td className="px-8 py-6 align-middle">
                           <div className="flex flex-col gap-0.5">
                             <span className="text-xs font-black text-gray-900 uppercase">
                               {new Date(entry.date).toLocaleDateString("en-NP", { month: 'short', day: '2-digit', year: 'numeric' })}
@@ -550,50 +570,52 @@ export function AccountsManagement() {
                             </span>
                           </div>
                         </td>
-                        <td className="py-5 align-top">
-                          <Badge className={`rounded-xl h-7 px-3 border-none flex items-center justify-center gap-1.5 font-black uppercase text-[8px] tracking-widest ${style.bg} ${style.color}`}>
+                        <td className="py-6 align-middle">
+                          <Badge className={`rounded-full h-8 px-4 border-none flex items-center justify-center gap-2 font-black uppercase text-[8px] tracking-[0.1em] shadow-sm ${style.bg} ${style.color}`}>
                             <TypeIcon className="w-3 h-3" /> {style.label}
                           </Badge>
                         </td>
-                        <td className="py-5 align-top">
+                        <td className="py-6 align-middle">
                           <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${entry.type === 'expense' ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-400'}`}>
+                            <div className={`w-9 h-9 rounded-[0.8rem] flex items-center justify-center text-[10px] font-black uppercase transition-transform group-hover:scale-110 duration-500 ${entry.type === 'expense' ? 'bg-red-100 text-red-500' : 'bg-gray-100 text-gray-400'}`}>
                               {entry.entity_name.charAt(0)}
                             </div>
-                            <span className="font-black italic text-sm">{entry.entity_name.toLowerCase()}</span>
+                            <span className="font-black italic text-sm tracking-tight text-gray-900">{entry.entity_name.toLowerCase()}</span>
                           </div>
                         </td>
-                        <td className="py-5 align-top">
+                        <td className="py-6 align-middle">
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-xs font-bold text-gray-600 lowercase italic">{entry.description}</span>
+                            <span className="text-xs font-bold text-gray-500 lowercase italic tracking-tight leading-none mb-1">{entry.description}</span>
                             {entry.reference && (
-                              <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{entry.reference}</span>
+                              <span className="text-[9px] font-black text-gray-300 uppercase tracking-[0.15em]">{entry.reference}</span>
                             )}
                           </div>
                         </td>
-                        <td className="py-5 align-top text-right">
-                          <span className="text-sm font-bold text-gray-400 tabular-nums">{fmt(entry.gross_amount)}</span>
+                        <td className="py-6 align-middle text-right">
+                          <span className="text-xs font-bold text-gray-400 tabular-nums">{fmt(entry.gross_amount)}</span>
                         </td>
-                        <td className="px-8 py-5 align-top text-right">
-                          <div className={`flex flex-col items-end gap-1 ${isInflow ? 'text-green-600' : 'text-red-500'} group-hover:hidden`}>
-                            <div className="flex items-center gap-1.5 text-base font-black italic tabular-nums justify-end">
+                        <td className="py-6 align-middle text-right">
+                          <div className={`flex flex-col items-end gap-1 ${isInflow ? 'text-green-600' : 'text-red-500'}`}>
+                            <div className="flex items-center gap-1.5 text-base font-black italic tabular-nums justify-end tracking-tighter">
                               {isInflow ? '+' : '-'} {fmt(Math.abs(entry.net_impact))}
                             </div>
-                            <span className="text-[8px] font-black uppercase tracking-widest opacity-60 bg-current/10 px-2 py-0.5 rounded-sm">
+                            <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${isInflow ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                               {entry.type === 'product_sale' ? 'Margin In' : entry.type === 'shelf_rent' ? 'Income' : entry.type === 'expense' ? 'Spend' : 'Disbursement'}
                             </span>
                           </div>
-                          <div className="hidden group-hover:flex justify-end gap-2 isolate mt-1">
-                            <Button size="icon" variant="outline" className="h-9 w-9 rounded-full bg-white hover:bg-black hover:text-white border-black/5 shadow-sm" onClick={() => setSelectedEntry(entry)}>
-                              <Receipt className="w-4 h-4" />
+                        </td>
+                        <td className="px-8 py-6 align-middle">
+                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-black hover:text-white transition-all shadow-sm" onClick={() => setSelectedEntry(entry)}>
+                              <Receipt className="w-3.5 h-3.5" />
                             </Button>
                             {entry.type === 'expense' && (
                               <>
-                                <Button size="icon" variant="outline" className="h-9 w-9 rounded-full bg-white hover:bg-[#FE7F2D] hover:text-white border-black/5 shadow-sm" onClick={() => startEditExpense(entry)}>
-                                  <Edit className="w-4 h-4" />
+                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-[#FE7F2D] hover:text-white transition-all shadow-sm" onClick={() => startEditExpense(entry)}>
+                                  <Edit className="w-3.5 h-3.5" />
                                 </Button>
-                                <Button size="icon" variant="outline" className="h-9 w-9 rounded-full bg-white hover:bg-red-500 hover:text-white border-black/5 shadow-sm" onClick={() => handleDeleteExpense(entry.id)}>
-                                  <Trash2 className="w-4 h-4" />
+                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm" onClick={() => handleDeleteExpense(entry.id)}>
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                               </>
                             )}
