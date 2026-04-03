@@ -883,7 +883,7 @@ export default function LandingPage() {
                     <div className="p-8 sm:p-12 bg-[#FE7F2D] rounded-[3rem] shadow-2xl shadow-orange-500/20 rotate-1 group">
                       <h3 className="text-2xl sm:text-3xl font-black text-white lowercase italic mb-4 leading-tight">our model is different.</h3>
                       <p className="text-sm sm:text-lg text-white/90 lowercase italic font-medium leading-snug">
-                        no 20–35% commission. no monthly panic. just a shelf, a spotlight, and a pricing structure built to actually make sense for a growing brand.
+                        no hidden cuts. no monthly panic. just a shelf, a spotlight, and a pricing structure built to actually make sense for a growing brand.
                       </p>
                     </div>
                   </div>

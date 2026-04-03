@@ -60,14 +60,8 @@ const STATS = [
         href: "https://straitsresearch.com/report/gifts-novelty-and-souvenir-market"
     },
     {
-        num: "20–60%",
-        label: "commission is the documented industry standard at traditional retail and consignment spaces — before any other fees",
-        source: "mass.gov",
-        href: "https://www.mass.gov/info-details/chapter-4-calculating-costs-setting-a-price"
-    },
-    {
         num: "82%",
-        label: "of small businesses fail due to poor cash flow — unpredictable commission payouts and delayed settlements are a direct cause",
+        label: "of small businesses fail due to poor cash flow — high overhead and fixed rents are a direct cause",
         source: "u.s. bank",
         href: "https://taqtics.co/retail-operations/common-problems-and-solutions-a-retail-store-faces/"
     },
@@ -76,18 +70,6 @@ const STATS = [
         label: "of supermarket profits come entirely from fees charged to supplier brands — the system is designed to extract, not support",
         source: "rangeme",
         href: "https://www.rangeme.com/blog/understanding-hidden-costs-and-fees-when-working-with-retailers/"
-    },
-    {
-        num: "0%",
-        label: "display control for brands in commission spaces — placement, presentation, and discounting are entirely the retailer's call",
-        source: "trendsi",
-        href: "https://www.trendsi.com/blog/business-tips/what-is-it-called-when-a-store-sells-your-product-a-clear-guide-to-retail-wholesale-and-consignment-sales/"
-    },
-    {
-        num: "weeks",
-        label: "to months is how long brands wait to get paid at commission stores — with no guarantee sales were reported accurately",
-        source: "trendsi",
-        href: "https://www.trendsi.com/blog/business-tips/what-is-it-called-when-a-store-sells-your-product-a-clear-guide-to-retail-wholesale-and-consignment-sales/"
     },
 ]
 
@@ -107,7 +89,6 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
     const [duration, setDuration] = useState<Duration>("yearly")
     const [sales, setSales] = useState(50000)
     const [storefront, setStorefront] = useState(25000)
-    const [commRate, setCommRate] = useState(25)
 
     // Data States
     const [pricingTiers, setPricingTiers] = useState<ShelfPricingTier[]>([])
@@ -200,13 +181,10 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
     const runningCosts = 5000
     const staffCosts = 15000
     const ownMonthly = storefront + ownUtilities + staffCosts + runningCosts
-    const commMonthly = Math.round(sales * (commRate / 100))
 
     const thcAnnual = monthlyRent * 12 + ppfAmt * 12 - credit * 12 + REGISTRATION_FEE
     const ownAnnual = ownMonthly * 12
-    const commAnnual = commMonthly * 12
 
-    const saveVsComm = commAnnual - thcAnnual
     const saveVsOwn = ownAnnual - thcAnnual
 
     // Problem/Solution Content
@@ -215,10 +193,10 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
             tag: "cost structure",
             title: "understanding how costs scale",
             them: [
-                "commission-based retail typically ranges between 20–60%, depending on category and placement",
-                "costs increase proportionally with sales, which can impact margins at higher volumes",
-                "payment cycles may extend across several weeks depending on the retailer",
-                "additional supplier-side costs may apply in certain retail environments",
+                "traditional retail storefronts involve high fixed costs that don't scale down during slower months",
+                "rent, utilities, and staffing create a high break-even point from day one",
+                "capital is often locked in long-term lease commitments and security deposits",
+                "operational overhead requires significant management bandwidth",
             ],
             us: [
                 `a variable processing fee of ${minPPF}–${maxPPF}% applied only to that month’s sales, resetting each cycle`,
@@ -279,10 +257,10 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
             tag: "cash flow",
             title: "predictability vs variability",
             them: [
-                "commission-based models create variability in net earnings across months",
-                "higher sales volumes correspond to higher total commission paid",
-                "operational flexibility may depend on store-level policies",
-                "short-term retail formats can involve higher upfront costs with uncertain returns",
+                "private storefronts create high downside risk during low-traffic cycles",
+                "fixed overhead remains constant regardless of sales performance",
+                "operational flexibility is limited by long-term occupancy agreements",
+                "full management of staff and utilities adds complex operational drag",
             ],
             us: [
                 "fixed shelf rental establishes a predictable baseline cost",
@@ -492,14 +470,13 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                                     {[
                                         { label: "monthly sales", value: fmt(sales), min: 1000, max: 200000, setter: setSales, current: sales, highlight: false },
                                         { label: "own storefront rent", value: `${fmt(storefront)}/mo`, min: 25000, max: 100000, setter: setStorefront, current: storefront, highlight: false },
-                                        { label: "retail commission rate", value: `${commRate}%`, min: 20, max: 35, setter: setCommRate, current: commRate, highlight: true },
                                     ].map((slider, i) => (
                                         <div key={i} className="space-y-4">
                                             <div className="flex justify-between items-baseline">
                                                 <p className="text-xs font-bold text-[#010307]/40 uppercase tracking-widest leading-none">{slider.label}</p>
                                                 <p className={`text-base font-black italic ${slider.highlight ? "text-[#FE7F2D]" : "text-[#010307]"}`}>{slider.value}</p>
                                             </div>
-                                            <Slider min={slider.min} max={slider.max} step={slider.label === "retail commission rate" ? 1 : 1000} value={[slider.current]} onValueChange={([v]) => slider.setter(v)} className="w-full" />
+                                            <Slider min={slider.min} max={slider.max} step={1000} value={[slider.current]} onValueChange={([v]) => slider.setter(v)} className="w-full" />
                                         </div>
                                     ))}
                                 </div>
@@ -549,60 +526,15 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                                 </Card>
 
                                 {/* Row 2: Competitors */}
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                    <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden opacity-80 hover:opacity-100 transition-opacity">
-                                        <div className="px-8 py-7 border-b border-[#FE7F2D]/10">
-                                            <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest mb-0.5">02</p>
-                                            <h4 className="text-xl font-black tracking-tighter lowercase italic text-[#010307]">own storefront</h4>
-                                        </div>
-                                        <div className="px-8 py-8 space-y-3">
-                                            {[
-                                                { label: "rent", val: fmt(storefront) },
-                                                { label: "utilities & running", val: fmt(ownUtilities + runningCosts) },
-                                                { label: "staffing", val: fmt(staffCosts) },
-                                            ].map((row, i) => (
-                                                <div key={i} className="flex justify-between items-baseline border-b border-[#FE7F2D]/10 pb-4 last:border-0 last:pb-0 gap-2">
-                                                    <span className="text-[13px] text-[#010307]/50 italic whitespace-nowrap">{row.label}</span>
-                                                    <span className="text-base font-black italic whitespace-nowrap text-[#010307]">{row.val}</span>
-                                                </div>
-                                            ))}
-                                            <div className="flex justify-between items-baseline pt-4 border-t border-[#FE7F2D]/20">
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-bold text-[#010307] uppercase tracking-widest">monthly cost</span>
-                                                    <span className="text-[8px] text-[#010307]/30 font-black uppercase tracking-tighter italic">+ interiors & stock</span>
-                                                </div>
-                                                <span className="text-3xl font-black italic text-[#010307]">{fmt(ownMonthly)}</span>
+                                    <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden opacity-80 hover:opacity-100 transition-opacity flex items-center justify-center p-12">
+                                        <div className="text-center space-y-4">
+                                            <div className="w-16 h-16 bg-[#FE7F2D]/10 rounded-full flex items-center justify-center mx-auto text-[#FE7F2D]">
+                                                <Calculator className="w-8 h-8" />
                                             </div>
+                                            <h4 className="text-xl font-black tracking-tighter lowercase italic text-[#010307]">aggregated infrastructure</h4>
+                                            <p className="text-sm text-[#010307]/50 italic max-w-[240px]">sharing resources across brands reduces specific risk by up to 80%</p>
                                         </div>
                                     </Card>
-
-                                    <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden opacity-80 hover:opacity-100 transition-opacity">
-                                        <div className="px-8 py-7 border-b border-[#FE7F2D]/10">
-                                            <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest mb-0.5">03</p>
-                                            <h4 className="text-xl font-black tracking-tighter lowercase italic text-[#010307]">retail commission</h4>
-                                        </div>
-                                        <div className="px-8 py-8 space-y-3">
-                                            {[
-                                                { label: "shelf rent", val: "Rs. 0" },
-                                                { label: "utilities", val: "Rs. 0" },
-                                                { label: "staff", val: "Rs. 0" },
-                                                { label: `${commRate}% commission`, val: fmt(commMonthly) },
-                                            ].map((row, i) => (
-                                                <div key={i} className="flex justify-between items-baseline border-b border-[#FE7F2D]/10 pb-4 last:border-0 last:pb-0 gap-2">
-                                                    <span className="text-[13px] text-[#010307]/50 italic whitespace-nowrap">{row.label}</span>
-                                                    <span className="text-base font-black italic whitespace-nowrap text-[#010307]">{row.val}</span>
-                                                </div>
-                                            ))}
-                                            <div className="flex justify-between items-baseline pt-4 border-t border-[#FE7F2D]/20">
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-bold text-[#010307] uppercase tracking-widest">monthly cost</span>
-                                                    <span className="text-[8px] text-[#010307]/30 font-black uppercase tracking-tighter italic">scales by revenue</span>
-                                                </div>
-                                                <span className="text-3xl font-black italic text-[#010307]">{fmt(commMonthly)}</span>
-                                            </div>
-                                        </div>
-                                    </Card>
-                                </div>
 
                                 {/* Row 3: Difference Highlights */}
                                 <div className="pt-4 space-y-6">
@@ -612,36 +544,22 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                                         <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-[#FE7F2D]/20 to-transparent" />
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <Card className="border border-[#FE7F2D]/30 rounded-3xl bg-white shadow-xl shadow-orange-500/5 p-6 hover:border-[#FE7F2D]/50 transition-all duration-300">
-                                            <div className="space-y-4">
+                                    <div className="grid grid-cols-1 gap-4">
+                                        <Card className="border border-[#FE7F2D]/30 rounded-3xl bg-white shadow-xl shadow-orange-500/5 p-8 hover:border-[#FE7F2D]/50 transition-all duration-300">
+                                            <div className="flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
                                                 <div className="space-y-2">
-                                                    <span className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest">difference vs commission (annual)</span>
-                                                    <p className="text-4xl font-black italic tracking-tighter text-[#FE7F2D]">{saveVsComm > 0 ? fmt(saveVsComm) : "Rs. 0"}</p>
+                                                    <span className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest">net advantage vs storefront (annual)</span>
+                                                    <p className="text-5xl font-black italic tracking-tighter text-[#FE7F2D]">{saveVsOwn > 0 ? fmt(saveVsOwn) : "Rs. 0"}</p>
                                                 </div>
-                                                <p className="text-[10px] text-[#010307]/40 italic leading-relaxed">retained margin that stays in your brand's growth fund</p>
-                                            </div>
-                                        </Card>
-
-                                        <Card className="border border-[#FE7F2D]/30 rounded-3xl bg-white shadow-xl shadow-orange-500/5 p-6 hover:border-[#FE7F2D]/50 transition-all duration-300">
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <span className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest">difference vs storefront (annual)</span>
-                                                    <p className="text-4xl font-black italic tracking-tighter text-[#FE7F2D]">{saveVsOwn > 0 ? fmt(saveVsOwn) : "Rs. 0"}</p>
+                                                <div className="max-w-xs">
+                                                    <p className="text-[11px] text-[#010307]/50 italic font-medium leading-relaxed">this represents capital freed up by shifting from individual overhead to our curated aggregated infrastructure. reinvest this directly into product R&D or marketing.</p>
                                                 </div>
-                                                <p className="text-[10px] text-[#010307]/40 italic leading-relaxed">capital freed up by shifting to an aggregated infrastructure</p>
                                             </div>
                                         </Card>
                                     </div>
                                 </div>
 
                                 {/* NEUTRAL NOTE */}
-                                {saveVsComm <= 0 && (
-                                    <Card className="border border-[#FE7F2D]/20 rounded-2xl bg-[#FE7F2D]/[0.03] px-6 py-5 space-y-1">
-                                        <p className="text-xs font-bold text-[#FE7F2D] uppercase tracking-widest">at lower volumes, structures behave differently</p>
-                                        <p className="text-[11px] text-[#010307]/50 italic leading-relaxed">fixed and variable models converge depending on sales. this view highlights how each scales over time.</p>
-                                    </Card>
-                                )}
 
                                 {/* FOOTNOTE */}
                                 <p className="text-[10px] text-[#010307]/30 italic leading-relaxed px-4 text-center">
