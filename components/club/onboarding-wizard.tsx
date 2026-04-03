@@ -227,7 +227,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
     try {
       const { error: bookingError } = await supabase.from("shelf_bookings").insert({
         brand_id: brandId,
-        shelf_type: shelfType || (selectedBundle ? "eye_level" : "bottom"),
+        shelf_type: selectedBundle ? "eye_level" : shelfType,
         duration: duration || "yearly",
         monthly_rent: monthlyRent,
         total_amount: totalAmount + 800, // Include registration fee
@@ -294,7 +294,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                         setSelectedBundle(bundle)
                         const section = sections.find(s => s.id === (bundle as any).section_id)
                         if (section) setSelectedSection(section)
-                        setShelfType(null)
+                        setShelfType("eye_level")
                         setDuration("yearly")
                         setStep(3)
                       }}
