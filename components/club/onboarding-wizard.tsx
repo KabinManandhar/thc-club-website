@@ -252,8 +252,49 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
       </div>
 
       {step === 0 && (
-        <div className="w-full max-w-3xl space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
+        <div className="w-full max-w-4xl space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic">select your collective zone</h2><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">premium zones offer higher footfall exposure</p></div>
+          
+          {bundles.length > 0 && (
+            <div className="space-y-4 mb-10">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-4 h-4 text-[#FE7F2D]" />
+                <h3 className="text-xs font-black uppercase tracking-widest text-[#FE7F2D]">Featured Bundle Deals</h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {bundles.map(bundle => (
+                  <div 
+                    key={bundle.id} 
+                    onClick={() => {
+                      setSelectedBundle(bundle)
+                      const section = sections.find(s => s.id === (bundle as any).section_id)
+                      if (section) setSelectedSection(section)
+                      setStep(2) // Jump straight to duration/review
+                    }}
+                    className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-3 group ${selectedBundle?.id === bundle.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-dashed border-gray-200 bg-gray-50/10 hover:border-[#FE7F2D]/30"}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center group-hover:scale-110 transition-transform"><Zap className="w-5 h-5 text-[#FE7F2D]" /></div>
+                      <div className="text-right">
+                        <p className="text-xl font-black text-[#FE7F2D]">NPR {bundle.price.toLocaleString()}</p>
+                        <Badge className="bg-green-500 text-white text-[8px] font-black italic">Save {Math.round(bundle.discount_percentage || 0)}%</Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-bold lowercase italic text-lg">{bundle.name}</h4>
+                      <p className="text-xs text-gray-500 lowercase italic line-clamp-2">{bundle.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 py-4">
+                 <div className="flex-1 h-[1px] bg-gray-100"></div>
+                 <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">or build individual request</span>
+                 <div className="flex-1 h-[1px] bg-gray-100"></div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-4">
             {sections.map(sec => {
               const zoneImages = storeImages.filter(img => img.section.toLowerCase().includes(sec.name.toLowerCase()))
@@ -317,44 +358,6 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
         <div className="w-full max-w-3xl space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic text-[#010307]">choose shelf level</h2></div>
           
-          {bundles.length > 0 && (
-            <div className="space-y-4 mb-10">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-4 h-4 text-[#FE7F2D]" />
-                <h3 className="text-xs font-black uppercase tracking-widest text-[#FE7F2D]">Value Bundle Deals</h3>
-              </div>
-              <div className="grid grid-cols-1 gap-4">
-                {bundles.map(bundle => (
-                  <div 
-                    key={bundle.id} 
-                    onClick={() => {
-                      setSelectedBundle(bundle)
-                      setShelfType(null) // Reset individual type
-                    }}
-                    className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex items-center justify-between ${selectedBundle?.id === bundle.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5" : "border-dashed border-gray-200 bg-gray-50/30 hover:border-[#FE7F2D]/30"}`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center"><Zap className="w-5 h-5 text-[#FE7F2D]" /></div>
-                      <div>
-                        <h4 className="font-bold lowercase italic">{bundle.name}</h4>
-                        <p className="text-[10px] text-gray-500 lowercase italic">{bundle.description}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-black text-[#FE7F2D]">NPR {bundle.price.toLocaleString()}</p>
-                      <Badge className="bg-green-500 text-white text-[8px] font-black italic">Bundle Savings</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center gap-2 py-4">
-                 <div className="flex-1 h-[1px] bg-gray-100"></div>
-                 <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">or choose individual tier</span>
-                 <div className="flex-1 h-[1px] bg-gray-100"></div>
-              </div>
-            </div>
-          )}
-
           <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex gap-3 items-start mb-6">
             <Info className="w-5 h-5 text-blue-500 mt-0.5" /><p className="text-xs text-blue-700 italic lowercase font-medium">note: the thc team allots the specific shelf slot within your chosen level based on category fit and best visual placement for your products.</p>
           </div>

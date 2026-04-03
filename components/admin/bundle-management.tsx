@@ -7,7 +7,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { supabase, type ShelfBundle, type ShelfSlot } from "@/lib/supabase"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { supabase, type ShelfBundle, type ShelfSection, type ShelfSlot } from "@/lib/supabase"
 import { LayoutGrid, Package, Plus, Trash2, Zap } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -15,12 +16,14 @@ import { toast } from "sonner"
 export function BundleManagement() {
   const [bundles, setBundles] = useState<ShelfBundle[]>([])
   const [slots, setSlots] = useState<ShelfSlot[]>([])
+  const [sections, setSections] = useState<ShelfSection[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [newBundle, setNewBundle] = useState({
     name: "",
     description: "",
     price: 0,
+    sectionId: "",
     slotIds: [] as string[]
   })
 
@@ -31,12 +34,14 @@ export function BundleManagement() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [{ data: bRes }, { data: sRes }] = await Promise.all([
+      const [{ data: bRes }, { data: sRes }, { data: secRes }] = await Promise.all([
         supabase.from("shelf_bundles").select("*").order("created_at", { ascending: false }),
-        supabase.from("shelf_slots").select("*").order("slot_number", { ascending: true })
+        supabase.from("shelf_slots").select("*").order("slot_number", { ascending: true }),
+        supabase.from("shelf_sections").select("*").order("name")
       ])
       setBundles(bRes || [])
       setSlots(sRes || [])
+      setSections(secRes || [])
     } catch (e) {
       toast.error("Failed to fetch bundling data.")
     } finally {
@@ -51,17 +56,30 @@ export function BundleManagement() {
     }
 
     try {
-      const { data: bundleId, error } = await supabase.rpc('create_shelf_bundle_with_slots', {
-        p_name: newBundle.name,
-        p_description: newBundle.description,
-        p_price: newBundle.price,
-        p_slot_ids: newBundle.slotIds
-      })
+      const { data: bundle, error: bundleError } = await supabase
+        .from('shelf_bundles')
+        .insert({
+          name: newBundle.name,
+          description: newBundle.description,
+          price: newBundle.price,
+          section_id: newBundle.sectionId || null
+        })
+        .select()
+        .single()
 
-      if (error) throw error
+      if (bundleError) throw bundleError
+
+      const items = newBundle.slotIds.map(id => ({
+        bundle_id: bundle.id,
+        slot_id: id
+      }))
+
+      const { error: itemsError } = await supabase.from('shelf_bundle_items').insert(items)
+      if (itemsError) throw itemsError
+
       toast.success("Bundle created successfully.")
       setIsCreateOpen(false)
-      setNewBundle({ name: "", description: "", price: 0, slotIds: [] })
+      setNewBundle({ name: "", description: "", price: 0, sectionId: "", slotIds: [] })
       fetchData()
     } catch (e: any) {
       toast.error(e.message)
@@ -149,6 +167,23 @@ export function BundleManagement() {
                 />
               </div>
               <div className="space-y-2">
+                <Label className="font-black italic lowercase px-2">Associated Zone (Optional)</Label>
+                <Select value={newBundle.sectionId} onValueChange={v => setNewBundle(b => ({ ...b, sectionId: v }))}>
+                  <SelectTrigger className="rounded-2xl">
+                    <SelectValue placeholder="Select Zone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">General / No Zone</SelectItem>
+                    {sections.map(s => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label className="font-black italic lowercase px-2">Bundle Price (NPR)</Label>
                 <Input 
                   type="number" 
@@ -158,16 +193,15 @@ export function BundleManagement() {
                   className="rounded-2xl"
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="font-black italic lowercase px-2">Description</Label>
-              <Input 
-                placeholder="Brief description of the bundle advantage" 
-                value={newBundle.description} 
-                onChange={e => setNewBundle(b => ({ ...b, description: e.target.value }))}
-                className="rounded-2xl"
-              />
+              <div className="space-y-2">
+                <Label className="font-black italic lowercase px-2">Description</Label>
+                <Input 
+                  placeholder="Brief advantage" 
+                  value={newBundle.description} 
+                  onChange={e => setNewBundle(b => ({ ...b, description: e.target.value }))}
+                  className="rounded-2xl"
+                />
+              </div>
             </div>
 
             <div className="space-y-4">
