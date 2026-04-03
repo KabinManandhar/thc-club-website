@@ -49,17 +49,27 @@ export function BrandContract({ brandId, brandName }: BrandContractProps) {
 
   const fetchData = async () => {
     setLoading(true)
-    const [brandRes, bookingRes, contractRes, configRes] = await Promise.all([
-      supabase.from("brands").select("*").eq("id", brandId).single(),
-      supabase.from("shelf_bookings").select("*").eq("brand_id", brandId).neq("status", "rejected").order("created_at", { ascending: false }).limit(1).single(),
-      supabase.from("brand_contracts").select("*").eq("brand_id", brandId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      supabase.from("platform_content").select("contract_template").eq("id", 1).single(),
-    ])
-    if (brandRes.data) setBrand(brandRes.data)
-    if (bookingRes.data) setBooking(bookingRes.data)
-    if (contractRes.data) setContract(contractRes.data)
-    if (configRes.data) setTemplateStr(configRes.data.contract_template || "")
-    setLoading(false)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("Authentication required")
+
+      const [brandRes, bookingRes, contractRes, configRes] = await Promise.all([
+        supabase.from("brands").select("*").eq("id", brandId).single(),
+        supabase.from("shelf_bookings").select("*").eq("brand_id", brandId).neq("status", "rejected").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("brand_contracts").select("*").eq("brand_id", brandId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("platform_content").select("contract_template").eq("id", 1).single(),
+      ])
+
+      if (brandRes.data) setBrand(brandRes.data)
+      if (bookingRes.data) setBooking(bookingRes.data)
+      if (contractRes.data) setContract(contractRes.data)
+      if (configRes.data) setTemplateStr(configRes.data.contract_template || "")
+    } catch (err: any) {
+      console.error("Fetch data error:", err)
+      toast.error("Failed to load legal data.")
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleSign = async () => {
@@ -80,9 +90,12 @@ export function BrandContract({ brandId, brandName }: BrandContractProps) {
       }
 
       const { error } = await supabase.from("brand_contracts").upsert({
+        id: contract?.id, // Vital: target the existing row if it exists
         brand_id: brandId,
         file_url: `digital_contract_${brandId}_${Date.now()}`,
         ...signatureData,
+      }, {
+        onConflict: 'id' // Ensure we update the specific record
       })
 
       if (error) throw error

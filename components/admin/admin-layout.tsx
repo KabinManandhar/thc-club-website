@@ -20,6 +20,7 @@ import {
   Settings,
   TrendingUp,
   Users,
+  Zap,
   X
 } from "lucide-react";
 import Image from "next/image";
@@ -79,6 +80,7 @@ export function AdminLayout({
     { id: "pricing-offers", label: "Pricing & Economics", icon: BadgeDollarSign },
     { id: "shelf-revenue", label: "Shelf Revenue", icon: TrendingUp },
     { id: "slots", label: "Shelf Slot Management", icon: Package },
+    { id: "bundles", label: "Bundles & Packages", icon: Zap },
     { id: "settings", label: "Content Settings", icon: Settings },
     { id: "profile", label: "Admin Profile", icon: Users },
   ];

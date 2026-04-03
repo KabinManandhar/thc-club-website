@@ -16,6 +16,7 @@ import { ShelfSlotsManagement } from "@/components/admin/shelf-slots-management"
 import { ContentManagement } from "@/components/admin/content-management";
 import { AccountsManagement } from "@/components/admin/accounts-view";
 import { AdminProfile } from "@/components/admin/admin-profile";
+import { BundleManagement } from "@/components/admin/bundle-management";
 import { adminAuth } from "@/lib/auth";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -79,6 +80,8 @@ function AdminDashboardContent() {
         return <ShelfRentalRevenueMetrics />;
       case "slots":
         return <ShelfSlotsManagement />;
+      case "bundles":
+        return <BundleManagement />;
       case "settings":
         return <ContentManagement />;
       case "profile":

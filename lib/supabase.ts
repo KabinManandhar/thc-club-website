@@ -345,3 +345,19 @@ export interface StoreImage {
   metadata?: any
   created_at: string
 }
+
+export interface ShelfBundle {
+  id: string
+  name: string
+  description?: string
+  price: number
+  original_total?: number
+  discount_percentage?: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface ShelfBundleItem {
+  bundle_id: string
+  slot_id: string
+}

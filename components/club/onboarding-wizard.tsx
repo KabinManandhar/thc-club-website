@@ -7,8 +7,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ImageLightbox } from "@/components/ui/lightbox"
-import { DURATION_MONTHS, supabase, type Duration, type PromotionalOffer, type ShelfPricingTier, type ShelfSection, type ShelfType } from "@/lib/supabase"
-import { ArrowLeft, ArrowRight, Banknote, Camera, CheckCircle2, Clock, Info, Layout, Package, QrCode, Tag, Users } from "lucide-react"
+import { DURATION_MONTHS, supabase, type Duration, type PromotionalOffer, type ShelfBundle, type ShelfPricingTier, type ShelfSection, type ShelfType } from "@/lib/supabase"
+import { ArrowLeft, ArrowRight, Banknote, Camera, CheckCircle2, Clock, Info, Layout, Package, QrCode, Tag, Users, Zap } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 
@@ -58,6 +58,8 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
   const [agreed, setAgreed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [bundles, setBundles] = useState<ShelfBundle[]>([])
+  const [selectedBundle, setSelectedBundle] = useState<ShelfBundle | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [slotRanges, setSlotRanges] = useState<Record<string, string>>({
     top_level: "73–108",
@@ -93,11 +95,13 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
       supabase.from("shelf_pricing_tiers").select("*"),
       supabase.from("shelf_slots").select("shelf_type, slot_number, status, section_id"),
       supabase.from("platform_content").select("protocols").eq("id", 1).single(),
-      supabase.from("store_images").select("*")
-    ]).then(([secRes, priceRes, slotsRes, protRes, imgRes]) => {
+      supabase.from("store_images").select("*"),
+      supabase.from("shelf_bundles").select("*").eq("is_active", true)
+    ]).then(([secRes, priceRes, slotsRes, protRes, imgRes, bundleRes]) => {
       setSections(secRes.data || [])
       setPricingTiers(priceRes.data || [])
       setStoreImages(imgRes.data || [])
+      setBundles(bundleRes.data || [])
       if (protRes.data) setDynamicProtocols(protRes.data.protocols || [])
 
       if (slotsRes.data) {
@@ -184,8 +188,8 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
     }
   }
 
-  const monthlyRent = shelfType && duration ? getPrice(duration, shelfType) : 0
-  const baseTotal = monthlyRent * (duration ? DURATION_MONTHS[duration] : 0)
+  const monthlyRent = selectedBundle ? (selectedBundle.price / (duration ? DURATION_MONTHS[duration] : 12)) : (shelfType && duration ? getPrice(duration, shelfType) : 0)
+  const baseTotal = selectedBundle ? selectedBundle.price : (monthlyRent * (duration ? DURATION_MONTHS[duration] : 0))
   let discountAmount = 0
   if (activeOffer) {
     discountAmount = activeOffer.discount_type === "percentage"
@@ -211,7 +215,8 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
         payment_method: paymentMethod as any,
         section: selectedSection?.name,
         section_tier: selectedSection?.section_tier,
-        admin_notes: `Requested Zone: ${selectedSection?.name}. ${activeOffer ? `Applied Offer: ${activeOffer.name}` : ''}. Includes 800 NPR Registration Fee.`
+        bundle_id: selectedBundle?.id,
+        admin_notes: `${selectedBundle ? `Applied Bundle: ${selectedBundle.name}. ` : `Requested Zone: ${selectedSection?.name}. `}${activeOffer ? `Applied Offer: ${activeOffer.name}` : ''}. Includes 800 NPR Registration Fee.`
       })
 
       if (bookingError) throw bookingError
@@ -311,13 +316,59 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
       {step === 1 && (
         <div className="w-full max-w-3xl space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic text-[#010307]">choose shelf level</h2></div>
+          
+          {bundles.length > 0 && (
+            <div className="space-y-4 mb-10">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-4 h-4 text-[#FE7F2D]" />
+                <h3 className="text-xs font-black uppercase tracking-widest text-[#FE7F2D]">Value Bundle Deals</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                {bundles.map(bundle => (
+                  <div 
+                    key={bundle.id} 
+                    onClick={() => {
+                      setSelectedBundle(bundle)
+                      setShelfType(null) // Reset individual type
+                    }}
+                    className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex items-center justify-between ${selectedBundle?.id === bundle.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5" : "border-dashed border-gray-200 bg-gray-50/30 hover:border-[#FE7F2D]/30"}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center"><Zap className="w-5 h-5 text-[#FE7F2D]" /></div>
+                      <div>
+                        <h4 className="font-bold lowercase italic">{bundle.name}</h4>
+                        <p className="text-[10px] text-gray-500 lowercase italic">{bundle.description}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-black text-[#FE7F2D]">NPR {bundle.price.toLocaleString()}</p>
+                      <Badge className="bg-green-500 text-white text-[8px] font-black italic">Bundle Savings</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 py-4">
+                 <div className="flex-1 h-[1px] bg-gray-100"></div>
+                 <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">or choose individual tier</span>
+                 <div className="flex-1 h-[1px] bg-gray-100"></div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex gap-3 items-start mb-6">
             <Info className="w-5 h-5 text-blue-500 mt-0.5" /><p className="text-xs text-blue-700 italic lowercase font-medium">note: the thc team allots the specific shelf slot within your chosen level based on category fit and best visual placement for your products.</p>
           </div>
           {(["top_level", "eye_level", "bottom"] as ShelfType[]).map((type) => {
             const info = LEVEL_INFO[type]
             return (
-              <div key={type} onClick={() => setShelfType(type)} className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-4 ${shelfType === type ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
+              <div 
+                key={type} 
+                onClick={() => {
+                  setShelfType(type)
+                  setSelectedBundle(null) // Reset bundle
+                }} 
+                className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-4 ${shelfType === type ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}
+              >
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center"><Package className="w-6 h-6 text-[#FE7F2D]" /></div>
                   <div className="flex-1">
@@ -343,7 +394,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               </div>
             )
           })}
-          <div className="flex justify-between pt-4"><Button variant="outline" onClick={() => setStep(0)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button><Button disabled={!shelfType} onClick={() => setStep(2)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Duration <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
+          <div className="flex justify-between pt-4"><Button variant="outline" onClick={() => setStep(0)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button><Button disabled={!shelfType && !selectedBundle} onClick={() => setStep(2)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Duration <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
         </div>
       )}
 
