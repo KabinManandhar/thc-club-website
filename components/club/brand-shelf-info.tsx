@@ -182,26 +182,35 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
           </div>
           <div className="grid gap-4">
              {pendingBookings.map((booking) => (
-                <div key={booking.id} className="p-6 bg-white border border-[#FE7F2D]/10 rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:border-[#FE7F2D]/30 transition-all shadow-sm">
+                <div key={booking.id} className={`p-6 bg-white border rounded-3xl flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:border-[#FE7F2D]/30 transition-all shadow-sm ${booking.bundle_id ? 'border-[#FE7F2D]/30 bg-[#FE7F2D]/[0.02]' : 'border-[#FE7F2D]/10'}`}>
                    <div className="flex items-center gap-5">
                       <div className="h-14 w-14 bg-[#FE7F2D]/5 rounded-2xl flex items-center justify-center border border-[#FE7F2D]/10 text-[#FE7F2D]">
                          <LayoutGrid className="w-7 h-7" />
                       </div>
                       <div>
                          <h4 className="font-black italic text-lg lowercase leading-tight">{booking.shelf_type?.replace("_", " ")} shelf • {booking.section || "standard zone"}</h4>
-                         <div className="flex items-center gap-3 mt-1">
+                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                            <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-[0.2em] italic">Ref: {booking.id.split('-')[0]} • {booking.duration?.replace('_', ' ')}</p>
                            {booking.section_tier && (
                              <Badge className={`text-[8px] font-black uppercase tracking-widest px-2 border rounded-full ${TIER_COLORS[booking.section_tier] || TIER_COLORS.regular}`}>
                                {booking.section_tier}
                              </Badge>
                            )}
+                           {booking.bundle_id && (
+                             <Badge className="bg-green-50 text-green-600 border border-green-100 text-[8px] font-black uppercase tracking-widest px-2 rounded-full flex items-center gap-1">
+                               <Zap className="w-2.5 h-2.5 fill-green-500" />
+                               bundle deal{booking.discount_percentage ? ` · ${Math.round(booking.discount_percentage)}% off` : ''}
+                             </Badge>
+                           )}
                          </div>
                       </div>
                    </div>
-                   <div className="flex items-center gap-10">
+                   <div className="flex items-center gap-6">
                       <div className="text-right">
                          <p className="text-[9px] font-black uppercase text-[#010307]/20 tracking-widest mb-1">Total Lease</p>
+                         {booking.bundle_id && booking.original_total && (
+                           <p className="text-[10px] font-bold text-[#010307]/30 line-through">NPR {booking.original_total?.toLocaleString()}</p>
+                         )}
                          <p className="font-black text-xl text-[#010307] italic lowercase">NPR {booking.total_amount?.toLocaleString() || '---'}</p>
                          <p className="text-[9px] font-bold text-[#010307]/20 uppercase">NPR {booking.monthly_rent?.toLocaleString()}/mo</p>
                       </div>

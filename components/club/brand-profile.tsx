@@ -35,12 +35,15 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     business_name: "",
+    full_name: "",
     description: "",
     phone: "",
     instagram_handle: "",
     website_url: "",
     logo_url: "",
     brand_story: "",
+    business_sector: "",
+    brand_tag: "",
   })
   const [passwordForm, setPasswordForm] = useState({
     password: "",
@@ -74,12 +77,15 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
       setBrand(data)
       setForm({
         business_name: data.business_name || "",
+        full_name: data.full_name || "",
         description: data.description || "",
         phone: data.phone || "",
         instagram_handle: data.instagram_handle || "",
         website_url: data.website_url || "",
         logo_url: data.logo_url || "",
         brand_story: data.brand_story || "",
+        business_sector: data.business_sector || "",
+        brand_tag: data.brand_tag || "",
       })
     }
     setLoading(false)
@@ -207,6 +213,15 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
                      />
                   </div>
                   <div className="space-y-2">
+                     <Label className="uppercase text-[10px] font-black text-gray-400 tracking-widest ml-1">Founder / Full Name</Label>
+                     <Input 
+                        value={form.full_name} 
+                        onChange={(e) => setForm(f => ({ ...f, full_name: e.target.value }))}
+                        className="rounded-2xl h-14 border-gray-100 font-bold bg-white"
+                        placeholder="e.g. Sagun Thapa"
+                     />
+                  </div>
+                  <div className="space-y-2">
                      <Label className="uppercase text-[10px] font-black text-gray-400 tracking-widest ml-1">Contact Phone</Label>
                      <Input 
                         value={form.phone} 
@@ -230,6 +245,24 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
                         onChange={(e) => setForm(f => ({ ...f, website_url: e.target.value }))}
                         className="rounded-2xl h-14 border-gray-100 font-bold bg-white"
                         placeholder="https://yourbrand.com"
+                     />
+                  </div>
+                  <div className="space-y-2">
+                     <Label className="uppercase text-[10px] font-black text-gray-400 tracking-widest ml-1">Business Sector</Label>
+                     <Input 
+                        value={form.business_sector} 
+                        onChange={(e) => setForm(f => ({ ...f, business_sector: e.target.value }))}
+                        className="rounded-2xl h-14 border-gray-100 font-bold bg-white"
+                        placeholder="e.g. fashion, food, lifestyle"
+                     />
+                  </div>
+                  <div className="space-y-2 sm:col-span-2">
+                     <Label className="uppercase text-[10px] font-black text-gray-400 tracking-widest ml-1">Brand Tag <span className="text-[#FE7F2D] normal-case font-bold">(shown as badge on homepage)</span></Label>
+                     <Input 
+                        value={form.brand_tag} 
+                        onChange={(e) => setForm(f => ({ ...f, brand_tag: e.target.value }))}
+                        className="rounded-2xl h-14 border-gray-100 font-bold bg-white"
+                        placeholder="e.g. handcrafted, artisanal, local-first"
                      />
                   </div>
                </div>

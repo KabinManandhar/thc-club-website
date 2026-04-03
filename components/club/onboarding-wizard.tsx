@@ -106,14 +106,19 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
       // Calculate market values for bundles
       const bundleData = (bundleRes.data || []).map(b => {
         let marketValue = 0
-        const pr = (priceRes.data || []).find(p => p.duration === 'yearly')
+        // Determine the section tier for this bundle
+        const bundleSection = (secRes.data || []).find((s: any) => s.id === b.section_id)
+        const sectionTier = bundleSection?.section_tier || 'regular'
+        
+        // Use section-tier-specific yearly pricing
+        const pr = (priceRes.data || []).find((p: any) => p.duration === 'yearly' && p.section_tier === sectionTier)
         if (pr) {
           marketValue += (b.bottom_level_count || 0) * pr.bottom_price * 12
           marketValue += (b.eye_level_count || 0) * pr.eye_level_price * 12
           marketValue += (b.top_level_count || 0) * pr.top_level_price * 12
         }
         const price = b.discount_percentage ? marketValue * (1 - b.discount_percentage / 100) : b.price
-        return { ...b, marketValue, price }
+        return { ...b, marketValue, price, sectionTier }
       })
       setBundles(bundleData)
       
@@ -289,6 +294,10 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                 {bundles.map((bundle) => {
                   const savings = Math.max(0, bundle.marketValue - bundle.price)
                   const savingsPct = bundle.marketValue > 0 ? Math.round((savings / bundle.marketValue) * 100) : 0
+                  // Get section-specific pricing to show per-slot breakdown
+                  const sectionTier = bundle.sectionTier || 'regular'
+                  const pr = pricingTiers.find(t => t.duration === 'yearly' && t.section_tier === sectionTier)
+                  const discountMult = bundle.discount_percentage ? (1 - bundle.discount_percentage / 100) : 1
                   
                   return (
                     <div
@@ -313,18 +322,60 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                         )}
                       </div>
 
-                      <div className="bg-white/50 border border-gray-100 rounded-xl p-4 space-y-3">
-                         <div className="space-y-1 pb-2 border-b border-gray-50">
-                            {bundle.eye_level_count > 0 && <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter text-[#FE7F2D]"><span>Eye Level Slots</span><span>{bundle.eye_level_count}x</span></div>}
-                            {bundle.top_level_count > 0 && <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter text-blue-500"><span>Top Level Slots</span><span>{bundle.top_level_count}x</span></div>}
-                            {bundle.bottom_level_count > 0 && <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter text-gray-700"><span>Bottom Level Slots</span><span>{bundle.bottom_level_count}x</span></div>}
+                      <div className="bg-white/70 border border-gray-100 rounded-xl p-4 space-y-3">
+                         {/* Per-slot type pricing breakdown */}
+                         <div className="space-y-2 pb-3 border-b border-gray-50">
+                           <p className="text-[9px] font-black uppercase tracking-widest text-gray-300 mb-1">slot breakdown • yearly</p>
+                           {bundle.eye_level_count > 0 && pr && (
+                             <div className="flex justify-between items-center">
+                               <div className="flex items-center gap-1.5">
+                                 <span className="w-2 h-2 rounded-full bg-[#FE7F2D]" />
+                                 <span className="text-[10px] font-black uppercase tracking-tighter text-gray-500">Eye Level × {bundle.eye_level_count}</span>
+                               </div>
+                               <div className="flex items-center gap-2">
+                                 <span className="text-[9px] text-gray-300 line-through">NPR {(pr.eye_level_price * 12).toLocaleString()}</span>
+                                 <span className="text-[10px] font-black text-[#FE7F2D]">NPR {Math.round(pr.eye_level_price * 12 * discountMult).toLocaleString()}</span>
+                               </div>
+                             </div>
+                           )}
+                           {bundle.top_level_count > 0 && pr && (
+                             <div className="flex justify-between items-center">
+                               <div className="flex items-center gap-1.5">
+                                 <span className="w-2 h-2 rounded-full bg-blue-400" />
+                                 <span className="text-[10px] font-black uppercase tracking-tighter text-gray-500">Top Level × {bundle.top_level_count}</span>
+                               </div>
+                               <div className="flex items-center gap-2">
+                                 <span className="text-[9px] text-gray-300 line-through">NPR {(pr.top_level_price * 12).toLocaleString()}</span>
+                                 <span className="text-[10px] font-black text-blue-500">NPR {Math.round(pr.top_level_price * 12 * discountMult).toLocaleString()}</span>
+                               </div>
+                             </div>
+                           )}
+                           {bundle.bottom_level_count > 0 && pr && (
+                             <div className="flex justify-between items-center">
+                               <div className="flex items-center gap-1.5">
+                                 <span className="w-2 h-2 rounded-full bg-gray-400" />
+                                 <span className="text-[10px] font-black uppercase tracking-tighter text-gray-500">Bottom × {bundle.bottom_level_count}</span>
+                               </div>
+                               <div className="flex items-center gap-2">
+                                 <span className="text-[9px] text-gray-300 line-through">NPR {(pr.bottom_price * 12).toLocaleString()}</span>
+                                 <span className="text-[10px] font-black text-gray-600">NPR {Math.round(pr.bottom_price * 12 * discountMult).toLocaleString()}</span>
+                               </div>
+                             </div>
+                           )}
                          </div>
                          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
                             <span>Market Total:</span>
                             <span className="line-through">NPR {bundle.marketValue?.toLocaleString()}</span>
                          </div>
                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-bold lowercase italic text-[#FE7F2D]">Bundle Deal:</span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold lowercase italic text-[#FE7F2D]">Bundle Deal:</span>
+                              {bundle.discount_percentage && (
+                                <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] text-[7px] font-black uppercase tracking-[0.1em] border-none px-2 py-0.5 rounded-full">
+                                  {Math.round(bundle.discount_percentage)}% off
+                                </Badge>
+                              )}
+                            </div>
                             <span className="text-2xl font-black text-[#FE7F2D]">NPR {bundle.price.toLocaleString()}</span>
                          </div>
                          <div className="pt-2 border-t border-dashed flex justify-between items-center">

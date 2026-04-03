@@ -52,13 +52,21 @@ export function BundleManagement() {
 
       const calculatedBundles = (bRes || []).map(b => {
         let mv = 0
-        const pr = (pRes || []).find(p => p.duration === 'yearly') // Base yearly pricing
-        if (pr) {
-          mv += (b.bottom_level_count || 0) * pr.bottom_price * 12
-          mv += (b.eye_level_count || 0) * pr.eye_level_price * 12
-          mv += (b.top_level_count || 0) * pr.top_level_price * 12
+        // Get the section for bundle to determine correct section_tier
+        const bundleSection = (secRes || []).find(s => s.id === b.section_id)
+        const sectionTier = bundleSection?.section_tier || 'regular'
+        
+        // Find pricing tiers that match both yearly duration AND this section's tier
+        const eyePr = (pRes || []).find(p => p.duration === 'yearly' && p.section_tier === sectionTier)
+        const topPr = eyePr // same row has all level prices
+        const botPr = eyePr
+
+        if (eyePr) {
+          mv += (b.bottom_level_count || 0) * eyePr.bottom_price * 12
+          mv += (b.eye_level_count || 0) * eyePr.eye_level_price * 12
+          mv += (b.top_level_count || 0) * eyePr.top_level_price * 12
         }
-        return { ...b, marketValue: mv }
+        return { ...b, marketValue: mv, sectionTier }
       })
 
       setBundles(calculatedBundles)
@@ -128,7 +136,10 @@ export function BundleManagement() {
 
   const calculateIndividualTotal = () => {
     let total = 0
-    const pr = (pricingTiers || []).find(p => p.duration === 'yearly')
+    // Determine section tier for the selected section
+    const selectedSec = sections.find(s => s.id === newBundle.sectionId)
+    const sectionTier = selectedSec?.section_tier || 'regular'
+    const pr = (pricingTiers || []).find(p => p.duration === 'yearly' && p.section_tier === sectionTier)
     if (pr) {
       total += newBundle.bottomLevelCount * pr.bottom_price * 12
       total += newBundle.eyeLevelCount * pr.eye_level_price * 12

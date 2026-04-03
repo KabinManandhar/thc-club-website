@@ -370,7 +370,7 @@ export default function LandingPage() {
     try {
       const { data } = await supabase
         .from("brands")
-        .select("id, business_name, logo_url, instagram_handle")
+        .select("id, business_name, logo_url, instagram_handle, description, full_name, business_sector, brand_tag")
         .eq("onboarding_status", "active")
         .order("business_name", { ascending: true })
       console.log("brandss", data)
@@ -1409,6 +1409,113 @@ export default function LandingPage() {
               <p className="text-white/20 text-[10px] uppercase font-black tracking-[0.5em] mt-2 italic">
                 the hidden collective • high fidelity visual archive
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedBrand && (
+        <div
+          className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-xl flex items-center justify-center p-4 sm:p-10 animate-in fade-in duration-500"
+          onClick={() => setSelectedBrand(null)}
+        >
+          <div
+            className="bg-[#FFFCEB] w-full max-w-5xl rounded-[3rem] overflow-hidden shadow-2xl flex flex-col md:flex-row animate-in zoom-in-95 duration-500 border border-white/20"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Image / Logo Side */}
+            <div className="md:w-2/5 bg-white p-8 sm:p-12 flex flex-col items-center justify-between relative border-b md:border-b-0 md:border-r border-[#FE7F2D]/10 gap-6">
+              <div className="relative w-full aspect-square bg-[#FFFCEB] rounded-[2rem] border border-[#FE7F2D]/5 overflow-hidden flex items-center justify-center p-8 sm:p-10">
+                {selectedBrand.logo_url ? (
+                  <SafeImage
+                    src={selectedBrand.logo_url}
+                    alt={selectedBrand.business_name}
+                    className="w-full h-full object-contain transition-all duration-700 hover:scale-105"
+                  />
+                ) : (
+                  <span className="text-8xl font-black text-[#FE7F2D]/10 uppercase tracking-tighter">
+                    {selectedBrand.business_name.substring(0, 2)}
+                  </span>
+                )}
+              </div>
+
+              {/* Instagram Link — prominent on logo side */}
+              {selectedBrand.instagram_handle && (
+                <a
+                  href={`https://instagram.com/${selectedBrand.instagram_handle.replace("@", "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] text-white px-6 py-4 rounded-2xl hover:opacity-90 transition-all group font-black lowercase italic tracking-tight shadow-lg"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <Instagram className="w-5 h-5" />
+                  <span className="text-base">@{selectedBrand.instagram_handle.replace("@", "")}</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform ml-auto" />
+                </a>
+              )}
+
+              <button
+                onClick={() => setSelectedBrand(null)}
+                className="absolute top-5 left-5 p-3 bg-white/80 rounded-full shadow-md hover:bg-[#FE7F2D] hover:text-white transition-all group md:hidden"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Content Side */}
+            <div className="md:w-3/5 p-8 sm:p-12 flex flex-col justify-between gap-6 relative bg-white">
+              <button
+                onClick={() => setSelectedBrand(null)}
+                className="absolute top-8 right-8 p-3 bg-[#FFFCEB] rounded-full hover:bg-black hover:text-white transition-all hidden md:block"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Header */}
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {selectedBrand.business_sector && (
+                    <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-none px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
+                      {selectedBrand.business_sector}
+                    </Badge>
+                  )}
+                  {selectedBrand.brand_tag && (
+                    <Badge className="bg-[#010307]/5 text-[#010307]/60 border-none px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
+                      {selectedBrand.brand_tag}
+                    </Badge>
+                  )}
+                  {!selectedBrand.business_sector && !selectedBrand.brand_tag && (
+                    <Badge className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-none px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
+                      brand partner
+                    </Badge>
+                  )}
+                  <Badge className="bg-green-50 text-green-600 border-none px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">
+                    active collective
+                  </Badge>
+                </div>
+                <h2 className="text-4xl sm:text-5xl font-black lowercase italic tracking-tighter text-[#010307]">
+                  {selectedBrand.business_name}
+                </h2>
+              </div>
+
+              {/* Description */}
+              <div className="flex-1">
+                <p className="text-sm font-bold text-[#FE7F2D]/50 uppercase tracking-[0.2em] mb-3">about the brand</p>
+                <p className="text-base sm:text-lg text-[#010307]/60 font-medium italic lowercase leading-relaxed">
+                  {selectedBrand.description || "a member of the collective, building something intentional in nepal. focused on quality and community representation."}
+                </p>
+              </div>
+
+              {/* Meta grid */}
+              <div className="grid grid-cols-2 gap-4 pt-6 border-t border-gray-100">
+                <div className="p-5 bg-[#FFFCEB] rounded-2xl space-y-1">
+                  <p className="text-[10px] font-bold text-[#FE7F2D]/40 uppercase tracking-[0.2em]">founder</p>
+                  <p className="text-sm font-black italic lowercase text-[#010307]">{selectedBrand.full_name || selectedBrand.contact_name || "n/a"}</p>
+                </div>
+                <div className="p-5 bg-[#FFFCEB] rounded-2xl space-y-1">
+                  <p className="text-[10px] font-bold text-[#FE7F2D]/40 uppercase tracking-[0.2em]">member since</p>
+                  <p className="text-sm font-black italic lowercase text-[#010307]">{new Date(selectedBrand.created_at).getFullYear()}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
