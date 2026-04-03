@@ -190,99 +190,99 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
     // Problem/Solution Content
     const dynamicProblems = useMemo(() => [
         {
+            tag: "capital risk",
+            title: "what it takes to start",
+            them: [
+                "opening a physical storefront requires significant upfront capital investment",
+                "long-term leases, deposits, and setup costs lock capital before validation",
+                "high commitment is required before understanding real demand",
+                "exiting or pivoting comes with financial and operational friction",
+            ],
+            us: [
+                "low upfront cost with no long-term lease commitments",
+                "shelf rental allows you to validate demand before scaling",
+                "capital remains flexible instead of being locked into infrastructure",
+                "easy entry and exit without operational burden",
+            ],
+        },
+        {
             tag: "cost structure",
-            title: "understanding how costs scale",
+            title: "how money actually flows",
             them: [
-                "traditional retail storefronts involve high fixed costs that don't scale down during slower months",
-                "rent, utilities, and staffing create a high break-even point from day one",
-                "capital is often locked in long-term lease commitments and security deposits",
-                "operational overhead requires significant management bandwidth",
+                "fixed monthly costs remain constant regardless of sales performance",
+                "rent, staff, and utilities create a high break-even point",
+                "downside risk is fully carried by the brand",
+                "profitability depends on consistently high sales volume",
             ],
             us: [
-                `a variable processing fee of ${minPPF}–${maxPPF}% applied only to that month’s sales, resetting each cycle`,
-                "a fixed shelf rental model where costs are known upfront before sales begin",
-                "monthly payout cycles designed for consistency and predictability",
-                "clear and accessible sales tracking for full visibility",
+                "fixed shelf cost with a controlled and predictable baseline",
+                `a variable processing fee of ${minPPF}–${maxPPF}% tied directly to performance`,
+                "lower downside risk during slower sales cycles",
+                "cost structure designed to scale with your revenue, not against it",
             ],
         },
         {
-            tag: "operational control",
-            title: "how much control you retain",
+            tag: "operational complexity",
+            title: "what you actually have to manage",
             them: [
-                "product placement and display are typically managed by the retail operator",
-                "inventory updates and pricing changes may depend on store coordination",
-                "brand adjacency is usually determined by store-wide merchandising decisions",
-                "product lifecycle decisions are managed within the retailer’s broader strategy",
+                "full responsibility for store operations, staffing, and maintenance",
+                "time and energy split between selling and running a physical space",
+                "inventory, security, and daily operations require constant attention",
+                "operational inefficiencies directly impact profitability",
             ],
             us: [
-                "dedicated shelf allocation with consistent placement throughout your term",
-                "flexibility to restock, adjust pricing, and update products on your schedule",
-                "a curated environment where brand mix is considered intentionally",
-                "a structure designed to support brand autonomy within a shared space",
+                "no need to manage staff, rent, or daily store operations",
+                "focus purely on product, branding, and growth",
+                "shared infrastructure reduces operational overhead",
+                "a system designed to remove distractions from core business",
             ],
         },
         {
-            tag: "continuity",
-            title: "building with consistency",
+            tag: "control",
+            title: "ownership without burden",
             them: [
-                "product availability and shelf positioning may evolve based on store performance priorities",
-                "placement and visibility can shift over time depending on internal decisions",
-                "tenure and continuation terms are often defined within broader retail agreements",
-                "long-term consistency may vary depending on store-level dynamics",
+                "full control comes with full responsibility and risk",
+                "every decision has operational and financial consequences",
+                "experimentation is costly and slow to execute",
+                "scaling requires duplicating the same heavy model",
             ],
             us: [
-                "shelf allocation secured for the full duration of your selected commitment",
-                "stable positioning designed to maintain consistency over time",
-                "clear partner agreements outlining terms, duration, and expectations",
-                "a model structured around long-term collaboration",
+                "dedicated shelf space with full control over your products",
+                "freedom to test pricing, packaging, and positioning quickly",
+                "low-risk experimentation within a live retail environment",
+                "scale presence without replicating full storefront costs",
             ],
         },
         {
             tag: "visibility",
-            title: "how products get discovered",
+            title: "getting discovered offline",
             them: [
-                "product visibility is shared across a wide range of items within the store",
-                "marketing efforts are typically focused on the store as a whole",
-                "limited access to customer-level insights or product-specific feedback",
-                "support structures may vary depending on the retail format",
+                "single-location stores rely heavily on self-driven foot traffic",
+                "marketing must be funded and executed independently",
+                "limited cross-brand discovery within isolated spaces",
+                "footfall variability directly impacts revenue stability",
             ],
             us: [
-                "integrated footfall from sayummy’s café, bringing consistent in-store traffic",
-                "opportunities for featured content and brand discovery across channels",
-                "rent credits tied to performance at higher sales brackets",
-                "structured onboarding and ongoing support throughout your tenure",
+                "integrated footfall from sayummy’s café ensuring consistent traffic",
+                "placement within a multi-brand discovery environment",
+                "shared visibility benefits across complementary brands",
+                "built-in ecosystem that increases product exposure organically",
             ],
         },
         {
-            tag: "cash flow",
-            title: "predictability vs variability",
+            tag: "online limitation",
+            title: "why online alone falls short",
             them: [
-                "private storefronts create high downside risk during low-traffic cycles",
-                "fixed overhead remains constant regardless of sales performance",
-                "operational flexibility is limited by long-term occupancy agreements",
-                "full management of staff and utilities adds complex operational drag",
+                "online-only brands lack physical trust and product interaction",
+                "customer hesitation is higher without real-world validation",
+                "discovery depends heavily on paid reach and algorithms",
+                "conversion rates can be limited without physical presence",
             ],
             us: [
-                "fixed shelf rental establishes a predictable baseline cost",
-                `lower processing fee tiers during slower months help reduce downside exposure`,
-                "longer-term shelf presence compared to short-duration retail formats",
-                "full control over pricing and promotional decisions",
-            ],
-        },
-        {
-            tag: "discovery",
-            title: "physical presence in a digital-first world",
-            them: [
-                "online channels remain primary, but physical discovery continues to play a role",
-                "product trust often increases when customers can see or interact in person",
-                "conversion behaviour may differ significantly between online and offline environments",
-                "building brand familiarity typically benefits from multi-channel presence",
-            ],
-            us: [
-                "a consistent physical presence that complements online reach",
-                "placement within an active, discovery-oriented environment",
-                "curated surroundings that support perceived brand credibility",
-                "access to customers who engage primarily through in-person experiences",
+                "physical presence builds trust and product credibility instantly",
+                "customers can see, feel, and evaluate before purchasing",
+                "offline discovery complements and strengthens online channels",
+                "a hybrid model that aligns with real consumer behavior",
             ],
         },
     ], [minPPF, maxPPF])
@@ -501,7 +501,7 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                                                     { label: "shelf rental / mo", val: fmt(monthlyRent), accent: false },
                                                     { label: `PPF (${ppfLabel})`, val: fmt(ppfAmt), accent: false },
                                                     { label: "rent credit", val: credit > 0 ? `− ${fmt(credit)}` : "Rs. 0", accent: credit > 0 },
-                                                    { label: "reg. onboarding", val: `Rs. ${regFeePerMo}`, accent: false },
+                                                    { label: "onboarding (one-time fee)", val: `Rs. ${regFeePerMo}`, accent: false },
                                                 ].map((row, i) => (
                                                     <div key={i} className="flex justify-between items-baseline border-b border-[#FE7F2D]/10 pb-4 last:border-0 last:pb-0 gap-2">
                                                         <span className="text-sm text-[#010307]/50 italic whitespace-nowrap">{row.label}</span>
@@ -525,9 +525,36 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                                     </div>
                                 </Card>
 
-                                {/* Row 2: Competitors */}
-                                    <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden opacity-80 hover:opacity-100 transition-opacity flex items-center justify-center p-12">
-                                        <div className="text-center space-y-4">
+                                {/* Row 2: Comparison Grid */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-white/50 backdrop-blur-sm overflow-hidden opacity-80 hover:opacity-100 transition-opacity">
+                                        <div className="px-8 py-7 border-b border-[#FE7F2D]/10">
+                                            <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-widest mb-0.5">02</p>
+                                            <h4 className="text-xl font-black tracking-tighter lowercase italic text-[#010307]">own storefront</h4>
+                                        </div>
+                                        <div className="px-8 py-8 space-y-3">
+                                            {[
+                                                { label: "rent", val: fmt(storefront) },
+                                                { label: "utilities & running", val: fmt(ownUtilities + runningCosts) },
+                                                { label: "staffing", val: fmt(staffCosts) },
+                                            ].map((row, i) => (
+                                                <div key={i} className="flex justify-between items-baseline border-b border-[#FE7F2D]/10 pb-4 last:border-0 last:pb-0 gap-2">
+                                                    <span className="text-[13px] text-[#010307]/50 italic whitespace-nowrap">{row.label}</span>
+                                                    <span className="text-base font-black italic whitespace-nowrap text-[#010307]">{row.val}</span>
+                                                </div>
+                                            ))}
+                                            <div className="flex justify-between items-baseline pt-4 border-t border-[#FE7F2D]/20">
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-bold text-[#010307] uppercase tracking-widest">monthly cost</span>
+                                                    <span className="text-[8px] text-[#010307]/30 font-black uppercase tracking-tighter italic">+ interiors & stock</span>
+                                                </div>
+                                                <span className="text-3xl font-black italic text-[#010307]">{fmt(ownMonthly)}</span>
+                                            </div>
+                                        </div>
+                                    </Card>
+
+                                    <Card className="border border-[#FE7F2D]/10 shadow-sm rounded-[2.5rem] bg-[#FE7F2D]/[0.02] overflow-hidden opacity-90 hover:opacity-100 transition-opacity flex items-center justify-center p-8 text-center">
+                                        <div className="space-y-4">
                                             <div className="w-16 h-16 bg-[#FE7F2D]/10 rounded-full flex items-center justify-center mx-auto text-[#FE7F2D]">
                                                 <Calculator className="w-8 h-8" />
                                             </div>
@@ -535,6 +562,7 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                                             <p className="text-sm text-[#010307]/50 italic max-w-[240px]">sharing resources across brands reduces specific risk by up to 80%</p>
                                         </div>
                                     </Card>
+                                </div>
 
                                 {/* Row 3: Difference Highlights */}
                                 <div className="pt-4 space-y-6">

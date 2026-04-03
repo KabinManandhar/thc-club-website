@@ -328,8 +328,8 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                       </div>
 
                       <div className="flex items-center gap-3 mt-auto">
-                         <div className="px-3 py-1 bg-gray-100 rounded-lg text-[9px] font-black uppercase tracking-tighter text-gray-400">
-                            {bundle.items?.length || 0} Slots Included
+                         <div className="px-3 py-1 bg-[#FE7F2D]/10 rounded-lg text-[9px] font-black uppercase tracking-tighter text-[#FE7F2D]">
+                            {(bundle.eye_level_count || 0) + (bundle.top_level_count || 0) + (bundle.bottom_level_count || 0)} Slots Included
                          </div>
                          <div className="text-[10px] font-black lowercase italic text-gray-300">Yearly Protocol</div>
                       </div>
