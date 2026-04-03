@@ -199,7 +199,8 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
   const totalAmount = Math.max(0, baseTotal - discountAmount)
 
   const handleSubmitBooking = async () => {
-    if (!shelfType || !duration || !agreed) return
+    if ((!shelfType || !duration) && !selectedBundle) return
+    if (!agreed) return
     setSubmitting(true)
     setError(null)
 
@@ -207,7 +208,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
       const { error: bookingError } = await supabase.from("shelf_bookings").insert({
         brand_id: brandId,
         shelf_type: shelfType,
-        duration: duration,
+        duration: duration || "yearly",
         monthly_rent: monthlyRent,
         total_amount: totalAmount + 800, // Include registration fee
         brand_agreement_accepted: true,
@@ -269,7 +270,9 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                       setSelectedBundle(bundle)
                       const section = sections.find(s => s.id === (bundle as any).section_id)
                       if (section) setSelectedSection(section)
-                      setStep(2) // Jump straight to duration/review
+                      setShelfType(null) // Reset individual type
+                      setDuration("yearly") // Bundles are locked to yearly
+                      setStep(3) // Jump straight to Business Info / Verification
                     }}
                     className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-3 group ${selectedBundle?.id === bundle.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-dashed border-gray-200 bg-gray-50/10 hover:border-[#FE7F2D]/30"}`}
                   >
@@ -397,11 +400,16 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               </div>
             )
           })}
-          <div className="flex justify-between pt-4"><Button variant="outline" onClick={() => setStep(0)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button><Button disabled={!shelfType && !selectedBundle} onClick={() => setStep(2)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Duration <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
+          <div className="flex justify-between pt-4">
+            <Button variant="outline" onClick={() => setStep(selectedBundle ? 0 : 2)}>
+              <ArrowLeft className="mr-2 w-4 h-4" /> Back
+            </Button>
+            <Button disabled={!businessName} onClick={() => setStep(4)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Next <ArrowRight className="ml-2 w-4 h-4" /></Button>
+          </div>
         </div>
       )}
 
-      {step === 2 && shelfType && (
+      {step === 2 && shelfType && !selectedBundle && (
         <div className="w-full max-w-3xl space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic">commitment period</h2></div>
           <div className="grid grid-cols-1 gap-4">
@@ -457,7 +465,9 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
             </div>
           </Card>
           <div className="flex justify-between pt-4">
-            <Button variant="outline" onClick={() => setStep(2)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button>
+            <Button variant="outline" onClick={() => setStep(selectedBundle ? 0 : 2)}>
+              <ArrowLeft className="mr-2 w-4 h-4" /> Back
+            </Button>
             <Button onClick={() => setStep(4)} className="bg-[#FE7F2D] hover:bg-black text-white px-12 h-12 rounded-2xl font-black italic lowercase transition-all">I Accept the Protocols <ArrowRight className="ml-2 w-4 h-4" /></Button>
           </div>
         </div>
@@ -480,17 +490,26 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
         </div>
       )}
 
-      {step === 5 && shelfType && duration && selectedSection && (
+      {step === 5 && (selectedBundle || (shelfType && duration)) && selectedSection && (
         <div className="w-full max-w-2xl space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
           <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic">the commitment summary</h2></div>
           <Card className="border-[#FE7F2D] border-2 shadow-2xl rounded-[2rem] overflow-hidden"><CardHeader className="bg-gray-50"><CardTitle className="text-xl font-black lowercase italic">partnership overview</CardTitle></CardHeader>
             <CardContent className="p-8 space-y-4">
               <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Collective Zone</span><span className="text-[#FE7F2D] font-black uppercase text-[10px] tracking-widest">{selectedSection.name}</span></div>
               <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Zone Tier</span><span className="font-black uppercase text-[10px] tracking-widest">{selectedSection.section_tier} zone</span></div>
-              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Shelf Tier</span><span>{LEVEL_INFO[shelfType].label}</span></div>
-              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Lease Cycle</span><span>{DURATION_INFO[duration].label}</span></div>
-              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Monthly Rent</span><span className="font-black">NPR {monthlyRent.toLocaleString()}</span></div>
-              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Lease Total ({DURATION_INFO[duration].months} mo)</span><span className="font-black">NPR {baseTotal.toLocaleString()}</span></div>
+              
+              {selectedBundle ? (
+                <div className="flex justify-between py-2 border-b text-sm italic font-medium">
+                  <span className="text-gray-400">Selected Bundle</span>
+                  <span className="text-[#FE7F2D] font-black italic">{selectedBundle.name}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Shelf Tier</span><span>{shelfType ? LEVEL_INFO[shelfType].label : 'N/A'}</span></div>
+              )}
+
+              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Lease Cycle</span><span>{duration ? DURATION_INFO[duration].label : 'Yearly'}</span></div>
+              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Monthly Est.</span><span className="font-black">NPR {monthlyRent.toLocaleString()}</span></div>
+              <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Lease Total</span><span className="font-black">NPR {baseTotal.toLocaleString()}</span></div>
               {activeOffer && <div className="flex justify-between py-2 border-b text-green-600 text-sm font-black italic"><span className="flex items-center gap-2 uppercase tracking-widest text-[10px]"><Tag className="w-3 h-3" /> Offer applied</span><span>- NPR {discountAmount.toLocaleString()}</span></div>}
               <div className="flex justify-between py-2 border-b text-sm italic font-medium">
                 <span className="flex flex-col gap-0.5">

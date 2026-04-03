@@ -6,10 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase, type ShelfBundle, type ShelfSection, type ShelfSlot } from "@/lib/supabase"
-import { LayoutGrid, Package, Plus, Trash2, Zap } from "lucide-react"
+import { supabase, type ShelfBundle, type ShelfSection, type ShelfSlot, type Shelf } from "@/lib/supabase"
+import { ChevronRight, Package, Plus, Trash2, Zap } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -17,6 +16,7 @@ export function BundleManagement() {
   const [bundles, setBundles] = useState<ShelfBundle[]>([])
   const [slots, setSlots] = useState<ShelfSlot[]>([])
   const [sections, setSections] = useState<ShelfSection[]>([])
+  const [shelves, setShelves] = useState<Shelf[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [newBundle, setNewBundle] = useState({
@@ -27,6 +27,10 @@ export function BundleManagement() {
     slotIds: [] as string[]
   })
 
+  // Hierarchical Display State
+  const [expandedSection, setExpandedSection] = useState<string | null>(null)
+  const [expandedShelf, setExpandedShelf] = useState<string | null>(null)
+
   useEffect(() => {
     fetchData()
   }, [])
@@ -34,14 +38,16 @@ export function BundleManagement() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [{ data: bRes }, { data: sRes }, { data: secRes }] = await Promise.all([
+      const [{ data: bRes }, { data: sRes }, { data: secRes }, { data: shRes }] = await Promise.all([
         supabase.from("shelf_bundles").select("*").order("created_at", { ascending: false }),
         supabase.from("shelf_slots").select("*").order("slot_number", { ascending: true }),
-        supabase.from("shelf_sections").select("*").order("name")
+        supabase.from("shelf_sections").select("*").order("name"),
+        supabase.from("shelves").select("*").order("name")
       ])
       setBundles(bRes || [])
       setSlots(sRes || [])
       setSections(secRes || [])
+      setShelves(shRes || [])
     } catch (e) {
       toast.error("Failed to fetch bundling data.")
     } finally {
@@ -62,7 +68,8 @@ export function BundleManagement() {
           name: newBundle.name,
           description: newBundle.description,
           price: newBundle.price,
-          section_id: newBundle.sectionId || null
+          section_id: newBundle.sectionId !== "none" ? newBundle.sectionId : null,
+          is_active: true
         })
         .select()
         .single()
@@ -107,6 +114,18 @@ export function BundleManagement() {
     }))
   }
 
+  const selectEntireShelf = (shelfId: string) => {
+    const shelfSlots = slots.filter(s => s.shelf_id === shelfId).map(s => s.id)
+    setNewBundle(prev => {
+      const otherSlots = prev.slotIds.filter(id => !shelfSlots.includes(id))
+      const allSelected = shelfSlots.every(id => prev.slotIds.includes(id))
+      
+      // If already all selected, toggle them OFF, else turn them ON
+      if (allSelected) return { ...prev, slotIds: otherSlots }
+      return { ...prev, slotIds: [...new Set([...prev.slotIds, ...shelfSlots])] }
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -126,10 +145,15 @@ export function BundleManagement() {
               </Button>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                 <Badge variant="outline" className="bg-orange-50 text-orange-600 border-orange-100 text-[10px]">
+                   {sections.find(s => s.id === (bundle as any).section_id)?.name || "General"}
+                 </Badge>
+              </div>
               <p className="text-sm text-gray-500 italic lowercase">{bundle.description || "No description provided."}</p>
               <div className="flex justify-between items-end pt-4 border-t border-[#FE7F2D]/5">
                 <div>
-                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Bundle Price</p>
+                  <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Yearly Price</p>
                   <p className="text-2xl font-black text-[#FE7F2D]">NPR {bundle.price.toLocaleString()}</p>
                 </div>
                 {bundle.discount_percentage && bundle.discount_percentage > 0 && (
@@ -151,32 +175,23 @@ export function BundleManagement() {
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="max-w-4xl scrollbar-hide max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-black lowercase italic">Create Shelf Bundle</DialogTitle>
-            <DialogDescription className="lowercase italic">Select multiple slots to offer as a discounted bundle.</DialogDescription>
+            <DialogTitle className="text-2xl font-black lowercase italic">Configure Bundle</DialogTitle>
+            <DialogDescription className="lowercase italic italic">Hierarchical selection: section {">"} shelf {">"} slots</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="font-black italic lowercase px-2">Bundle Name</Label>
-                <Input 
-                  placeholder="e.g. eye level combo" 
-                  value={newBundle.name} 
-                  onChange={e => setNewBundle(b => ({ ...b, name: e.target.value }))}
-                  className="rounded-2xl"
-                />
+                <Label className="font-black italic lowercase px-2">Bundle ID / Name</Label>
+                <Input placeholder="e.g. entrance row 1" value={newBundle.name} onChange={e => setNewBundle(b => ({ ...b, name: e.target.value.toLowerCase() }))} className="rounded-2xl" />
               </div>
               <div className="space-y-2">
-                <Label className="font-black italic lowercase px-2">Associated Zone (Optional)</Label>
+                <Label className="font-black italic lowercase px-2">Primary Zone</Label>
                 <Select value={newBundle.sectionId} onValueChange={v => setNewBundle(b => ({ ...b, sectionId: v }))}>
-                  <SelectTrigger className="rounded-2xl">
-                    <SelectValue placeholder="Select Zone" />
-                  </SelectTrigger>
+                  <SelectTrigger className="rounded-2xl"><SelectValue placeholder="Select Zone" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">General / No Zone</SelectItem>
-                    {sections.map(s => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                    ))}
+                    <SelectItem value="none">General / Unassigned</SelectItem>
+                    {sections.map(s => (<SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
@@ -184,41 +199,76 @@ export function BundleManagement() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="font-black italic lowercase px-2">Bundle Price (NPR)</Label>
-                <Input 
-                  type="number" 
-                  placeholder="8500" 
-                  value={newBundle.price || ""} 
-                  onChange={e => setNewBundle(b => ({ ...b, price: parseFloat(e.target.value) || 0 }))}
-                  className="rounded-2xl"
-                />
+                <Label className="font-black italic lowercase px-2">Yearly Fixed Price (NPR)</Label>
+                <Input type="number" value={newBundle.price || ""} onChange={e => setNewBundle(b => ({ ...b, price: parseFloat(e.target.value) || 0 }))} className="rounded-2xl" />
               </div>
               <div className="space-y-2">
                 <Label className="font-black italic lowercase px-2">Description</Label>
-                <Input 
-                  placeholder="Brief advantage" 
-                  value={newBundle.description} 
-                  onChange={e => setNewBundle(b => ({ ...b, description: e.target.value }))}
-                  className="rounded-2xl"
-                />
+                <Input placeholder="What's included in this deal?" value={newBundle.description} onChange={e => setNewBundle(b => ({ ...b, description: e.target.value.toLowerCase() }))} className="rounded-2xl" />
               </div>
             </div>
 
             <div className="space-y-4">
-              <Label className="font-black italic lowercase px-2">Select Slots to include ({newBundle.slotIds.length} Selected)</Label>
-              <div className="grid grid-cols-6 sm:grid-cols-10 gap-2 p-4 bg-gray-50 rounded-3xl border border-gray-100">
-                {slots.map(slot => (
-                  <div 
-                    key={slot.id} 
-                    onClick={() => toggleSlotSelection(slot.id)}
-                    className={`
-                      aspect-square rounded-lg flex items-center justify-center text-[10px] font-black cursor-pointer transition-all
-                      ${newBundle.slotIds.includes(slot.id) 
-                        ? 'bg-[#FE7F2D] text-white' 
-                        : 'bg-white border border-gray-200 text-gray-400 hover:border-[#FE7F2D]'}
-                    `}
-                  >
-                    #{slot.slot_number}
+              <Label className="font-black italic lowercase px-2">Hierarchical Inventory Picker ({newBundle.slotIds.length} Selected)</Label>
+              <div className="border border-gray-100 rounded-3xl overflow-hidden bg-gray-50/30">
+                {sections.map(section => (
+                  <div key={section.id} className="border-b border-gray-100 last:border-b-0">
+                    <button 
+                      onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+                      className="w-full flex items-center justify-between p-4 hover:bg-gray-100/50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${expandedSection === section.id ? 'rotate-90' : ''}`} />
+                        <span className="font-bold text-sm lowercase italic">{section.name}</span>
+                      </div>
+                      <Badge variant="outline" className="bg-white/80">{shelves.filter(sh => sh.section_id === section.id).length} Shelves</Badge>
+                    </button>
+
+                    {expandedSection === section.id && (
+                      <div className="px-8 pb-4 space-y-3">
+                        {shelves.filter(sh => sh.section_id === section.id).map(shelf => (
+                          <div key={shelf.id} className="border border-gray-200/50 rounded-2xl bg-white overflow-hidden">
+                            <div className="p-3 bg-gray-50 flex items-center justify-between border-b border-gray-100">
+                               <button 
+                                 onClick={() => setExpandedShelf(expandedShelf === shelf.id ? null : shelf.id)}
+                                 className="flex items-center gap-2 hover:bg-gray-100 p-1 rounded-lg transition-colors"
+                               >
+                                 <Package className="w-3.5 h-3.5 text-[#FE7F2D]" />
+                                 <span className="text-xs font-bold lowercase">{shelf.name}</span>
+                               </button>
+                               <Button 
+                                 variant="ghost" 
+                                 size="sm" 
+                                 className="h-7 text-[10px] font-black uppercase tracking-tighter text-[#FE7F2D] hover:bg-orange-50"
+                                 onClick={() => selectEntireShelf(shelf.id)}
+                               >
+                                 {slots.filter(s => s.shelf_id === shelf.id).every(id => newBundle.slotIds.includes(id.id)) 
+                                   ? "Deselect Shelf" : "Select Entire Shelf"}
+                               </Button>
+                            </div>
+                            
+                            {expandedShelf === shelf.id && (
+                              <div className="p-4 grid grid-cols-6 sm:grid-cols-10 gap-2">
+                                {slots.filter(s => s.shelf_id === shelf.id).map(slot => (
+                                  <div 
+                                    key={slot.id} 
+                                    onClick={() => toggleSlotSelection(slot.id)}
+                                    className={`
+                                      aspect-square rounded-lg flex items-center justify-center text-[10px] font-black cursor-pointer transition-all
+                                      ${newBundle.slotIds.includes(slot.id) 
+                                        ? 'bg-[#FE7F2D] text-white shadow-md' 
+                                        : 'bg-gray-50 border border-gray-100 text-gray-300 hover:border-[#FE7F2D]/50'}
+                                    `}
+                                  >
+                                    #{slot.slot_number}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -226,7 +276,7 @@ export function BundleManagement() {
 
             <div className="pt-6 border-t flex justify-end gap-3">
               <Button variant="outline" onClick={() => setIsCreateOpen(false)} className="rounded-2xl">Cancel</Button>
-              <Button onClick={handleCreateBundle} className="bg-[#FE7F2D] text-white px-10 rounded-2xl font-black italic">Activate Bundle</Button>
+              <Button onClick={handleCreateBundle} className="bg-[#FE7F2D] text-white px-10 rounded-2xl font-black italic">Activate Deal</Button>
             </div>
           </div>
         </DialogContent>
