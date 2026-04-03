@@ -150,6 +150,7 @@ export interface ShelfBooking {
   start_date?: string
   end_date?: string
   status: "pending" | "approved" | "rejected" | "active" | "expired"
+  bundle_id?: string
   admin_notes?: string
   brand_agreement_accepted: boolean
   payment_status?: "pending" | "partial" | "paid"
@@ -159,6 +160,7 @@ export interface ShelfBooking {
   updated_at: string
   // joined
   brands?: Brand
+  shelf_bundles?: ShelfBundle
 }
 
 export interface ShelfBookingPayment {

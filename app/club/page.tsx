@@ -122,7 +122,7 @@ function ClubPageContent() {
         // Fetch all bookings for history and pending tracking
         const { data: allBookings, error: bError } = await supabase
           .from("shelf_bookings")
-          .select("*")
+          .select("*, shelf_bundles(name)")
           .eq("brand_id", brandData.id)
           .order("created_at", { ascending: false })
 
@@ -584,7 +584,13 @@ function ClubPageContent() {
                   <Card key={booking.id} className="border border-[#FE7F2D]/10 bg-white/50 backdrop-blur-sm overflow-hidden rounded-[2.5rem]">
                     <CardHeader className="flex flex-row items-center justify-between p-8 sm:p-10">
                       <div className="space-y-1">
-                        <CardTitle className="text-2xl font-black italic lowercase tracking-tight">{booking.tier || 'Standard'} Slot Request</CardTitle>
+                        <CardTitle className="text-2xl font-black italic lowercase tracking-tight">
+                          {booking.bundle_id ? (
+                            <span>{(booking as any).shelf_bundles?.name || "Package"} Bundle Request</span>
+                          ) : (
+                            <span>{booking.shelf_type?.replace('_', ' ') || 'Standard'} Slot Request</span>
+                          )}
+                        </CardTitle>
                         <CardDescription className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#FE7F2D]">
                           Ref: {booking.id.split('-')[0]} • Status: {booking.status}
                         </CardDescription>

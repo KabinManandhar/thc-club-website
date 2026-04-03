@@ -13,9 +13,10 @@ interface ShelfGridPickerProps {
   shelfTypeLimit?: string // e.g. "bottom", "eye_level", "top_level"
   onSelect: (slot: ShelfSlot) => void
   selectedSlotId?: string
+  selectedSlotIds?: string[]
 }
 
-export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId }: ShelfGridPickerProps) {
+export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, selectedSlotIds = [] }: ShelfGridPickerProps) {
   const [slots, setSlots] = useState<ShelfSlot[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -136,7 +137,7 @@ export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId }: Sh
                                 aspect-square rounded-lg border-2 flex flex-col items-center justify-center transition-all text-[11px] font-black
                                 ${slot.status === "available" ? "bg-white border-green-50 hover:border-green-400 text-green-700 shadow-sm" : ""}
                                 ${slot.status === "occupied" ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed grayscale" : ""}
-                                ${selectedSlotId === slot.id ? "bg-[#FE7F2D] border-[#FE7F2D] text-white ring-4 ring-[#FE7F2D]/20 -translate-y-1 shadow-xl z-20" : ""}
+                                ${(selectedSlotId === slot.id || (selectedSlotIds || []).includes(slot.id)) ? "bg-[#FE7F2D] border-[#FE7F2D] text-white ring-4 ring-[#FE7F2D]/20 -translate-y-1 shadow-xl z-20" : ""}
                               `}
                               title={slot.status === "occupied" ? `Occupied by ${slot.occupied_by}` : `Slot #${slot.slot_number}`}
                             >

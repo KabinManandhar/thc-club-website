@@ -227,7 +227,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
     try {
       const { error: bookingError } = await supabase.from("shelf_bookings").insert({
         brand_id: brandId,
-        shelf_type: shelfType,
+        shelf_type: shelfType || (selectedBundle ? "eye_level" : "bottom"),
         duration: duration || "yearly",
         monthly_rent: monthlyRent,
         total_amount: totalAmount + 800, // Include registration fee

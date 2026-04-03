@@ -14,6 +14,7 @@ import {
 import { CheckCircle2, XCircle, Clock, Package, MapPin } from "lucide-react"
 import { ShelfGridPicker } from "./shelf-grid-picker"
 import { type ShelfSlot } from "@/lib/supabase"
+import { toast } from "sonner"
 
 const SHELF_LABELS = { bottom: "Bottom Level", eye_level: "Eye Level", top_level: "Top Level" }
 const DURATION_LABELS = { quarterly: "Quarterly (3 mo)", half_yearly: "Half-Yearly (6 mo)", yearly: "Yearly (12 mo)" }
@@ -27,13 +28,14 @@ export function BookingsManagement() {
   const [adminNotes, setAdminNotes] = useState("")
   const [slotNumber, setSlotNumber] = useState("")
   const [selectedSlot, setSelectedSlot] = useState<ShelfSlot | null>(null)
+  const [selectedBundleSlots, setSelectedBundleSlots] = useState<ShelfSlot[]>([])
   const [saving, setSaving] = useState(false)
 
   const fetchBookings = async () => {
     setLoading(true)
     let query = supabase
       .from("shelf_bookings")
-      .select("*, brands(business_name, email, phone)")
+      .select("*, brands(business_name, email, phone), shelf_bundles(name)")
       .order("created_at", { ascending: false })
     if (filterStatus !== "all") query = query.eq("status", filterStatus)
     const { data } = await query
@@ -49,6 +51,7 @@ export function BookingsManagement() {
     setAdminNotes("")
     setSlotNumber("")
     setSelectedSlot(null)
+    setSelectedBundleSlots([])
   }
 
   const handleAction = async () => {
@@ -62,20 +65,27 @@ export function BookingsManagement() {
     endDate.setMonth(endDate.getMonth() + months)
 
     if (actionType === "approve") {
+      const slotsToProcess = actionBooking.bundle_id ? selectedBundleSlots : (selectedSlot ? [selectedSlot] : [])
+      if (slotsToProcess.length === 0) {
+        toast.error("Please select at least one slot.")
+        setSaving(false)
+        return
+      }
+
       // Update booking
       await supabase.from("shelf_bookings").update({
         status: "active",
-        slot_number: parseInt(slotNumber),
+        slot_number: slotsToProcess[0].slot_number, // Store primary slot
         start_date: startDate.toISOString().split("T")[0],
         end_date: endDate.toISOString().split("T")[0],
-        admin_notes: adminNotes,
+        admin_notes: adminNotes + (actionBooking.bundle_id ? ` [Multiple slots assigned: ${slotsToProcess.map(s => s.slot_number).join(', ')}]` : ''),
       }).eq("id", actionBooking.id)
 
-      // Update brand onboarding status to active
+      // Update brand onboarding status
       await supabase.from("brands").update({ onboarding_status: "active" }).eq("id", actionBooking.brand_id)
 
-      // Update shelf slot occupancy
-      if (selectedSlot) {
+      // Update ALL selected shelf slots
+      for (const slot of slotsToProcess) {
         await supabase
           .from("shelf_slots")
           .update({
@@ -83,26 +93,11 @@ export function BookingsManagement() {
             brand_id: actionBooking.brand_id,
             occupied_by: (actionBooking.brands as any)?.business_name || "",
             booking_id: actionBooking.id,
-            rent_amount: actionBooking.monthly_rent,
+            rent_amount: actionBooking.monthly_rent, // or split rent if needed, but usually monthly_rent is per booking
             occupied_from: startDate.toISOString().split("T")[0],
             occupied_until: endDate.toISOString().split("T")[0],
           })
-          .eq("id", selectedSlot.id)
-      } else {
-        // Fallback to slot_number if for some reason selectedSlot is null (legacy)
-        await supabase
-          .from("shelf_slots")
-          .update({
-            status: "occupied",
-            brand_id: actionBooking.brand_id,
-            occupied_by: (actionBooking.brands as any)?.business_name || "",
-            booking_id: actionBooking.id,
-            rent_amount: actionBooking.monthly_rent,
-            occupied_from: startDate.toISOString().split("T")[0],
-            occupied_until: endDate.toISOString().split("T")[0],
-          })
-          .eq("slot_number", parseInt(slotNumber))
-          .eq("shelf_type", actionBooking.shelf_type)
+          .eq("id", slot.id)
       }
     } else {
       await supabase.from("shelf_bookings").update({
@@ -185,7 +180,13 @@ export function BookingsManagement() {
                         <div className="text-xs text-gray-500">{(b.brands as any)?.email}</div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">
-                        <div className="text-sm">{SHELF_LABELS[b.shelf_type]}</div>
+                        <div className="text-sm">
+                          {b.bundle_id ? (
+                            <span className="font-bold text-[#FE7F2D]">Bundle: {(b as any).shelf_bundles?.name || "Package"}</span>
+                          ) : (
+                            SHELF_LABELS[b.shelf_type]
+                          )}
+                        </div>
                         <div className="text-xs text-gray-500">{DURATION_LABELS[b.duration]}</div>
                         {b.slot_number && <div className="text-xs text-[#FE7F2D]">Slot #{b.slot_number}</div>}
                       </TableCell>
@@ -238,7 +239,11 @@ export function BookingsManagement() {
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
                 <p><strong>Brand:</strong> {(actionBooking!.brands as any)?.business_name}</p>
-                <p><strong>Shelf:</strong> {SHELF_LABELS[actionBooking!.shelf_type]} — {DURATION_LABELS[actionBooking!.duration]}</p>
+                <p><strong>Shelf:</strong> {actionBooking!.bundle_id ? (
+                  <span className="text-[#FE7F2D] font-bold">Bundle: {(actionBooking! as any).shelf_bundles?.name || "Package"}</span>
+                ) : (
+                  SHELF_LABELS[actionBooking!.shelf_type]
+                )} — {DURATION_LABELS[actionBooking!.duration]}</p>
                 <p><strong>Total:</strong> NPR {actionBooking!.total_amount.toLocaleString()}</p>
               </div>
 
@@ -251,16 +256,43 @@ export function BookingsManagement() {
                     </Label>
                     <div className="bg-white border rounded-xl p-4 shadow-sm">
                       <ShelfGridPicker
-                        shelfTypeLimit={actionBooking!.shelf_type}
+                        shelfTypeLimit={actionBooking!.bundle_id ? undefined : actionBooking!.shelf_type}
                         onSelect={(slot) => {
-                          setSelectedSlot(slot)
-                          setSlotNumber(slot.slot_number.toString())
+                          if (actionBooking!.bundle_id) {
+                            setSelectedBundleSlots(prev => {
+                              const exists = prev.find(s => s.id === slot.id)
+                              if (exists) return prev.filter(s => s.id !== slot.id)
+                              return [...prev, slot]
+                            })
+                            // We use slotNumber to satisfy the button's validation
+                            setSlotNumber("multiple") 
+                          } else {
+                            setSelectedSlot(slot)
+                            setSlotNumber(slot.slot_number.toString())
+                          }
                         }}
                         selectedSlotId={selectedSlot?.id}
+                        selectedSlotIds={selectedBundleSlots.map(s => s.id)}
                       />
                     </div>
                   </div>
-                  {selectedSlot && (
+                  {actionBooking!.bundle_id ? (
+                    <div className="bg-[#FE7F2D]/5 border border-[#FE7F2D]/20 rounded-lg p-4 animate-in slide-in-from-top-2">
+                       <div className="flex justify-between items-center mb-3">
+                          <span className="font-black text-[#FE7F2D] uppercase tracking-widest text-[10px]">Bundle slots assigned: {selectedBundleSlots.length}</span>
+                       </div>
+                       <div className="flex flex-wrap gap-2">
+                          {selectedBundleSlots.map(slot => (
+                            <Badge key={slot.id} className="bg-white border-[#FE7F2D]/30 text-[#FE7F2D] font-black text-[10px] lowercase py-1 px-3">
+                               {slot.section} — #{slot.slot_number}
+                            </Badge>
+                          ))}
+                          {selectedBundleSlots.length === 0 && (
+                            <span className="text-[10px] text-gray-400 font-bold lowercase italic">tap slots above to assign to this bundle...</span>
+                          )}
+                       </div>
+                    </div>
+                  ) : selectedSlot && (
                     <div className="bg-[#FE7F2D]/5 border border-[#FE7F2D]/20 rounded-lg p-3 flex justify-between items-center text-xs animate-in slide-in-from-top-2">
                        <div className="flex flex-col gap-0.5">
                           <span className="font-black text-[#FE7F2D] uppercase tracking-widest text-[10px]">Active Selection</span>
