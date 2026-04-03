@@ -106,18 +106,12 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
       // Calculate market values for bundles
       const bundleData = (bundleRes.data || []).map(b => {
         let marketValue = 0
-        b.items?.forEach((item: any) => {
-          const slot = (slotsRes.data || []).find(s => s.id === item.slot_id)
-          if (slot) {
-             const sec = (secRes.data || []).find(s => s.id === slot.section_id)
-             const tier = sec?.section_tier || 'regular'
-             const pr = (priceRes.data || []).find(p => p.duration === 'yearly' && p.section_tier === tier)
-             if (pr) {
-               const type = slot.shelf_type
-               marketValue += (type === 'bottom' ? pr.bottom_price : type === 'eye_level' ? pr.eye_level_price : pr.top_level_price) * 12
-             }
-          }
-        })
+        const pr = (priceRes.data || []).find(p => p.duration === 'yearly')
+        if (pr) {
+          marketValue += (b.bottom_level_count || 0) * pr.bottom_price * 12
+          marketValue += (b.eye_level_count || 0) * pr.eye_level_price * 12
+          marketValue += (b.top_level_count || 0) * pr.top_level_price * 12
+        }
         const price = b.discount_percentage ? marketValue * (1 - b.discount_percentage / 100) : b.price
         return { ...b, marketValue, price }
       })
@@ -313,7 +307,12 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                         )}
                       </div>
 
-                      <div className="bg-white/50 border border-gray-100 rounded-xl p-4 space-y-2">
+                      <div className="bg-white/50 border border-gray-100 rounded-xl p-4 space-y-3">
+                         <div className="space-y-1 pb-2 border-b border-gray-50">
+                            {bundle.eye_level_count > 0 && <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter text-[#FE7F2D]"><span>Eye Level Slots</span><span>{bundle.eye_level_count}x</span></div>}
+                            {bundle.top_level_count > 0 && <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter text-blue-500"><span>Top Level Slots</span><span>{bundle.top_level_count}x</span></div>}
+                            {bundle.bottom_level_count > 0 && <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-tighter text-gray-700"><span>Bottom Level Slots</span><span>{bundle.bottom_level_count}x</span></div>}
+                         </div>
                          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
                             <span>Market Total:</span>
                             <span className="line-through">NPR {bundle.marketValue?.toLocaleString()}</span>
