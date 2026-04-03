@@ -72,10 +72,12 @@ export function SafeImage({ src, alt, fallback, className, ...props }: SafeImage
 
   // Check if it's a relative path or remote URL for Next.js Image
   const isRemote = displaySrc.startsWith("http") || displaySrc.startsWith("blob:")
+  const hasDimensions = props.width && props.height
+  const isFill = !!(props as any).fill
   
-  if (isRemote) {
-    // For remote images (including our converted blobs), we use standard img 
-    // to avoid Next.js image optimization errors with blob URLs or external domains not in config
+  if (isRemote || (!hasDimensions && !isFill)) {
+    // For remote images, converted blobs, or local images without required Next.js dimensions,
+    // we use standard img to avoid Next.js runtime errors.
     return <img src={displaySrc} alt={alt || ""} className={className} {...(props as any)} />
   }
 

@@ -100,6 +100,8 @@ function AdminDashboardContent() {
         <SafeImage
           src="/thc_club.gif"
           alt="loading"
+          width={500}
+          height={300}
           className="w-[70vw] max-w-[500px] h-auto object-contain"
           unoptimized
         />
@@ -108,6 +110,8 @@ function AdminDashboardContent() {
         <SafeImage
           src="/broski.png"
           alt="loading helper"
+          width={80}
+          height={80}
           className="w-16 sm:w-20 h-auto animate-bounce"
         />
 

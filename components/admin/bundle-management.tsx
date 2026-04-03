@@ -24,6 +24,7 @@ export function BundleManagement() {
     name: "",
     description: "",
     price: 0,
+    discountPercentage: 15,
     sectionId: "",
     slotIds: [] as string[]
   })
@@ -40,13 +41,31 @@ export function BundleManagement() {
     setLoading(true)
     try {
       const [{ data: bRes }, { data: sRes }, { data: secRes }, { data: shRes }, { data: pRes }] = await Promise.all([
-        supabase.from("shelf_bundles").select("*").order("created_at", { ascending: false }),
+        supabase.from("shelf_bundles").select("*, items:shelf_bundle_items(*)").order("created_at", { ascending: false }),
         supabase.from("shelf_slots").select("*").order("slot_number", { ascending: true }),
         supabase.from("shelf_sections").select("*").order("name"),
         supabase.from("shelves").select("*").order("name"),
         supabase.from("shelf_pricing_tiers").select("*").eq("duration", "yearly")
       ])
-      setBundles(bRes || [])
+
+      const calculatedBundles = (bRes || []).map(b => {
+        let mv = 0
+        b.items?.forEach((item: any) => {
+          const slot = (sRes || []).find(s => s.id === item.slot_id)
+          if (slot) {
+             const sec = (secRes || []).find(s => s.id === slot.section_id)
+             const tier = sec?.section_tier || 'regular'
+             const pr = (pRes || []).find(p => p.duration === 'yearly' && p.section_tier === tier)
+             if (pr) {
+               const type = slot.shelf_type || 'eye_level'
+               mv += (type === 'bottom' ? pr.bottom_price : type === 'eye_level' ? pr.eye_level_price : pr.top_level_price) * 12
+             }
+          }
+        })
+        return { ...b, marketValue: mv }
+      })
+
+      setBundles(calculatedBundles)
       setSlots(sRes || [])
       setSections(secRes || [])
       setShelves(shRes || [])
@@ -69,6 +88,7 @@ export function BundleManagement() {
         p_name: newBundle.name,
         p_description: newBundle.description,
         p_price: newBundle.price,
+        p_discount_percentage: newBundle.discountPercentage,
         p_section_id: newBundle.sectionId !== "none" ? newBundle.sectionId : null,
         p_slot_ids: newBundle.slotIds
       })
@@ -80,7 +100,7 @@ export function BundleManagement() {
 
       toast.success("Bundle created successfully.")
       setIsCreateOpen(false)
-      setNewBundle({ name: "", description: "", price: 0, sectionId: "", slotIds: [] })
+      setNewBundle({ name: "", description: "", price: 0, discountPercentage: 15, sectionId: "", slotIds: [] })
       fetchData()
     } catch (e: any) {
       toast.error(e.message || "Failed to create bundle")
@@ -88,8 +108,13 @@ export function BundleManagement() {
   }
 
   const handleDeleteBundle = async (id: string) => {
-    if (!confirm("Are you sure? This will not delete the slots, just the bundle itself.")) return
+    if (!confirm("Are you sure? This will not delete the physical slots, just the bundle definition.")) return
     try {
+      // First delete associated items
+      const { error: itemsError } = await supabase.from("shelf_bundle_items").delete().eq("bundle_id", id)
+      if (itemsError) throw itemsError
+
+      // Then delete the bundle
       const { error } = await supabase.from("shelf_bundles").delete().eq("id", id)
       if (error) {
         if (error.code === '23503') {
@@ -146,7 +171,8 @@ export function BundleManagement() {
   }
 
   const individualTotal = calculateIndividualTotal()
-  const discountAmount = Math.max(0, individualTotal - newBundle.price)
+  const calculatedPrice = newBundle.discountPercentage > 0 ? individualTotal * (1 - newBundle.discountPercentage / 100) : newBundle.price
+  const discountAmount = Math.max(0, individualTotal - calculatedPrice)
   const discountPct = individualTotal > 0 ? (discountAmount / individualTotal * 100) : 0
 
   return (
@@ -198,7 +224,8 @@ export function BundleManagement() {
               <div className="flex justify-between items-end pt-4 border-t border-[#FE7F2D]/5">
                 <div>
                   <p className="text-[10px] uppercase font-black text-gray-400 tracking-widest">Yearly Price</p>
-                  <p className="text-2xl font-black text-[#FE7F2D]">NPR {bundle.price.toLocaleString()}</p>
+                  <p className="text-xl font-bold line-through text-gray-300">NPR {bundle.marketValue?.toLocaleString()}</p>
+                  <p className="text-2xl font-black text-[#FE7F2D]">NPR {(bundle.discount_percentage ? (bundle.marketValue! * (1 - bundle.discount_percentage / 100)) : bundle.price).toLocaleString()}</p>
                 </div>
                 {bundle.discount_percentage && bundle.discount_percentage > 0 && (
                   <Badge className="bg-green-500 text-white font-black italic">Save {Math.round(bundle.discount_percentage)}%</Badge>
@@ -243,17 +270,21 @@ export function BundleManagement() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="font-black italic lowercase px-2">Yearly Fixed Price (NPR)</Label>
+                <Label className="font-black italic lowercase px-2">Package Discount (%)</Label>
                 <div className="relative">
-                  <Input type="number" value={newBundle.price || ""} onChange={e => setNewBundle(b => ({ ...b, price: parseFloat(e.target.value) || 0 }))} className="rounded-2xl" />
-                  {newBundle.price > 0 && individualTotal > 0 && (
-                    <Badge className="absolute right-3 top-1/2 -translate-y-1/2 bg-green-500 text-white font-black italic">Save {Math.round(discountPct)}%</Badge>
-                  )}
+                  <Input type="number" value={newBundle.discountPercentage || ""} onChange={e => setNewBundle(b => ({ ...b, discountPercentage: parseFloat(e.target.value) || 0 }))} className="rounded-2xl border-[#FE7F2D]/30" />
+                  <Badge className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#FE7F2D] text-white font-black italic">Target Discount</Badge>
                 </div>
                 {individualTotal > 0 && (
-                   <div className="flex items-center justify-between px-2 pt-1 border-t border-dashed mt-2">
-                      <span className="text-[10px] uppercase font-black text-gray-400">Individual Market Total:</span>
-                      <span className="text-[10px] font-black text-gray-500 line-through">NPR {individualTotal.toLocaleString()}</span>
+                   <div className="pt-2 flex flex-col gap-1 px-2">
+                      <div className="flex justify-between items-center text-xs font-bold text-gray-500 italic">
+                         <span>Final Dynamic Price:</span>
+                         <span className="text-[#FE7F2D] font-black">NPR {Math.round(calculatedPrice).toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-t border-dashed mt-1 pt-1 opacity-50">
+                         <span className="text-[10px] uppercase font-black text-gray-400">Market Price:</span>
+                         <span className="text-[10px] font-black text-gray-500 line-through">NPR {individualTotal.toLocaleString()}</span>
+                      </div>
                    </div>
                 )}
               </div>

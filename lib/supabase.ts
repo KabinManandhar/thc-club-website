@@ -357,6 +357,7 @@ export interface ShelfBundle {
   price: number
   original_total?: number
   discount_percentage?: number
+  marketValue?: number
   is_active: boolean
   created_at: string
 }
