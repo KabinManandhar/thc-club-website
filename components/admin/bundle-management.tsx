@@ -77,7 +77,10 @@ export function BundleManagement() {
         .select()
         .single()
 
-      if (bundleError) throw bundleError
+      if (bundleError) {
+        if (bundleError.code === '42501') throw new Error("Security Rejection: Your account doesn't have internal permission to write bundles. please execute the RLS fix in sql editor.")
+        throw bundleError
+      }
 
       const items = newBundle.slotIds.map(id => ({
         bundle_id: bundle.id,
@@ -85,7 +88,10 @@ export function BundleManagement() {
       }))
 
       const { error: itemsError } = await supabase.from('shelf_bundle_items').insert(items)
-      if (itemsError) throw itemsError
+      if (itemsError) {
+        if (itemsError.code === '42501') throw new Error("Security Rejection: cannot link slots to bundle due to policy violation.")
+        throw itemsError
+      }
 
       toast.success("Bundle created successfully.")
       setIsCreateOpen(false)

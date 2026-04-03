@@ -58,8 +58,8 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
   const [agreed, setAgreed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [bundles, setBundles] = useState<ShelfBundle[]>([])
-  const [selectedBundle, setSelectedBundle] = useState<ShelfBundle | null>(null)
+  const [bundles, setBundles] = useState<any[]>([])
+  const [selectedBundle, setSelectedBundle] = useState<any | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [slotRanges, setSlotRanges] = useState<Record<string, string>>({
     top_level: "73–108",
@@ -93,15 +93,34 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
     Promise.all([
       supabase.from("shelf_sections").select("*"),
       supabase.from("shelf_pricing_tiers").select("*"),
-      supabase.from("shelf_slots").select("shelf_type, slot_number, status, section_id"),
+      supabase.from("shelf_slots").select("id, shelf_type, slot_number, status, section_id"),
       supabase.from("platform_content").select("protocols").eq("id", 1).single(),
       supabase.from("store_images").select("*"),
-      supabase.from("shelf_bundles").select("*").eq("is_active", true)
+      supabase.from("shelf_bundles").select("*, items:shelf_bundle_items(*)").eq("is_active", true)
     ]).then(([secRes, priceRes, slotsRes, protRes, imgRes, bundleRes]) => {
       setSections(secRes.data || [])
       setPricingTiers(priceRes.data || [])
       setStoreImages(imgRes.data || [])
-      setBundles(bundleRes.data || [])
+      
+      // Calculate market values for bundles
+      const bundleData = (bundleRes.data || []).map(b => {
+        let marketValue = 0
+        b.items?.forEach((item: any) => {
+          const slot = (slotsRes.data || []).find(s => s.id === item.slot_id)
+          if (slot) {
+             const sec = (secRes.data || []).find(s => s.id === slot.section_id)
+             const tier = sec?.section_tier || 'regular'
+             const pr = (priceRes.data || []).find(p => p.duration === 'yearly' && p.section_tier === tier)
+             if (pr) {
+               const type = slot.shelf_type
+               marketValue += (type === 'bottom' ? pr.bottom_price : type === 'eye_level' ? pr.eye_level_price : pr.top_level_price) * 12
+             }
+          }
+        })
+        return { ...b, marketValue }
+      })
+      setBundles(bundleData)
+      
       if (protRes.data) setDynamicProtocols(protRes.data.protocols || [])
 
       if (slotsRes.data) {
@@ -259,36 +278,61 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
           {bundles.length > 0 && (
             <div className="space-y-4 mb-10">
               <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-4 h-4 text-[#FE7F2D]" />
-                <h3 className="text-xs font-black uppercase tracking-widest text-[#FE7F2D]">Featured Bundle Deals</h3>
+                <Zap className="w-5 h-5 text-[#FE7F2D] fill-[#FE7F2D]" />
+                <h3 className="font-black italic lowercase text-lg">Featured Bundle Deals</h3>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {bundles.map(bundle => (
-                  <div 
-                    key={bundle.id} 
-                    onClick={() => {
-                      setSelectedBundle(bundle)
-                      const section = sections.find(s => s.id === (bundle as any).section_id)
-                      if (section) setSelectedSection(section)
-                      setShelfType(null) // Reset individual type
-                      setDuration("yearly") // Bundles are locked to yearly
-                      setStep(3) // Jump straight to Business Info / Verification
-                    }}
-                    className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-3 group ${selectedBundle?.id === bundle.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-dashed border-gray-200 bg-gray-50/10 hover:border-[#FE7F2D]/30"}`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center group-hover:scale-110 transition-transform"><Zap className="w-5 h-5 text-[#FE7F2D]" /></div>
-                      <div className="text-right">
-                        <p className="text-xl font-black text-[#FE7F2D]">NPR {bundle.price.toLocaleString()}</p>
-                        <Badge className="bg-green-500 text-white text-[8px] font-black italic">Save {Math.round(bundle.discount_percentage || 0)}%</Badge>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {bundles.map((bundle) => {
+                  const savings = Math.max(0, bundle.marketValue - bundle.price)
+                  const savingsPct = bundle.marketValue > 0 ? Math.round((savings / bundle.marketValue) * 100) : 0
+                  
+                  return (
+                    <div
+                      key={bundle.id}
+                      onClick={() => {
+                        setSelectedBundle(bundle)
+                        const section = sections.find(s => s.id === (bundle as any).section_id)
+                        if (section) setSelectedSection(section)
+                        setShelfType(null)
+                        setDuration("yearly")
+                        setStep(3)
+                      }}
+                      className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-4 group ${selectedBundle?.id === bundle.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-dashed border-gray-200 bg-gray-50/10 hover:border-[#FE7F2D]/30"}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <h4 className="font-black lowercase italic text-xl group-hover:text-[#FE7F2D] transition-colors">{bundle.name}</h4>
+                          <p className="text-xs text-gray-400 lowercase italic line-clamp-1">{bundle.description}</p>
+                        </div>
+                        {savingsPct > 0 && (
+                          <Badge className="bg-green-500 text-white font-black italic rounded-lg">Save {savingsPct}%</Badge>
+                        )}
+                      </div>
+
+                      <div className="bg-white/50 border border-gray-100 rounded-xl p-4 space-y-2">
+                         <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-gray-400">
+                            <span>Market Total:</span>
+                            <span className="line-through">NPR {bundle.marketValue?.toLocaleString()}</span>
+                         </div>
+                         <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold lowercase italic text-[#FE7F2D]">Bundle Deal:</span>
+                            <span className="text-2xl font-black text-[#FE7F2D]">NPR {bundle.price.toLocaleString()}</span>
+                         </div>
+                         <div className="pt-2 border-t border-dashed flex justify-between items-center">
+                            <span className="text-[9px] font-black uppercase text-green-600">Your Collective Savings:</span>
+                            <span className="text-sm font-black text-green-600">NPR {savings.toLocaleString()}</span>
+                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 mt-auto">
+                         <div className="px-3 py-1 bg-gray-100 rounded-lg text-[9px] font-black uppercase tracking-tighter text-gray-400">
+                            {bundle.items?.length || 0} Slots Included
+                         </div>
+                         <div className="text-[10px] font-black lowercase italic text-gray-300">Yearly Protocol</div>
                       </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold lowercase italic text-lg">{bundle.name}</h4>
-                      <p className="text-xs text-gray-500 lowercase italic line-clamp-2">{bundle.description}</p>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
               <div className="flex items-center gap-2 py-4">
                  <div className="flex-1 h-[1px] bg-gray-100"></div>
