@@ -357,33 +357,9 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                     </TabsContent>
 
                     <TabsContent value="research" className="space-y-16 animate-in fade-in zoom-in-95 duration-500 outline-none">
-                        {/* ── research stats ── */}
-                        <div className="max-w-6xl mx-auto space-y-8">
-                            <div className="text-center space-y-2">
-                                <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest">the data layer</p>
-                                <h3 className="text-4xl font-black tracking-tighter lowercase italic text-[#010307]">what the research says</h3>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {STATS.map((stat, i) => (
-                                    <a key={i} href={stat.href} target="_blank" rel="noopener noreferrer" className="block outline-none group">
-                                        <Card className="p-6 border border-[#FE7F2D]/10 bg-white/50 rounded-3xl text-center space-y-2 h-full group-hover:border-[#FE7F2D]/40 group-hover:bg-white group-hover:shadow-lg group-hover:shadow-orange-500/5 transition-all duration-300">
-                                            <p className="text-4xl font-black tracking-tighter italic text-[#010307] group-hover:text-[#FE7F2D] transition-colors">{stat.num}</p>
-                                            <p className="text-xs text-[#010307]/50 italic leading-relaxed group-hover:text-[#010307]/70 transition-colors">{stat.label}</p>
-                                            <div className="flex items-center justify-center gap-1 mt-2">
-                                                <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest group-hover:underline underline-offset-4">{stat.source}</p>
-                                                <svg className="w-2.5 h-2.5 text-[#FE7F2D] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                                </svg>
-                                            </div>
-                                        </Card>
-                                    </a>
-                                ))}
-                            </div>
-                        </div>
-
                         {/* ── stall vs shelf comparison ── */}
                         <Card className="max-w-4xl mx-auto border border-[#FE7F2D]/10 rounded-[2.5rem] bg-white/50 backdrop-blur-sm p-10 sm:p-12 overflow-hidden shadow-sm">
-                            <p className="text-xs font-bold text-[#FE7F2D] uppercase tracking-widest mb-8 text-center px-4 py-1.5 border border-[#FE7F2D]/20 rounded-full w-fit mx-auto">the event table math</p>
+                            <p className="text-xs font-bold text-[#FE7F2D] uppercase tracking-widest mb-8 text-center px-4 py-1.5 border border-[#FE7F2D]/20 rounded-full w-fit mx-auto">the event/stall table quick maths</p>
                             <div className="grid grid-cols-2 gap-6 sm:gap-12">
                                 <div className="space-y-4 text-center">
                                     <p className="text-xs font-bold text-[#010307]/30 uppercase tracking-widest">event stall</p>
@@ -432,6 +408,31 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                                 </p>
                             </div>
                         </Card>
+                        {/* ── research stats ── */}
+                        <div className="max-w-6xl mx-auto space-y-8">
+                            <div className="text-center space-y-2">
+                                <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest">the data layer</p>
+                                <h3 className="text-4xl font-black tracking-tighter lowercase italic text-[#010307]">what the research says</h3>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {STATS.map((stat, i) => (
+                                    <a key={i} href={stat.href} target="_blank" rel="noopener noreferrer" className="block outline-none group">
+                                        <Card className="p-6 border border-[#FE7F2D]/10 bg-white/50 rounded-3xl text-center space-y-2 h-full group-hover:border-[#FE7F2D]/40 group-hover:bg-white group-hover:shadow-lg group-hover:shadow-orange-500/5 transition-all duration-300">
+                                            <p className="text-4xl font-black tracking-tighter italic text-[#010307] group-hover:text-[#FE7F2D] transition-colors">{stat.num}</p>
+                                            <p className="text-xs text-[#010307]/50 italic leading-relaxed group-hover:text-[#010307]/70 transition-colors">{stat.label}</p>
+                                            <div className="flex items-center justify-center gap-1 mt-2">
+                                                <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest group-hover:underline underline-offset-4">{stat.source}</p>
+                                                <svg className="w-2.5 h-2.5 text-[#FE7F2D] opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                                </svg>
+                                            </div>
+                                        </Card>
+                                    </a>
+                                ))}
+                            </div>
+                        </div>
+
+
                     </TabsContent>
 
                     <TabsContent value="calculator" className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500 outline-none">
