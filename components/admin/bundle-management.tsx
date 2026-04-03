@@ -97,11 +97,16 @@ export function BundleManagement() {
     if (!confirm("Are you sure? This will not delete the slots, just the bundle itself.")) return
     try {
       const { error } = await supabase.from("shelf_bundles").delete().eq("id", id)
-      if (error) throw error
+      if (error) {
+        if (error.code === '23503') {
+           throw new Error("Cabinet Lockout: This bundle is linked to active bookings. deactivate it instead or settle associated bookings to purge.")
+        }
+        throw error
+      }
       toast.success("Bundle removed.")
       fetchData()
     } catch (e: any) {
-      toast.error(e.message)
+      toast.error(e.message || "terminal rejection: check database connectivity")
     }
   }
 
@@ -137,12 +142,33 @@ export function BundleManagement() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {bundles.map(bundle => (
-          <Card key={bundle.id} className="border-[#FE7F2D]/10 bg-white/50 backdrop-blur-sm overflow-hidden">
+          <Card key={bundle.id} className={`border-[#FE7F2D]/10 bg-white/50 backdrop-blur-sm overflow-hidden transition-opacity ${!bundle.is_active ? 'opacity-50 grayscale-[0.5]' : ''}`}>
             <CardHeader className="bg-[#FE7F2D]/5 flex flex-row justify-between items-center py-4">
-              <CardTitle className="text-lg font-black lowercase italic">{bundle.name}</CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => handleDeleteBundle(bundle.id)} className="text-red-400 hover:text-red-500 hover:bg-red-50">
-                <Trash2 className="w-4 h-4" />
-              </Button>
+              <div className="flex flex-col gap-1">
+                 <CardTitle className="text-lg font-black lowercase italic">{bundle.name}</CardTitle>
+                 <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={`text-[10px] uppercase font-black tracking-widest ${bundle.is_active ? 'bg-green-50 text-green-600 border-green-100' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
+                      {bundle.is_active ? 'active deal' : 'inactive'}
+                    </Badge>
+                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button 
+                   variant="ghost" 
+                   size="icon" 
+                   onClick={async () => {
+                     const { error } = await supabase.from('shelf_bundles').update({ is_active: !bundle.is_active }).eq('id', bundle.id)
+                     if (!error) fetchData()
+                   }} 
+                   className="text-gray-400 hover:text-[#FE7F2D] hover:bg-orange-50"
+                   title="Toggle Active Status"
+                >
+                  <Zap className={`w-4 h-4 ${bundle.is_active ? 'fill-[#FE7F2D] text-[#FE7F2D]' : ''}`} />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => handleDeleteBundle(bundle.id)} className="text-red-400 hover:text-red-500 hover:bg-red-50">
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center gap-2">
