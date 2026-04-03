@@ -1,3 +1,5 @@
+"use client";
+
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { SafeImage } from "@/components/ui/safe-image";
 import { BookingsManagement } from "@/components/admin/bookings-management";
