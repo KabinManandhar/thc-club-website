@@ -78,7 +78,7 @@ export function BundleManagement() {
   }
 
   const handleCreateBundle = async () => {
-    if (!newBundle.name || newBundle.price <= 0 || newBundle.slotIds.length === 0) {
+    if (!newBundle.name || newBundle.slotIds.length === 0) {
       toast.error("Please fill all required fields and select at least one slot.")
       return
     }
@@ -87,7 +87,7 @@ export function BundleManagement() {
       const { data: bundleId, error } = await supabase.rpc('create_shelf_bundle_v2', {
         p_name: newBundle.name,
         p_description: newBundle.description,
-        p_price: newBundle.price,
+        p_price: Math.round(calculatedPrice),
         p_discount_percentage: newBundle.discountPercentage,
         p_section_id: newBundle.sectionId !== "none" ? newBundle.sectionId : null,
         p_slot_ids: newBundle.slotIds
