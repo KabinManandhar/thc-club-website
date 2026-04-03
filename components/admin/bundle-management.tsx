@@ -17,6 +17,7 @@ export function BundleManagement() {
   const [slots, setSlots] = useState<ShelfSlot[]>([])
   const [sections, setSections] = useState<ShelfSection[]>([])
   const [shelves, setShelves] = useState<Shelf[]>([])
+  const [pricingTiers, setPricingTiers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [newBundle, setNewBundle] = useState({
@@ -38,16 +39,18 @@ export function BundleManagement() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [{ data: bRes }, { data: sRes }, { data: secRes }, { data: shRes }] = await Promise.all([
+      const [{ data: bRes }, { data: sRes }, { data: secRes }, { data: shRes }, { data: pRes }] = await Promise.all([
         supabase.from("shelf_bundles").select("*").order("created_at", { ascending: false }),
         supabase.from("shelf_slots").select("*").order("slot_number", { ascending: true }),
         supabase.from("shelf_sections").select("*").order("name"),
-        supabase.from("shelves").select("*").order("name")
+        supabase.from("shelves").select("*").order("name"),
+        supabase.from("shelf_pricing_tiers").select("*").eq("duration", "yearly")
       ])
       setBundles(bRes || [])
       setSlots(sRes || [])
       setSections(secRes || [])
       setShelves(shRes || [])
+      setPricingTiers(pRes || [])
     } catch (e) {
       toast.error("Failed to fetch bundling data.")
     } finally {
@@ -124,12 +127,36 @@ export function BundleManagement() {
     setNewBundle(prev => {
       const otherSlots = prev.slotIds.filter(id => !shelfSlots.includes(id))
       const allSelected = shelfSlots.every(id => prev.slotIds.includes(id))
-      
-      // If already all selected, toggle them OFF, else turn them ON
-      if (allSelected) return { ...prev, slotIds: otherSlots }
-      return { ...prev, slotIds: [...new Set([...prev.slotIds, ...shelfSlots])] }
+      return { ...prev, slotIds: allSelected ? otherSlots : [...new Set([...prev.slotIds, ...shelfSlots])] }
     })
   }
+
+  const calculateIndividualTotal = () => {
+    let total = 0
+    newBundle.slotIds.forEach(slotId => {
+      const slot = slots.find(s => s.id === slotId)
+      if (!slot) return
+      
+      const section = sections.find(sec => sec.id === slot.section_id)
+      const tier = section?.section_tier || 'regular'
+      const pricing = pricingTiers.find(p => p.section_tier === tier)
+      
+      if (pricing) {
+        let slotPrice = 0
+        const type = slot.shelf_type || 'eye_level'
+        if (type === 'bottom') slotPrice = pricing.bottom_price
+        else if (type === 'eye_level') slotPrice = pricing.eye_level_price
+        else slotPrice = pricing.top_level_price
+        
+        total += (slotPrice * 12) // Individual Yearly Total
+      }
+    })
+    return total
+  }
+
+  const individualTotal = calculateIndividualTotal()
+  const discountAmount = Math.max(0, individualTotal - newBundle.price)
+  const discountPct = individualTotal > 0 ? (discountAmount / individualTotal * 100) : 0
 
   return (
     <div className="space-y-6">
@@ -226,7 +253,18 @@ export function BundleManagement() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="font-black italic lowercase px-2">Yearly Fixed Price (NPR)</Label>
-                <Input type="number" value={newBundle.price || ""} onChange={e => setNewBundle(b => ({ ...b, price: parseFloat(e.target.value) || 0 }))} className="rounded-2xl" />
+                <div className="relative">
+                  <Input type="number" value={newBundle.price || ""} onChange={e => setNewBundle(b => ({ ...b, price: parseFloat(e.target.value) || 0 }))} className="rounded-2xl" />
+                  {newBundle.price > 0 && individualTotal > 0 && (
+                    <Badge className="absolute right-3 top-1/2 -translate-y-1/2 bg-green-500 text-white font-black italic">Save {Math.round(discountPct)}%</Badge>
+                  )}
+                </div>
+                {individualTotal > 0 && (
+                   <div className="flex items-center justify-between px-2 pt-1 border-t border-dashed mt-2">
+                      <span className="text-[10px] uppercase font-black text-gray-400">Individual Market Total:</span>
+                      <span className="text-[10px] font-black text-gray-500 line-through">NPR {individualTotal.toLocaleString()}</span>
+                   </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label className="font-black italic lowercase px-2">Description</Label>
