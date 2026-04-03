@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, ArrowRight, BarChart3, Camera, CheckCircle2, Eye, Heart, Instagram, Lock, LogIn, Menu, Package, ShieldCheck, TrendingUp, Users, X, Zap } from "lucide-react"
 import Image from "next/image"
+import { SafeImage } from "@/components/ui/safe-image"
 import { useEffect, useState } from "react"
 
 import {
@@ -107,8 +108,8 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-8">
                 {storeImages.slice(0, 4).map((img: any, idx: number) => (
                   <div key={img.id} className={`group relative aspect-[4/5] rounded-[2rem] sm:rounded-[4rem] overflow-hidden border border-[#FE7F2D]/10 shadow-2xl transition-all duration-700 hover-lift ${idx % 2 === 1 ? 'translate-y-12' : ''}`}>
-                    <img
-                      src={`${img.url}?width=400&quality=70`}
+                    <SafeImage
+                      src={img.url}
                       alt={img.section}
                       className="w-full h-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0 group-hover:scale-110"
                       loading="lazy"
@@ -141,7 +142,7 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
                   <div key={brand.id} className="group relative flex flex-col items-center gap-6 sm:gap-8 transition-all duration-300 hover-lift">
                     <div className="w-32 h-32 sm:w-48 sm:h-48 bg-[#FFFCEB] rounded-[2.5rem] sm:rounded-[4rem] border border-[#FE7F2D]/10 flex items-center justify-center p-6 sm:p-12 overflow-hidden shadow-xl group-hover:shadow-[#FE7F2D]/10 transition-all">
                       {brand.logo_url ? (
-                        <Image
+                        <SafeImage
                           src={brand.logo_url}
                           alt={brand.business_name}
                           width={200}
@@ -1068,7 +1069,7 @@ export default function LandingPage() {
                             onClick={() => setPreviewIdx(idx)}
                             className="relative aspect-[16/11] bg-white rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl transition-all duration-700 hover:scale-[1.02] cursor-zoom-in"
                           >
-                            <img
+                            <SafeImage
                               src={`${img.url}?width=800&quality=75`}
                               alt={img.section}
                               className="w-full h-full object-cover grayscale transition-all duration-1000 hover:grayscale-0"
@@ -1243,10 +1244,9 @@ export default function LandingPage() {
                     <div key={brand.id} className="group relative flex flex-col items-center gap-4 sm:gap-6 transition-all duration-300 hover-lift">
                       <div className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-56 md:h-56 bg-white rounded-[2rem] sm:rounded-[3rem] border border-[#FE7F2D]/5 overflow-hidden shadow-2xl group-hover:shadow-[#FE7F2D]/10 transition-all flex items-center justify-center">
                         {brand.logo_url ? (
-                          <Image
+                          <SafeImage
                             src={brand.logo_url}
                             alt={brand.business_name}
-                            fill
                             className="object-contain p-4 sm:p-6 transition-all duration-500 group-hover:scale-105"
                           />
                         ) : (
@@ -1386,7 +1386,7 @@ export default function LandingPage() {
           {/* Image Frame */}
           <div className="flex flex-col items-center gap-10 max-w-7xl max-h-[90vh] p-4" onClick={(e) => e.stopPropagation()}>
             <div className="relative group/lb rounded-[2rem] sm:rounded-[4rem] overflow-hidden shadow-[0_0_100px_rgba(254,127,45,0.1)] border border-white/5">
-              <img
+              <SafeImage
                 src={storeImages[previewIdx].url}
                 className="max-w-full max-h-[80vh] object-contain"
                 alt="Store Preview"

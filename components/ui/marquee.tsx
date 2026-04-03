@@ -1,3 +1,4 @@
+import { SafeImage } from "./safe-image"
 import { useState } from "react"
 
 export default function Marquee() {
@@ -15,10 +16,11 @@ export default function Marquee() {
                         left: position.x + 20,
                     }}
                 >
-                    <img
+                    <SafeImage
                         src="/thc_club.gif"
                         alt="preview"
                         className="w-48 sm:w-64 rounded-xl shadow-2xl border border-[#FE7F2D]/20"
+                        unoptimized
                     />
                 </div>
             )}

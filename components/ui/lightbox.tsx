@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { ArrowLeft, ArrowRight, X } from "lucide-react"
+import { SafeImage } from "./safe-image"
 import { useCallback, useEffect, useState } from "react"
 
 interface ImageLightboxProps {
@@ -76,7 +77,7 @@ export function ImageLightbox({ images, isOpen, onClose, initialIndex = 0 }: Ima
           )}
 
           <div className="w-full h-full relative flex items-center justify-center">
-            <img 
+            <SafeImage 
               src={images[currentIndex]} 
               alt={`Preview ${currentIndex + 1}`} 
               className="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300"

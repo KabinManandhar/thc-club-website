@@ -20,7 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { supabase } from "@/lib/supabase"
 import { userAuth, type ApprovedUser } from "@/lib/user-auth"
 import { Clock, HelpCircle, LogOut, Shield, Zap } from "lucide-react"
-import Image from "next/image"
+import { SafeImage } from "@/components/ui/safe-image"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -229,7 +229,7 @@ function ClubPageContent() {
         <div className="container mx-auto">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
-              <Image src="/logo.png" alt="THC Club" width={100} height={50} className="h-8 w-auto" />
+              <SafeImage src="/logo.png" alt="THC Club" width={100} height={50} className="h-8 w-auto" />
               <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D] text-[10px] lowercase font-bold tracking-wide px-4 py-1.5 rounded-full">club access</Badge>
             </div>
             <Button
@@ -687,7 +687,7 @@ function ClubPageContent() {
       <footer className="mt-32 border-t border-[#FE7F2D]/10 py-20 bg-[#FFFCEB] overflow-hidden relative">
         <div className="container mx-auto px-6 text-center space-y-6 relative z-10">
           <div className="flex justify-center flex-col items-center gap-6">
-            <Image src="/logo.png" alt="THC Club" width={120} height={60} className="grayscale opacity-20" />
+            <SafeImage src="/logo.png" alt="THC Club" width={120} height={60} className="grayscale opacity-20" />
             <Badge variant="outline" className="border-[#010307]/10 text-[#010307]/20 font-mono text-[9px] lowercase font-bold tracking-widest px-4 py-1.5 rounded-full">kathmandu • nepal • outlet 01</Badge>
           </div>
           <p className="text-[11px] font-bold text-[#010307]/10 lowercase tracking-[0.2em]">the hidden collective club © 2026</p>

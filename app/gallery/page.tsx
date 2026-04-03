@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { supabase, StoreImage } from "@/lib/supabase"
 import { ImageLightbox } from "@/components/ui/lightbox"
+import { SafeImage } from "@/components/ui/safe-image"
 import { ArrowLeft, Expand, Grid, LayoutGrid, Maximize2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -71,7 +72,7 @@ export default function GalleryPage() {
                 onClick={() => setLightbox({ isOpen: true, index: idx })}
               >
                 <div className="relative w-full overflow-hidden">
-                  <img 
+                  <SafeImage 
                     src={img.url} 
                     alt={img.section} 
                     className="w-full h-auto object-cover grayscale group-hover:grayscale-0 transition-all duration-700 group-hover:scale-105"

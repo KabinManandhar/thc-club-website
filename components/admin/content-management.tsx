@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { SafeImage } from "@/components/ui/safe-image"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { adminAuth } from "@/lib/auth"
 import { StoreImage, supabase } from "@/lib/supabase"
-import { cn } from "@/lib/utils"
+import { cn, processImageFile } from "@/lib/utils"
 import {
   Camera,
   Check,
@@ -171,12 +172,13 @@ export function ContentManagement() {
 
     setUploadingImage(true)
     try {
-      const fileExt = file.name.split('.').pop()
+      const processedFile = await processImageFile(file)
+      const fileExt = processedFile.name.split('.').pop()
       const fileName = `store-gallery/${Date.now()}.${fileExt}`
 
       const { error: uploadError } = await supabase.storage
         .from('media')
-        .upload(fileName, file)
+        .upload(fileName, processedFile)
 
       if (uploadError) throw uploadError
 
@@ -569,7 +571,7 @@ export function ContentManagement() {
                       id="gallery-upload"
                       className="hidden"
                       onChange={handleUploadGalleryImage}
-                      accept="image/*"
+                      accept="image/*,.heic,.heif"
                     />
                     <Button
                       onClick={() => document.getElementById('gallery-upload')?.click()}
@@ -596,8 +598,9 @@ export function ContentManagement() {
                       <TableRow key={img.id} className="group border-gray-50 hover:bg-gray-50/50 transition-all h-20">
                         <TableCell>
                           <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm relative group/btn">
-                            <img
-                              src={`${img.url}?width=100&quality=60`}
+                            <SafeImage
+                              src={img.url}
+                              alt={img.section}
                               className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500"
                               loading="lazy"
                             />

@@ -15,12 +15,13 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { SafeImage } from "@/components/ui/safe-image"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { supabase, type Brand, type BrandChangeRequest, type BrandContract, type BrandProduct, type Enquiry, type Invoice, type ShelfBooking, type VisitRequest } from "@/lib/supabase"
-import { generateSKU } from "@/lib/utils"
+import { generateSKU, processImageFile } from "@/lib/utils"
 import { AlertCircle, ArrowLeft, BarChart3, Calendar, Check, ChevronRight, Clock, X as CloseX, DollarSign, FileText, Image as ImageIcon, Info, Instagram, LayoutGrid, Mail, MessageSquare, Package, Phone, Search, ShieldCheck, StickyNote, Trash2, TrendingUp, Users } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
@@ -229,12 +230,13 @@ export function BrandManagement() {
     if (!file || !selectedBrand) return
 
     try {
-      const fileExt = file.name.split('.').pop()
+      const processedFile = await processImageFile(file)
+      const fileExt = processedFile.name.split('.').pop()
       const fileName = `contracts/${selectedBrand.id}/${Date.now()}.${fileExt}`
 
       const { error: uploadError } = await supabase.storage
         .from('media')
-        .upload(fileName, file)
+        .upload(fileName, processedFile)
 
       if (uploadError) throw uploadError
 
@@ -516,7 +518,7 @@ export function BrandManagement() {
                                         return (
                                           <div key={key} className="col-span-2 flex items-center gap-4 py-2 border-b border-gray-100">
                                             <span className="text-[10px] font-black uppercase text-gray-400 w-24">Image</span>
-                                            <img src={value as string} alt="preview" className="w-16 h-16 rounded-xl object-cover border" />
+                                            <SafeImage src={value as string} alt="preview" className="w-16 h-16 rounded-xl object-cover border" />
                                           </div>
                                         )
                                       }
@@ -597,7 +599,7 @@ export function BrandManagement() {
                               <TableCell className="px-4">
                                 <div className="flex items-center gap-3">
                                   {p.image_url ? (
-                                    <img src={p.image_url} alt={p.name} className="w-8 h-8 rounded-lg object-cover bg-gray-100 border shadow-sm" />
+                                    <SafeImage src={p.image_url} alt={p.name} className="w-8 h-8 rounded-lg object-cover bg-gray-100 border shadow-sm" />
                                   ) : (
                                     <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center border border-gray-100 shrink-0">
                                       <ImageIcon className="w-4 h-4 text-gray-300" />
@@ -782,7 +784,7 @@ export function BrandManagement() {
                           id="contract-upload-final"
                           className="hidden"
                           onChange={uploadContract}
-                          accept=".pdf,.doc,.docx,.jpg,.png"
+                          accept=".pdf,.doc,.docx,.jpg,.png,.heic,.heif"
                         />
                         <Button
                           onClick={() => document.getElementById('contract-upload-final')?.click()}

@@ -4,7 +4,10 @@ import { useState } from "react"
 import { UploadCloud, X, Loader2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { Button } from "./button"
+import { SafeImage } from "./safe-image"
 import { toast } from "sonner"
+
+import { processImageFile } from "@/lib/utils"
 
 interface FileUploadProps {
   bucket?: string
@@ -22,17 +25,18 @@ export function FileUpload({
   value,
   onChange,
   onRemove,
-  accept = "image/*",
+  accept = "image/*,.heic,.heif",
   className
 }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    let file = e.target.files?.[0]
     if (!file) return
 
     try {
       setIsUploading(true)
+      file = await processImageFile(file)
       const fileExt = file.name.split(".").pop()
       const fileName = `${folder}/${Math.random()}.${fileExt}`
       
@@ -63,14 +67,15 @@ export function FileUpload({
     return (
       <div className="relative inline-block border rounded-xl overflow-hidden shadow-sm">
         {/* If it's an image, display it */}
-        <img 
+        <SafeImage 
           src={value} 
           alt="Uploaded File" 
           className="w-32 h-32 object-cover bg-gray-50" 
-          onError={(e) => {
-            // fallback if not an image (like a contract PDF)
-            e.currentTarget.style.display = 'none'
-          }} 
+          fallback={
+            <div className="w-32 h-32 bg-gray-50 flex items-center justify-center">
+              <UploadCloud className="w-8 h-8 text-gray-200" />
+            </div>
+          }
         />
         <Button
           type="button"

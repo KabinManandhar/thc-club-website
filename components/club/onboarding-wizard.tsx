@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ImageLightbox } from "@/components/ui/lightbox"
+import { SafeImage } from "@/components/ui/safe-image"
 import { DURATION_MONTHS, supabase, type Duration, type PromotionalOffer, type ShelfBundle, type ShelfPricingTier, type ShelfSection, type ShelfType } from "@/lib/supabase"
 import { ArrowLeft, ArrowRight, Banknote, Camera, CheckCircle2, Clock, Info, Layout, Package, QrCode, Tag, Users, Zap } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
@@ -381,7 +382,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                             openLightbox(zoneImages.map(zi => zi.url), i);
                           }}
                         >
-                          <img src={img.url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                          <SafeImage src={img.url} alt={img.section} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                           <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                             <Camera className="w-4 h-4 text-white" />
                           </div>

@@ -17,7 +17,9 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { PlusCircle, Search, Edit2, Trash2, AlertTriangle, Package, Shield, AlertCircle, Clock } from "lucide-react"
+import { PlusCircle, Search, Edit2, Trash2, AlertTriangle, Package, Shield, AlertCircle, Clock, Image as ImageIcon } from "lucide-react"
+import { FileUpload } from "@/components/ui/file-upload"
+import { SafeImage } from "@/components/ui/safe-image"
 import { toast } from "sonner"
 
 interface InventoryManagementProps {
@@ -31,6 +33,7 @@ const EMPTY_FORM = {
   price: "",
   stock_quantity: "",
   low_stock_threshold: "5",
+  image_url: "",
 }
 
 export function InventoryManagement({ brandId }: InventoryManagementProps) {
@@ -76,6 +79,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
       price: product.price.toString(),
       stock_quantity: product.stock_quantity.toString(),
       low_stock_threshold: product.low_stock_threshold.toString(),
+      image_url: product.image_url || "",
     })
     setFormError(null)
     setIsFormOpen(true)
@@ -108,6 +112,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
       price: parseFloat(form.price),
       stock_quantity: parseInt(form.stock_quantity) || 0,
       low_stock_threshold: parseInt(form.low_stock_threshold) || 5,
+      image_url: form.image_url || null,
     }
 
     try {
@@ -280,8 +285,12 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                   <TableRow key={p.id} className="hover:bg-gray-50/50 border-gray-50 transition-colors">
                     <TableCell className="px-8 py-6">
                       <div className="flex items-center gap-4">
-                         <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100">
-                            <Package className="w-6 h-6 text-gray-200" />
+                         <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 overflow-hidden shrink-0 shadow-sm">
+                            {p.image_url ? (
+                              <SafeImage src={p.image_url} alt={p.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                            ) : (
+                              <Package className="w-6 h-6 text-gray-200" />
+                            )}
                          </div>
                          <div className="flex flex-col">
                            <div className="font-bold text-[#010307] tracking-tight lowercase">{p.name}</div>
@@ -332,7 +341,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
             </DialogHeader>
             
             <div className="space-y-6">
-               <div className="grid sm:grid-cols-2 gap-6">
+               <div className="grid sm:grid-cols-2 gap-8">
                   <div className="space-y-4">
                      <div>
                         <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Official Item Name *</Label>
@@ -352,6 +361,18 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                            className="rounded-2xl h-14 border-gray-100 font-bold"
                         />
                      </div>
+                  </div>
+
+                  <div className="space-y-4">
+                     <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Product Visual</Label>
+                     <FileUpload 
+                        bucket="media"
+                        folder={`brand_${brandId}/products`}
+                        value={form.image_url}
+                        onChange={(url) => setForm(f => ({ ...f, image_url: url }))}
+                        onRemove={() => setForm(f => ({ ...f, image_url: "" }))}
+                        className="h-32 rounded-2xl"
+                     />
                   </div>
                </div>
 

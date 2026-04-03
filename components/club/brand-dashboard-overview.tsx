@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { SafeImage } from "@/components/ui/safe-image"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import {
@@ -316,7 +317,7 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center border-2 border-dashed border-gray-100 group-hover:border-red-100 transition-colors">
                                {p.image_url ? (
-                                  <img src={p.image_url} alt={p.name} className="w-full h-full rounded-xl object-cover" />
+                                  <SafeImage src={p.image_url} alt={p.name} className="w-full h-full rounded-xl object-cover" />
                                ) : (
                                   <Package className="w-5 h-5 text-gray-300" />
                                )}

@@ -11,3 +11,31 @@ export function generateSKU(brandName: string, productName: string) {
   const randomNum = Math.floor(1000 + Math.random() * 9000)
   return `${cleanBrand}-${cleanProduct}-${randomNum}`
 }
+
+export async function processImageFile(file: File): Promise<File> {
+  const isHeic = file.name.toLowerCase().endsWith(".heic") || 
+                 file.name.toLowerCase().endsWith(".heif") ||
+                 file.type === "image/heic" || 
+                 file.type === "image/heif";
+
+  if (isHeic) {
+    try {
+      const heic2any = (await import("heic2any")).default;
+      const convertedBlob = await heic2any({
+        blob: file,
+        toType: "image/jpeg",
+        quality: 0.8
+      });
+      
+      const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+      return new File([blob], file.name.replace(/\.(heic|heif)$/i, ".jpg"), {
+        type: "image/jpeg",
+        lastModified: new Date().getTime()
+      });
+    } catch (err) {
+      console.error("HEIC conversion failed:", err);
+      throw new Error("Failed to process HEIC image.");
+    }
+  }
+  return file;
+}

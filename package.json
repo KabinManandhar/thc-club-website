@@ -47,6 +47,7 @@
     "cmdk": "latest",
     "date-fns": "4.1.0",
     "embla-carousel-react": "latest",
+    "heic2any": "^0.0.4",
     "html2canvas": "^1.4.1",
     "input-otp": "latest",
     "jspdf": "^4.2.1",

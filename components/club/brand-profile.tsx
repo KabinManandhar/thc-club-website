@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { FileUpload } from "@/components/ui/file-upload"
+import { SafeImage } from "@/components/ui/safe-image"
 import { toast } from "sonner"
 import { 
   User, 
@@ -159,7 +160,7 @@ export function BrandProfile({ brandId }: BrandProfileProps) {
          <div className="relative z-10 flex h-full items-center gap-10">
             <div className="relative group/logo">
                {form.logo_url ? (
-                  <img src={form.logo_url} alt="Brand Logo" className="w-24 h-24 rounded-2xl object-cover bg-gray-50 border border-black/5 shadow-sm transition-all group-hover/logo:scale-105" />
+                  <SafeImage src={form.logo_url} alt="Brand Logo" className="w-24 h-24 rounded-2xl object-cover bg-gray-50 border border-black/5 shadow-sm transition-all group-hover/logo:scale-105" />
                ) : (
                   <div className="w-24 h-24 rounded-2xl bg-gray-50 border border-black/5 flex items-center justify-center text-black/10">
                      <User className="w-10 h-10" />

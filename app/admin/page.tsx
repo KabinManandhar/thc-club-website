@@ -1,6 +1,5 @@
-"use client";
-
 import { AdminLayout } from "@/components/admin/admin-layout";
+import { SafeImage } from "@/components/ui/safe-image";
 import { BookingsManagement } from "@/components/admin/bookings-management";
 import { BrandManagement } from "@/components/admin/brand-management";
 import { DashboardOverview } from "@/components/admin/dashboard-overview";
@@ -96,14 +95,15 @@ function AdminDashboardContent() {
       <div className="min-h-screen bg-[#FFFCEB] flex flex-col items-center justify-center gap-6">
 
         {/* Main GIF */}
-        <img
+        <SafeImage
           src="/thc_club.gif"
           alt="loading"
           className="w-[70vw] max-w-[500px] h-auto object-contain"
+          unoptimized
         />
 
         {/* Bouncing Broski */}
-        <img
+        <SafeImage
           src="/broski.png"
           alt="loading helper"
           className="w-16 sm:w-20 h-auto animate-bounce"
