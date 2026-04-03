@@ -72,40 +72,41 @@ export function BookingsManagement() {
         return
       }
 
-      // Update booking
-      await supabase.from("shelf_bookings").update({
-        status: "active",
-        slot_number: slotsToProcess[0].slot_number, // Store primary slot
-        start_date: startDate.toISOString().split("T")[0],
-        end_date: endDate.toISOString().split("T")[0],
-        admin_notes: adminNotes + (actionBooking.bundle_id ? ` [Multiple slots assigned: ${slotsToProcess.map(s => s.slot_number).join(', ')}]` : ''),
-      }).eq("id", actionBooking.id)
+      const { error } = await supabase.rpc("admin_process_booking", {
+        p_booking_id: actionBooking.id,
+        p_action: "approve",
+        p_slot_number: slotsToProcess[0].slot_number,
+        p_start_date: startDate.toISOString().split("T")[0],
+        p_end_date: endDate.toISOString().split("T")[0],
+        p_admin_notes: adminNotes + (actionBooking.bundle_id ? ` [Multiple slots assigned: ${slotsToProcess.map(s => s.slot_number).join(', ')}]` : ''),
+        p_brand_id: actionBooking.brand_id,
+        p_slot_ids: slotsToProcess.map(s => s.id),
+        p_monthly_rent: actionBooking.monthly_rent
+      })
 
-      // Update brand onboarding status
-      await supabase.from("brands").update({ onboarding_status: "active" }).eq("id", actionBooking.brand_id)
-
-      // Update ALL selected shelf slots
-      for (const slot of slotsToProcess) {
-        await supabase
-          .from("shelf_slots")
-          .update({
-            status: "occupied",
-            brand_id: actionBooking.brand_id,
-            occupied_by: (actionBooking.brands as any)?.business_name || "",
-            booking_id: actionBooking.id,
-            rent_amount: actionBooking.monthly_rent / (slotsToProcess.length || 1),
-            occupied_from: startDate.toISOString().split("T")[0],
-            occupied_until: endDate.toISOString().split("T")[0],
-          })
-          .eq("id", slot.id)
+      if (error) {
+        toast.error(error.message)
+        setSaving(false)
+        return
       }
     } else {
-      await supabase.from("shelf_bookings").update({
-        status: "rejected",
-        admin_notes: adminNotes,
-      }).eq("id", actionBooking.id)
+      const { error } = await supabase.rpc("admin_process_booking", {
+        p_booking_id: actionBooking.id,
+        p_action: "reject",
+        p_slot_number: null,
+        p_start_date: null,
+        p_end_date: null,
+        p_admin_notes: adminNotes,
+        p_brand_id: actionBooking.brand_id,
+        p_slot_ids: [],
+        p_monthly_rent: 0
+      })
 
-      await supabase.from("brands").update({ onboarding_status: "rejected" }).eq("id", actionBooking.brand_id)
+      if (error) {
+        toast.error(error.message)
+        setSaving(false)
+        return
+      }
     }
 
     setSaving(false)

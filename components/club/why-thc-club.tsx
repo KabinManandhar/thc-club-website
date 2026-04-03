@@ -547,7 +547,7 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                                                     { label: "shelf rental / mo", val: fmt(monthlyRent), accent: false },
                                                     { label: `PPF (${ppfLabel})`, val: fmt(ppfAmt), accent: false },
                                                     { label: "rent credit", val: credit > 0 ? `− ${fmt(credit)}` : "Rs. 0", accent: credit > 0 },
-                                                    { label: "onboarding (one-time fee)", val: `Rs. ${regFeePerMo}`, accent: false },
+                                                    { label: "onboarding (one-time fee[Rs.800/12mo])", val: `Rs. ${regFeePerMo}`, accent: false },
                                                 ].map((row, i) => (
                                                     <div key={i} className="flex justify-between items-baseline border-b border-[#FE7F2D]/10 pb-4 last:border-0 last:pb-0 gap-2">
                                                         <span className="text-sm text-[#010307]/50 italic whitespace-nowrap">{row.label}</span>
