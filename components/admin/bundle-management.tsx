@@ -65,32 +65,17 @@ export function BundleManagement() {
     }
 
     try {
-      const { data: bundle, error: bundleError } = await supabase
-        .from('shelf_bundles')
-        .insert({
-          name: newBundle.name,
-          description: newBundle.description,
-          price: newBundle.price,
-          section_id: newBundle.sectionId !== "none" ? newBundle.sectionId : null,
-          is_active: true
-        })
-        .select()
-        .single()
+      const { data: bundleId, error } = await supabase.rpc('create_shelf_bundle_v2', {
+        p_name: newBundle.name,
+        p_description: newBundle.description,
+        p_price: newBundle.price,
+        p_section_id: newBundle.sectionId !== "none" ? newBundle.sectionId : null,
+        p_slot_ids: newBundle.slotIds
+      })
 
-      if (bundleError) {
-        if (bundleError.code === '42501') throw new Error("Security Rejection: Your account doesn't have internal permission to write bundles. please execute the RLS fix in sql editor.")
-        throw bundleError
-      }
-
-      const items = newBundle.slotIds.map(id => ({
-        bundle_id: bundle.id,
-        slot_id: id
-      }))
-
-      const { error: itemsError } = await supabase.from('shelf_bundle_items').insert(items)
-      if (itemsError) {
-        if (itemsError.code === '42501') throw new Error("Security Rejection: cannot link slots to bundle due to policy violation.")
-        throw itemsError
+      if (error) {
+        if (error.code === '42501') throw new Error("Security Rejection: Your account doesn't have internal permission to run this function. please execute the SQL upgrade in supabse editor.")
+        throw error
       }
 
       toast.success("Bundle created successfully.")
@@ -98,7 +83,7 @@ export function BundleManagement() {
       setNewBundle({ name: "", description: "", price: 0, sectionId: "", slotIds: [] })
       fetchData()
     } catch (e: any) {
-      toast.error(e.message)
+      toast.error(e.message || "Failed to create bundle")
     }
   }
 
