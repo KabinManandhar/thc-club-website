@@ -93,7 +93,7 @@ export function BookingsManagement() {
             brand_id: actionBooking.brand_id,
             occupied_by: (actionBooking.brands as any)?.business_name || "",
             booking_id: actionBooking.id,
-            rent_amount: actionBooking.monthly_rent, // or split rent if needed, but usually monthly_rent is per booking
+            rent_amount: actionBooking.monthly_rent / (slotsToProcess.length || 1),
             occupied_from: startDate.toISOString().split("T")[0],
             occupied_until: endDate.toISOString().split("T")[0],
           })
@@ -191,7 +191,14 @@ export function BookingsManagement() {
                         {b.slot_number && <div className="text-xs text-[#FE7F2D]">Slot #{b.slot_number}</div>}
                       </TableCell>
                       <TableCell className="text-right font-medium whitespace-nowrap">
-                        NPR {b.total_amount.toLocaleString()}
+                        <div className="flex flex-col items-end">
+                           <span className="text-sm">NPR {b.total_amount.toLocaleString()}</span>
+                           {b.discount_percentage && (
+                             <span className="text-[10px] text-green-600 font-bold">
+                               -{b.discount_percentage}% bundle save
+                             </span>
+                           )}
+                        </div>
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{statusBadge(b.status)}</TableCell>
                       <TableCell className="text-sm text-gray-500 whitespace-nowrap">
@@ -244,7 +251,22 @@ export function BookingsManagement() {
                 ) : (
                   SHELF_LABELS[actionBooking!.shelf_type]
                 )} — {DURATION_LABELS[actionBooking!.duration]}</p>
-                <p><strong>Total:</strong> NPR {actionBooking!.total_amount.toLocaleString()}</p>
+                <div className="flex justify-between items-center py-1 mt-1 border-t border-gray-100">
+                  <span className="text-gray-500">Subtotal:</span>
+                  <span className={actionBooking!.original_total ? "line-through text-gray-400" : "font-bold"}>
+                    NPR {actionBooking!.original_total?.toLocaleString() || (actionBooking!.total_amount - 800).toLocaleString()}
+                  </span>
+                </div>
+                {actionBooking!.discount_percentage && (
+                  <div className="flex justify-between items-center py-0.5">
+                    <span className="text-green-600 font-bold">Bundle Discount ({actionBooking!.discount_percentage}%):</span>
+                    <span className="text-green-600 font-bold">
+                      -NPR {Math.round(actionBooking!.original_total! * (actionBooking!.discount_percentage / 100)).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                <p><strong>Registration Fee:</strong> NPR 800</p>
+                <p className="text-lg font-black text-[#FE7F2D] pt-1"><strong>Final Total:</strong> NPR {actionBooking!.total_amount.toLocaleString()}</p>
               </div>
 
               {actionType === "approve" && (

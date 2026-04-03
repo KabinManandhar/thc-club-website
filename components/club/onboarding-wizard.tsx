@@ -118,7 +118,8 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
              }
           }
         })
-        return { ...b, marketValue }
+        const price = b.discount_percentage ? marketValue * (1 - b.discount_percentage / 100) : b.price
+        return { ...b, marketValue, price }
       })
       setBundles(bundleData)
       
@@ -237,6 +238,8 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
         section: selectedSection?.name,
         section_tier: selectedSection?.section_tier,
         bundle_id: selectedBundle?.id,
+        original_total: selectedBundle?.marketValue,
+        discount_percentage: selectedBundle?.discount_percentage,
         admin_notes: `${selectedBundle ? `Applied Bundle: ${selectedBundle.name}. ` : `Requested Zone: ${selectedSection?.name}. `}${activeOffer ? `Applied Offer: ${activeOffer.name}` : ''}. Includes 800 NPR Registration Fee.`
       })
 

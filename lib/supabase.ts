@@ -151,6 +151,8 @@ export interface ShelfBooking {
   end_date?: string
   status: "pending" | "approved" | "rejected" | "active" | "expired"
   bundle_id?: string
+  original_total?: number
+  discount_percentage?: number
   admin_notes?: string
   brand_agreement_accepted: boolean
   payment_status?: "pending" | "partial" | "paid"
