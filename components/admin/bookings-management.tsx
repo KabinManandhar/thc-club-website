@@ -35,7 +35,7 @@ export function BookingsManagement() {
     setLoading(true)
     let query = supabase
       .from("shelf_bookings")
-      .select("*, brands(business_name, email, phone), shelf_bundles(name, items:shelf_bundle_items(slots:shelf_slots(slot_number)))")
+      .select("*, brands(business_name, email, phone), shelf_bundles(name, eye_level_count, top_level_count, bottom_level_count)")
       .order("created_at", { ascending: false })
     if (filterStatus !== "all") query = query.eq("status", filterStatus)
     const { data } = await query
@@ -252,17 +252,26 @@ export function BookingsManagement() {
                   SHELF_LABELS[actionBooking!.shelf_type]
                 )} — {DURATION_LABELS[actionBooking!.duration]}</p>
                 
-                {actionBooking!.bundle_id && (actionBooking! as any).shelf_bundles?.items && (
-                  <div className="mt-2 p-2 bg-[#FE7F2D]/5 border border-[#FE7F2D]/20 rounded-xl">
-                    <p className="text-[10px] font-black uppercase text-[#FE7F2D] mb-1">Bundle Configuration:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {(actionBooking! as any).shelf_bundles.items.map((item: any, idx: number) => (
-                        <Badge key={idx} variant="outline" className="bg-white border-[#FE7F2D]/30 text-[#FE7F2D] font-bold lowercase italic">
-                           Slot #{item.slots?.slot_number} 
-                        </Badge>
-                      ))}
+                {actionBooking!.bundle_id && (actionBooking! as any).shelf_bundles && (
+                  <div className="mt-2 p-3 bg-white border-2 border-[#FE7F2D]/20 rounded-2xl shadow-sm">
+                    <p className="text-[10px] font-black uppercase text-[#FE7F2D] mb-2 tracking-widest flex items-center gap-2">
+                       <Package className="w-3 h-3" />
+                       Bundle Requirements:
+                    </p>
+                    <div className="grid grid-cols-3 gap-2">
+                       <div className="bg-gray-50 p-2 rounded-xl border border-gray-100 flex flex-col items-center">
+                          <span className="text-[10px] font-black text-gray-400 uppercase">Eye</span>
+                          <span className="text-lg font-black text-[#FE7F2D]">{(actionBooking! as any).shelf_bundles.eye_level_count || 0}</span>
+                       </div>
+                       <div className="bg-gray-50 p-2 rounded-xl border border-gray-100 flex flex-col items-center">
+                          <span className="text-[10px] font-black text-gray-400 uppercase">Top</span>
+                          <span className="text-lg font-black text-blue-500">{(actionBooking! as any).shelf_bundles.top_level_count || 0}</span>
+                       </div>
+                       <div className="bg-gray-50 p-2 rounded-xl border border-gray-100 flex flex-col items-center">
+                          <span className="text-[10px] font-black text-gray-400 uppercase">Bottom</span>
+                          <span className="text-lg font-black text-gray-700">{(actionBooking! as any).shelf_bundles.bottom_level_count || 0}</span>
+                       </div>
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-1 italic">The admin suggested {(actionBooking! as any).shelf_bundles.items.length} specific slots for this package.</p>
                   </div>
                 )}
                 <div className="flex justify-between items-center py-1 mt-1 border-t border-gray-100">
@@ -315,7 +324,9 @@ export function BookingsManagement() {
                   {actionBooking!.bundle_id ? (
                     <div className="bg-[#FE7F2D]/5 border border-[#FE7F2D]/20 rounded-lg p-4 animate-in slide-in-from-top-2">
                        <div className="flex justify-between items-center mb-3">
-                          <span className="font-black text-[#FE7F2D] uppercase tracking-widest text-[10px]">Bundle slots assigned: {selectedBundleSlots.length}</span>
+                          <span className="font-black text-[#FE7F2D] uppercase tracking-widest text-[10px]">
+                            Selected slots: {selectedBundleSlots.length} / {((actionBooking! as any).shelf_bundles.eye_level_count || 0) + ((actionBooking! as any).shelf_bundles.top_level_count || 0) + ((actionBooking! as any).shelf_bundles.bottom_level_count || 0)}
+                          </span>
                        </div>
                        <div className="flex flex-wrap gap-2">
                           {selectedBundleSlots.map(slot => (

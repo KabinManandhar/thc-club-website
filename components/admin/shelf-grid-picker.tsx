@@ -144,6 +144,11 @@ export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, sele
                               <span className="opacity-50 text-[9px]">#</span>
                               <span>{slot.slot_number}</span>
                               {slot.status === "occupied" && <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-gray-400 rounded-full" />}
+                              <div className={`w-1.5 h-1.5 rounded-full absolute bottom-1 right-1 ${
+                                slot.shelf_type === 'top_level' ? 'bg-blue-400' :
+                                slot.shelf_type === 'bottom' ? 'bg-gray-400' : 
+                                'bg-[#FE7F2D]'
+                              }`} />
                             </button>
                           ))}
                       </div>

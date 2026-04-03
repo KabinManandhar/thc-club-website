@@ -357,6 +357,9 @@ export interface ShelfBundle {
   price: number
   original_total?: number
   discount_percentage?: number
+  eye_level_count: number
+  top_level_count: number
+  bottom_level_count: number
   marketValue?: number
   is_active: boolean
   created_at: string

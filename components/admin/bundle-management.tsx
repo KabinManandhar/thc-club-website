@@ -26,7 +26,9 @@ export function BundleManagement() {
     price: 0,
     discountPercentage: 15,
     sectionId: "",
-    slotIds: [] as string[]
+    eyeLevelCount: 0,
+    topLevelCount: 0,
+    bottomLevelCount: 0
   })
 
   // Hierarchical Display State
@@ -50,18 +52,12 @@ export function BundleManagement() {
 
       const calculatedBundles = (bRes || []).map(b => {
         let mv = 0
-        b.items?.forEach((item: any) => {
-          const slot = (sRes || []).find(s => s.id === item.slot_id)
-          if (slot) {
-             const sec = (secRes || []).find(s => s.id === slot.section_id)
-             const tier = sec?.section_tier || 'regular'
-             const pr = (pRes || []).find(p => p.duration === 'yearly' && p.section_tier === tier)
-             if (pr) {
-               const type = slot.shelf_type || 'eye_level'
-               mv += (type === 'bottom' ? pr.bottom_price : type === 'eye_level' ? pr.eye_level_price : pr.top_level_price) * 12
-             }
-          }
-        })
+        const pr = (pRes || []).find(p => p.duration === 'yearly') // Base yearly pricing
+        if (pr) {
+          mv += (b.bottom_level_count || 0) * pr.bottom_price * 12
+          mv += (b.eye_level_count || 0) * pr.eye_level_price * 12
+          mv += (b.top_level_count || 0) * pr.top_level_price * 12
+        }
         return { ...b, marketValue: mv }
       })
 
@@ -78,29 +74,29 @@ export function BundleManagement() {
   }
 
   const handleCreateBundle = async () => {
-    if (!newBundle.name || newBundle.slotIds.length === 0) {
-      toast.error("Please fill all required fields and select at least one slot.")
+    if (!newBundle.name || (newBundle.eyeLevelCount === 0 && newBundle.topLevelCount === 0 && newBundle.bottomLevelCount === 0)) {
+      toast.error("Please fill required fields and provide counts for at least one level.")
       return
     }
 
     try {
-      const { data: bundleId, error } = await supabase.rpc('create_shelf_bundle_v2', {
-        p_name: newBundle.name,
-        p_description: newBundle.description,
-        p_price: Math.round(calculatedPrice),
-        p_discount_percentage: newBundle.discountPercentage,
-        p_section_id: newBundle.sectionId !== "none" ? newBundle.sectionId : null,
-        p_slot_ids: newBundle.slotIds
-      })
+      const { data: bundle, error } = await supabase.from('shelf_bundles').insert({
+        name: newBundle.name,
+        description: newBundle.description,
+        price: Math.round(calculatedPrice),
+        discount_percentage: newBundle.discountPercentage,
+        section_id: newBundle.sectionId !== "none" ? newBundle.sectionId : null,
+        eye_level_count: newBundle.eyeLevelCount,
+        top_level_count: newBundle.topLevelCount,
+        bottom_level_count: newBundle.bottomLevelCount,
+        is_active: true
+      }).select().single()
 
-      if (error) {
-        if (error.code === '42501') throw new Error("Security Rejection: Your account doesn't have internal permission to run this function. please execute the SQL upgrade in supabse editor.")
-        throw error
-      }
+      if (error) throw error
 
       toast.success("Bundle created successfully.")
       setIsCreateOpen(false)
-      setNewBundle({ name: "", description: "", price: 0, discountPercentage: 15, sectionId: "", slotIds: [] })
+      setNewBundle({ name: "", description: "", price: 0, discountPercentage: 15, sectionId: "", eyeLevelCount: 0, topLevelCount: 0, bottomLevelCount: 0 })
       fetchData()
     } catch (e: any) {
       toast.error(e.message || "Failed to create bundle")
@@ -129,44 +125,15 @@ export function BundleManagement() {
     }
   }
 
-  const toggleSlotSelection = (slotId: string) => {
-    setNewBundle(prev => ({
-      ...prev,
-      slotIds: prev.slotIds.includes(slotId) 
-        ? prev.slotIds.filter(id => id !== slotId)
-        : [...prev.slotIds, slotId]
-    }))
-  }
-
-  const selectEntireShelf = (shelfId: string) => {
-    const shelfSlots = slots.filter(s => s.shelf_id === shelfId).map(s => s.id)
-    setNewBundle(prev => {
-      const otherSlots = prev.slotIds.filter(id => !shelfSlots.includes(id))
-      const allSelected = shelfSlots.every(id => prev.slotIds.includes(id))
-      return { ...prev, slotIds: allSelected ? otherSlots : [...new Set([...prev.slotIds, ...shelfSlots])] }
-    })
-  }
 
   const calculateIndividualTotal = () => {
     let total = 0
-    newBundle.slotIds.forEach(slotId => {
-      const slot = slots.find(s => s.id === slotId)
-      if (!slot) return
-      
-      const section = sections.find(sec => sec.id === slot.section_id)
-      const tier = section?.section_tier || 'regular'
-      const pricing = pricingTiers.find(p => p.section_tier === tier)
-      
-      if (pricing) {
-        let slotPrice = 0
-        const type = slot.shelf_type || 'eye_level'
-        if (type === 'bottom') slotPrice = pricing.bottom_price
-        else if (type === 'eye_level') slotPrice = pricing.eye_level_price
-        else slotPrice = pricing.top_level_price
-        
-        total += (slotPrice * 12) // Individual Yearly Total
-      }
-    })
+    const pr = (pricingTiers || []).find(p => p.duration === 'yearly')
+    if (pr) {
+      total += newBundle.bottomLevelCount * pr.bottom_price * 12
+      total += newBundle.eyeLevelCount * pr.eye_level_price * 12
+      total += newBundle.topLevelCount * pr.top_level_price * 12
+    }
     return total
   }
 
@@ -296,93 +263,85 @@ export function BundleManagement() {
 
             <div className="space-y-4">
               <div className="flex justify-between items-center px-2">
-                <Label className="font-black italic lowercase">Hierarchical Inventory Picker</Label>
-                <Badge variant="outline" className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-[#FE7F2D]/20 font-black italic rounded-lg px-4 py-1">
-                  {newBundle.slotIds.length} Slots Selected
-                </Badge>
+                <Label className="font-black italic lowercase">Define Slot Requirements</Label>
+                <div className="flex gap-2">
+                    <Badge variant="outline" className="bg-orange-50 text-[#FE7F2D] border-orange-100 font-bold px-3 py-1">
+                      {newBundle.eyeLevelCount + newBundle.topLevelCount + newBundle.bottomLevelCount} Total Slots
+                    </Badge>
+                </div>
               </div>
 
-              {newBundle.slotIds.length > 0 && (
-                <div className="bg-white border-2 border-[#FE7F2D]/10 rounded-2xl p-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                   <p className="text-[10px] uppercase font-black text-[#FE7F2D] mb-2 tracking-widest flex items-center gap-2">
-                     <Zap className="w-3 h-3 fill-[#FE7F2D]" />
-                     Selected for this bundle:
-                   </p>
-                   <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto scrollbar-hide">
-                      {newBundle.slotIds.map(slotId => {
-                        const slot = slots.find(s => s.id === slotId)
-                        const shelf = shelves.find(sh => sh.id === slot?.shelf_id)
-                        return (
-                          <Badge key={slotId} variant="outline" className="bg-orange-50 border-orange-100 text-[#FE7F2D] text-[10px] font-bold lowercase italic px-3 py-1">
-                             #{slot?.slot_number} ({shelf?.name})
-                          </Badge>
-                        )
-                      })}
-                   </div>
-                </div>
-              )}
-
-              <div className="border border-gray-100 rounded-3xl overflow-hidden bg-gray-50/30">
-                {sections.map(section => (
-                  <div key={section.id} className="border-b border-gray-100 last:border-b-0">
-                    <button 
-                      onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
-                      className="w-full flex items-center justify-between p-4 hover:bg-gray-100/50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${expandedSection === section.id ? 'rotate-90' : ''}`} />
-                        <span className="font-bold text-sm lowercase italic">{section.name}</span>
-                      </div>
-                      <Badge variant="outline" className="bg-white/80">{shelves.filter(sh => sh.section_id === section.id).length} Shelves</Badge>
-                    </button>
-
-                    {expandedSection === section.id && (
-                      <div className="px-8 pb-4 space-y-3">
-                        {shelves.filter(sh => sh.section_id === section.id).map(shelf => (
-                          <div key={shelf.id} className="border border-gray-200/50 rounded-2xl bg-white overflow-hidden">
-                            <div className="p-3 bg-gray-50 flex items-center justify-between border-b border-gray-100">
-                               <button 
-                                 onClick={() => setExpandedShelf(expandedShelf === shelf.id ? null : shelf.id)}
-                                 className="flex items-center gap-2 hover:bg-gray-100 p-1 rounded-lg transition-colors"
-                               >
-                                 <Package className="w-3.5 h-3.5 text-[#FE7F2D]" />
-                                 <span className="text-xs font-bold lowercase">{shelf.name}</span>
-                               </button>
-                               <Button 
-                                 variant="ghost" 
-                                 size="sm" 
-                                 className="h-7 text-[10px] font-black uppercase tracking-tighter text-[#FE7F2D] hover:bg-orange-50"
-                                 onClick={() => selectEntireShelf(shelf.id)}
-                               >
-                                 {slots.filter(s => s.shelf_id === shelf.id).every(id => newBundle.slotIds.includes(id.id)) 
-                                   ? "Deselect Shelf" : "Select Entire Shelf"}
-                               </Button>
-                            </div>
-                            
-                            {expandedShelf === shelf.id && (
-                              <div className="p-4 grid grid-cols-6 sm:grid-cols-10 gap-2">
-                                {slots.filter(s => s.shelf_id === shelf.id).map(slot => (
-                                  <div 
-                                    key={slot.id} 
-                                    onClick={() => toggleSlotSelection(slot.id)}
-                                    className={`
-                                      aspect-square rounded-lg flex items-center justify-center text-[10px] font-black cursor-pointer transition-all
-                                      ${newBundle.slotIds.includes(slot.id) 
-                                        ? 'bg-[#FE7F2D] text-white shadow-md' 
-                                        : 'bg-gray-50 border border-gray-100 text-gray-300 hover:border-[#FE7F2D]/50'}
-                                    `}
-                                  >
-                                    #{slot.slot_number}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
+              <div className="grid grid-cols-1 gap-4 p-6 bg-white border-2 border-[#FE7F2D]/10 rounded-[2.5rem] shadow-sm">
+                 <div className="space-y-4">
+                    {/* Eye Level Input */}
+                    <div className="flex items-center justify-between group">
+                       <div className="flex items-center gap-3">
+                          <div className={newBundle.eyeLevelCount > 0 ? "text-[#FE7F2D]" : "text-gray-300"}>
+                            <Zap className={`w-5 h-5 ${newBundle.eyeLevelCount > 0 ? 'fill-[#FE7F2D]' : ''}`} />
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                          <div className="flex flex-col">
+                            <span className="font-black italic lowercase text-lg">Eye Level Slots</span>
+                            <span className="text-[10px] uppercase font-black text-gray-400">Most popular / premium</span>
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-2 border-2 border-gray-100 rounded-2xl p-1 bg-gray-50 group-hover:border-[#FE7F2D]/30 transition-all">
+                          <Button variant="ghost" size="icon" onClick={() => setNewBundle(b => ({ ...b, eyeLevelCount: Math.max(0, b.eyeLevelCount - 1) }))} className="h-8 w-8 text-gray-400">-</Button>
+                          <input 
+                            type="number" 
+                            className="bg-transparent w-8 text-center font-black text-[#FE7F2D] border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            value={newBundle.eyeLevelCount}
+                            onChange={e => setNewBundle(b => ({ ...b, eyeLevelCount: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          />
+                          <Button variant="ghost" size="icon" onClick={() => setNewBundle(b => ({ ...b, eyeLevelCount: b.eyeLevelCount + 1 }))} className="h-8 w-8 text-[#FE7F2D]">+</Button>
+                       </div>
+                    </div>
+
+                    {/* Top Level Input */}
+                    <div className="flex items-center justify-between group">
+                       <div className="flex items-center gap-3">
+                          <div className={newBundle.topLevelCount > 0 ? "text-blue-500" : "text-gray-300"}>
+                            <Package className="w-5 h-5" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-black italic lowercase text-lg">Top Level Slots</span>
+                            <span className="text-[10px] uppercase font-black text-gray-400">High visibility</span>
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-2 border-2 border-gray-100 rounded-2xl p-1 bg-gray-50 group-hover:border-blue-200 transition-all">
+                          <Button variant="ghost" size="icon" onClick={() => setNewBundle(b => ({ ...b, topLevelCount: Math.max(0, b.topLevelCount - 1) }))} className="h-8 w-8 text-gray-400">-</Button>
+                          <input 
+                            type="number" 
+                            className="bg-transparent w-8 text-center font-black text-blue-500 border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            value={newBundle.topLevelCount}
+                            onChange={e => setNewBundle(b => ({ ...b, topLevelCount: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          />
+                          <Button variant="ghost" size="icon" onClick={() => setNewBundle(b => ({ ...b, topLevelCount: b.topLevelCount + 1 }))} className="h-8 w-8 text-blue-500">+</Button>
+                       </div>
+                    </div>
+
+                    {/* Bottom Level Input */}
+                    <div className="flex items-center justify-between group">
+                       <div className="flex items-center gap-3">
+                          <div className={newBundle.bottomLevelCount > 0 ? "text-gray-500" : "text-gray-300"}>
+                            <ChevronRight className="w-5 h-5" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-black italic lowercase text-lg">Bottom Level Slots</span>
+                            <span className="text-[10px] uppercase font-black text-gray-400">Essential storage</span>
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-2 border-2 border-gray-100 rounded-2xl p-1 bg-gray-50 group-hover:border-gray-200 transition-all">
+                          <Button variant="ghost" size="icon" onClick={() => setNewBundle(b => ({ ...b, bottomLevelCount: Math.max(0, b.bottomLevelCount - 1) }))} className="h-8 w-8 text-gray-400">-</Button>
+                          <input 
+                            type="number" 
+                            className="bg-transparent w-8 text-center font-black text-gray-700 border-none outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            value={newBundle.bottomLevelCount}
+                            onChange={e => setNewBundle(b => ({ ...b, bottomLevelCount: Math.max(0, parseInt(e.target.value) || 0) }))}
+                          />
+                          <Button variant="ghost" size="icon" onClick={() => setNewBundle(b => ({ ...b, bottomLevelCount: b.bottomLevelCount + 1 }))} className="h-8 w-8 text-gray-700">+</Button>
+                       </div>
+                    </div>
+                 </div>
               </div>
             </div>
 
