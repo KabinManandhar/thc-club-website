@@ -17,60 +17,105 @@ const DURATION_ORDER: Record<string, number> = { yearly: 3, half_yearly: 2, quar
 const REGISTRATION_FEE = 800
 
 const STATS = [
+
+    // ── NEPAL-SPECIFIC ─────────────────────────────────────────────
+
     {
-        num: "60%",
-        label: "of shoppers now discover new products in physical stores — surpassing online marketplaces for the first time",
-        source: "salsify 2026",
-        href: "https://retailmediaage.co.uk/in-store/discerning-customers-want-an-in-store-experience-with-online-content/"
+        num: "75%",
+        label: "of Nepal's potential ecommerce market remains untapped — only 1 in 4 Nepalis shops online at all. the majority of buyers are still in physical stores",
+        source: "statista 2025",
+        href: "https://www.statista.com/outlook/emo/ecommerce/nepal",
+        tag: "nepal"
     },
     {
-        num: "58%",
-        label: "more likely to impulse buy from an unknown brand in-store vs. online — physical presence converts discovery into purchase",
-        source: "bazaarvoice",
-        href: "https://www.bazaarvoice.com/press/the-joy-of-online-discovery-54-of-global-shoppers-enjoy-virtual-window-shopping-more-than-in-store-browsing/"
+        num: "90%",
+        label: "of online transactions in Nepal still use cash on delivery — trust in digital purchasing is a structural problem physical retail simply doesn't have",
+        source: "incoffeed / nepal ecommerce analysis",
+        href: "https://incoffeed.com/e-commerce-market-in-nepal/",
+        tag: "nepal"
     },
     {
-        num: "82%",
-        label: "of consumers are more inclined to buy after seeing or holding a product in person — no digital channel replicates this",
-        source: "shopkick",
-        href: "https://www.businesswire.com/news/home/20200102005030/en/2020-Shopping-Outlook-82-Percent-of-Consumers-More-Inclined-to-Purchase-After-Seeing-Holding-or-Demoing-Products-In-Store"
+        num: "back to stores",
+        label: "Nepali consumers reversed their post-COVID online shopping habit — a trust deficit sent them back to physical retail, reported by Kathmandu Post in 2024",
+        source: "kathmandu post 2024",
+        href: "https://kathmandupost.com/money/2024/04/14/back-to-physical-stores-e-commerce-falters-in-nepal-s-topsy-turvy-business-climate",
+        tag: "nepal"
     },
     {
-        num: "67%",
-        label: "of consumers trust local businesses more than online-only brands — physical presence builds credibility instagram can't",
-        source: "uberall",
-        href: "https://www.prweb.com/releases/study-67-of-consumers-trust-local-businesses-more-than-internet-only-brands-826754056.html"
+        num: "NPR 60K–1.5L",
+        label: "minimum monthly rent for a street-facing retail space in central Kathmandu — before fit-out costs, staff wages, utilities, or a security deposit of 6–12 months paid upfront",
+        source: "kathmandu property market 2024",
+        href: "https://www.quora.com/What-is-the-minimum-cost-of-renting-a-building-in-Kathmandu-Nepal",
+        tag: "nepal"
     },
     {
-        num: "55%",
-        label: "of consumers feel more emotionally connected to a local business than any other driver — including product quality",
-        source: "uberall",
-        href: "https://www.agilitypr.com/pr-news/public-relations/although-consumers-research-purchases-online-most-trust-local-brands-more-than-web-brands/"
+        num: "NPR 8K–15K/mo",
+        label: "what a small Nepali brand typically spends on Facebook and Instagram ads each month — a recurring cost with no guaranteed sales, no shelf presence, and no physical trust signal",
+        source: "abstractinfosys / nepal digital marketing 2025",
+        href: "https://abstractinfosys.com/resource/social-media-marketing-in-nepal",
+        tag: "nepal"
     },
     {
-        num: "40–80%",
-        label: "of all physical retail purchases are impulse buys — curated environments with easy browsing directly drive this",
-        source: "apepper designs",
-        href: "https://apepperdesigns.com/understanding-consumer-behavior-in-the-retail-environment-maximizing-in-store-purchases/"
+        num: "NPR 15K–60K/mo",
+        label: "cost of hiring a social media marketing agency in Nepal — on top of ad spend, on top of product costs, before a single customer has physically held your product",
+        source: "kumarijob / digital marketing nepal 2025",
+        href: "https://www.kumarijob.com/blog/career-tips/digital-marketing-in-nepal",
+        tag: "nepal"
     },
     {
-        num: "77%",
-        label: "of gift retail revenue comes from brick-and-mortar — tactile experience builds trust online cannot replicate",
-        source: "mordor intel",
-        href: "https://straitsresearch.com/report/gifts-novelty-and-souvenir-market"
+        num: "NPR 20L",
+        label: "maximum government startup loan available to young Nepali entrepreneurs in 2025/26 — which wouldn't even cover one year's rent on a modest central Kathmandu storefront",
+        source: "government of nepal / companysewa 2025",
+        href: "https://companysewa.com/blog/startup-loans-in-nepal/",
+        tag: "nepal"
     },
     {
-        num: "82%",
-        label: "of small businesses fail due to poor cash flow — high overhead and fixed rents are a direct cause",
-        source: "u.s. bank",
-        href: "https://taqtics.co/retail-operations/common-problems-and-solutions-a-retail-store-faces/"
+        num: "10,000+",
+        label: "registered ecommerce websites in Nepal — and fewer than a handful generate meaningful revenue. the digital shelf here is already oversaturated",
+        source: "primeitsewa / nepal ecommerce 2025",
+        href: "https://primeitsewa.com/e-commerce-in-nepal/",
+        tag: "nepal"
+    },
+
+    // ── GLOBAL CONTEXT ─────────────────────────────────────────────
+    // framed honestly as global benchmarks, not Nepal-specific data
+
+    {
+        num: "80%",
+        label: "of retail purchases globally still happen in physical stores — even in markets far more digitally mature than Nepal. online is growing, but it is still the minority channel",
+        source: "salesso 2025 — global benchmark",
+        href: "https://salesso.com/blog/in-store-vs-online-shopping-statistics/",
+        tag: "global"
     },
     {
-        num: "1/3",
-        label: "of supermarket profits come entirely from fees charged to supplier brands — the system is designed to extract, not support",
-        source: "rangeme",
-        href: "https://www.rangeme.com/blog/understanding-hidden-costs-and-fees-when-working-with-retailers/"
+        num: "13.9%",
+        label: "boost to online sales when an emerging brand opens its first physical store, per a study of 2,103 stores and $850B in transactions — presence in a shop lifts everything else including your instagram",
+        source: "icsc halo effect III 2023 — global benchmark",
+        href: "https://retail-insider.com/retail-insider/2024/01/icsc-report-reveals-brick-and-mortar-stores-boost-online-sales-with-the-halo-effect-iii-interview/",
+        tag: "global"
     },
+    {
+        num: "84%",
+        label: "of consumers globally prefer multi-brand retailers over single-brand stores for discovery and purchase — the instinct to browse and compare in one place is universal",
+        source: "roland berger 2024 — global benchmark",
+        href: "https://shoez.biz/en/mehrheit-der-verbraucher-kauft-im-multimarkenhandel/",
+        tag: "global"
+    },
+    {
+        num: "40–60%",
+        label: "rise in digital customer acquisition costs globally since 2023 — instagram and facebook ads are getting more expensive and less effective everywhere, Nepal included",
+        source: "phoenix strategy group 2025 — global benchmark",
+        href: "https://www.phoenixstrategy.group/blog/cac-benchmarks-by-channel-2025",
+        tag: "global"
+    },
+    {
+        num: "1.7×",
+        label: "more purchases made by omnichannel shoppers vs. single-channel — brands that only exist online are leaving half their potential on the table, regardless of market",
+        source: "brandsgateway 2025 — global benchmark",
+        href: "https://brandsgateway.com/blog/retail-statistics/",
+        tag: "global"
+    },
+
 ]
 
 // ── formatting ────────────────────────────────────────────────────────────────
