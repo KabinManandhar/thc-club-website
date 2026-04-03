@@ -295,7 +295,33 @@ export function BundleManagement() {
             </div>
 
             <div className="space-y-4">
-              <Label className="font-black italic lowercase px-2">Hierarchical Inventory Picker ({newBundle.slotIds.length} Selected)</Label>
+              <div className="flex justify-between items-center px-2">
+                <Label className="font-black italic lowercase">Hierarchical Inventory Picker</Label>
+                <Badge variant="outline" className="bg-[#FE7F2D]/10 text-[#FE7F2D] border-[#FE7F2D]/20 font-black italic rounded-lg px-4 py-1">
+                  {newBundle.slotIds.length} Slots Selected
+                </Badge>
+              </div>
+
+              {newBundle.slotIds.length > 0 && (
+                <div className="bg-white border-2 border-[#FE7F2D]/10 rounded-2xl p-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                   <p className="text-[10px] uppercase font-black text-[#FE7F2D] mb-2 tracking-widest flex items-center gap-2">
+                     <Zap className="w-3 h-3 fill-[#FE7F2D]" />
+                     Selected for this bundle:
+                   </p>
+                   <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto scrollbar-hide">
+                      {newBundle.slotIds.map(slotId => {
+                        const slot = slots.find(s => s.id === slotId)
+                        const shelf = shelves.find(sh => sh.id === slot?.shelf_id)
+                        return (
+                          <Badge key={slotId} variant="outline" className="bg-orange-50 border-orange-100 text-[#FE7F2D] text-[10px] font-bold lowercase italic px-3 py-1">
+                             #{slot?.slot_number} ({shelf?.name})
+                          </Badge>
+                        )
+                      })}
+                   </div>
+                </div>
+              )}
+
               <div className="border border-gray-100 rounded-3xl overflow-hidden bg-gray-50/30">
                 {sections.map(section => (
                   <div key={section.id} className="border-b border-gray-100 last:border-b-0">

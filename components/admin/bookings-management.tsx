@@ -35,7 +35,7 @@ export function BookingsManagement() {
     setLoading(true)
     let query = supabase
       .from("shelf_bookings")
-      .select("*, brands(business_name, email, phone), shelf_bundles(name)")
+      .select("*, brands(business_name, email, phone), shelf_bundles(name, items:shelf_bundle_items(slots:shelf_slots(slot_number)))")
       .order("created_at", { ascending: false })
     if (filterStatus !== "all") query = query.eq("status", filterStatus)
     const { data } = await query
@@ -251,6 +251,20 @@ export function BookingsManagement() {
                 ) : (
                   SHELF_LABELS[actionBooking!.shelf_type]
                 )} — {DURATION_LABELS[actionBooking!.duration]}</p>
+                
+                {actionBooking!.bundle_id && (actionBooking! as any).shelf_bundles?.items && (
+                  <div className="mt-2 p-2 bg-[#FE7F2D]/5 border border-[#FE7F2D]/20 rounded-xl">
+                    <p className="text-[10px] font-black uppercase text-[#FE7F2D] mb-1">Bundle Configuration:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {(actionBooking! as any).shelf_bundles.items.map((item: any, idx: number) => (
+                        <Badge key={idx} variant="outline" className="bg-white border-[#FE7F2D]/30 text-[#FE7F2D] font-bold lowercase italic">
+                           Slot #{item.slots?.slot_number} 
+                        </Badge>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1 italic">The admin suggested {(actionBooking! as any).shelf_bundles.items.length} specific slots for this package.</p>
+                  </div>
+                )}
                 <div className="flex justify-between items-center py-1 mt-1 border-t border-gray-100">
                   <span className="text-gray-500">Subtotal:</span>
                   <span className={actionBooking!.original_total ? "line-through text-gray-400" : "font-bold"}>
