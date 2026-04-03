@@ -313,6 +313,7 @@ export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [brands, setBrands] = useState<Brand[]>([])
   const [activeTab, setActiveTab] = useState<"home" | "members" | "origins" | "gallery">("home")
+  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null)
   const [api, setApi] = useState<CarouselApi>()
   const [current, setCurrent] = useState(0)
   const [count, setCount] = useState(0)
@@ -1241,7 +1242,11 @@ export default function LandingPage() {
               {brands.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 sm:gap-12">
                   {brands.map((brand) => (
-                    <div key={brand.id} className="group relative flex flex-col items-center gap-4 sm:gap-6 transition-all duration-300 hover-lift">
+                    <div
+                      key={brand.id}
+                      onClick={() => setSelectedBrand(brand)}
+                      className="group relative flex flex-col items-center gap-4 sm:gap-6 transition-all duration-300 hover-lift cursor-pointer"
+                    >
                       <div className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-56 md:h-56 bg-white rounded-[2rem] sm:rounded-[3rem] border border-[#FE7F2D]/5 overflow-hidden shadow-2xl group-hover:shadow-[#FE7F2D]/10 transition-all flex items-center justify-center">
                         {brand.logo_url ? (
                           <SafeImage

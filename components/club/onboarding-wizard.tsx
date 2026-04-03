@@ -172,7 +172,13 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
     const tier = tierOverride || selectedSection?.section_tier || 'regular'
     const pricing = pricingTiers.find(t => t.duration === d && t.section_tier === tier)
     if (!pricing) return 0
-    return type === "bottom" ? pricing.bottom_price : type === "eye_level" ? pricing.eye_level_price : pricing.top_level_price
+    const base = type === "bottom" ? pricing.bottom_price : type === "eye_level" ? pricing.eye_level_price : pricing.top_level_price
+    
+    // If a bundle is selected, show the discounted unit price
+    if (selectedBundle && selectedBundle.discount_percentage) {
+      return Math.round(base * (1 - selectedBundle.discount_percentage / 100))
+    }
+    return base
   }
 
   const handleValidateCode = async () => {
@@ -433,7 +439,17 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                     </div>
                     <p className="text-sm text-gray-400 lowercase italic">{info.description}</p>
                     <div className="flex items-center gap-4 mt-2">
-                      <p className="text-xs font-bold text-[#FE7F2D] italic lowercase tracking-tight">from npr {getPrice('yearly', type).toLocaleString()}/mo ({selectedSection?.section_tier} rate)</p>
+                      <div className="flex flex-col">
+                        <p className={`text-xs font-bold ${selectedBundle ? 'text-[#FE7F2D]' : 'text-[#FE7F2D]'} italic lowercase tracking-tight`}>
+                          {selectedBundle && <span className="line-through text-gray-300 mr-2">npr {getPrice('yearly', type, (selectedBundle as any).section_tier).toLocaleString()}</span>}
+                          npr {getPrice('yearly', type).toLocaleString()}/mo ({selectedSection?.section_tier} rate)
+                        </p>
+                        {selectedBundle && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <Badge className="bg-[#FE7F2D] text-white text-[7px] font-black uppercase tracking-[0.15em] py-0.5 px-2">bundle rate applied</Badge>
+                          </div>
+                        )}
+                      </div>
                       <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-gray-100 text-gray-400">Slots: {slotRanges[type]}</Badge>
                       {selectedSection && (
                         <p className="text-[10px] text-[#FE7F2D]/60 font-black uppercase tracking-tighter italic">
@@ -569,10 +585,16 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
             </CardContent>
           </Card>
 
-          <div className="flex gap-3 items-center p-6 bg-white border border-gray-100 rounded-2xl shadow-sm">
-            <div className="flex-1 space-y-1"><Label className="text-[8px] font-black uppercase tracking-widest text-gray-400">Promotional Offer Index</Label><Input placeholder="CODE" value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} className="h-10 rounded-xl font-black uppercase border-gray-100" /></div>
-            <Button onClick={handleValidateCode} disabled={!promoCode || isValidating} className="mt-5 h-10 bg-[#FE7F2D] text-white hover:bg-black rounded-xl">Claim</Button>
+          <div className={`flex gap-3 items-center p-6 bg-white border border-gray-100 rounded-2xl shadow-sm ${selectedBundle ? "opacity-50 grayscale pointer-events-none" : ""}`}>
+            <div className="flex-1 space-y-1">
+              <Label className="text-[8px] font-black uppercase tracking-widest text-gray-400">Promotional Offer Index</Label>
+              <Input placeholder="CODE" value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} className="h-10 rounded-xl font-black uppercase border-gray-100" />
+            </div>
+            <Button onClick={handleValidateCode} disabled={!promoCode || isValidating || !!selectedBundle} className="mt-5 h-10 bg-[#FE7F2D] text-white hover:bg-black rounded-xl">Claim</Button>
           </div>
+          {selectedBundle && (
+            <p className="text-[9px] text-[#FE7F2D] font-black italic lowercase text-center bg-[#FE7F2D]/5 py-2 rounded-xl border border-dashed border-[#FE7F2D]/20 mt-[-16px]">bundle deals already include maximum collective discount. promo codes cannot be stacked.</p>
+          )}
 
           <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
             <Checkbox id="agree" checked={agreed} onCheckedChange={(c) => setAgreed(!!c)} className="mt-0.5" />
