@@ -69,7 +69,7 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
         .order("created_at", { ascending: false }),
       supabase
         .from("shelf_slots")
-        .select("*, shelves(*, shelf_sections(*))")
+        .select("*, shelves(*, shelf_sections(*)), shelf_bookings(id, bundle_id, discount_percentage, shelf_bundles(name))")
         .eq("brand_id", brandId),
       supabase
         .from("shelf_pricing_tiers")
@@ -239,16 +239,23 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
         </Card>
       ) : (
         <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
-          {shelfData.map((slot) => (
-             <div key={slot.id} className="p-8 bg-[#010307] rounded-[2.5rem] border border-[#010307] flex flex-col gap-8 group hover:border-[#FE7F2D]/50 transition-all relative overflow-hidden shadow-2xl">
+          {shelfData.map((slot) => {
+             const isBundle = !!slot.shelf_bookings?.bundle_id
+             const discount = slot.shelf_bookings?.discount_percentage
+             const bundleName = slot.shelf_bookings?.shelf_bundles?.name
+             
+             return (
+             <div key={slot.id} className={`p-8 bg-[#010307] rounded-[2.5rem] border ${isBundle ? 'border-green-500/30' : 'border-[#010307]'} flex flex-col gap-8 group hover:border-[#FE7F2D]/50 transition-all relative overflow-hidden shadow-2xl`}>
                 {/* Background Glow */}
-                <div className="absolute top-0 right-0 w-48 h-48 bg-[#FE7F2D]/10 blur-[100px] -mr-24 -mt-24 pointer-events-none group-hover:bg-[#FE7F2D]/20 transition-all"></div>
+                <div className={`absolute top-0 right-0 w-48 h-48 blur-[100px] -mr-24 -mt-24 pointer-events-none transition-all ${isBundle ? 'bg-green-500/10 group-hover:bg-green-500/20' : 'bg-[#FE7F2D]/10 group-hover:bg-[#FE7F2D]/20'}`}></div>
 
                  <div className="flex justify-between items-start relative z-10">
                     <div className="space-y-2">
                        <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_12px_rgba(74,222,128,0.6)]"></div>
-                          <p className="text-[10px] font-black text-[#FE7F2D] uppercase tracking-[0.4em]">active shelf slot</p>
+                          <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${isBundle ? 'bg-green-400 shadow-[0_0_12px_rgba(74,222,128,0.6)]' : 'bg-[#FE7F2D] shadow-[0_0_12px_rgba(254,127,45,0.6)]'}`}></div>
+                          <p className={`text-[10px] font-black uppercase tracking-[0.4em] ${isBundle ? 'text-green-400' : 'text-[#FE7F2D]'}`}>
+                             {isBundle ? 'bundled shelf slot' : 'active shelf slot'}
+                          </p>
                        </div>
                        <div className="flex items-center gap-3">
                           <h4 className="font-black text-3xl text-white lowercase italic leading-none truncate max-w-[240px]">{slot.shelf_name || (slot.shelves?.name) || 'Collective Hub'}</h4>
@@ -258,10 +265,16 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
                           <Badge variant="outline" className="border-white/10 text-white/30 text-[8px] font-black uppercase tracking-widest px-2 py-0">
                              {slot.shelves?.shelf_sections?.section_tier || 'standard'} zone
                           </Badge>
+                          {isBundle && (
+                             <Badge variant="outline" className="border-green-500/30 text-green-400 bg-green-500/10 text-[8px] font-black uppercase tracking-widest px-2 py-0 flex items-center gap-1">
+                                <Zap className="w-2 h-2 fill-green-400" />
+                                {bundleName || 'Bundle Package'}
+                             </Badge>
+                          )}
                        </div>
                     </div>
                    <div className="flex flex-col items-center">
-                      <div className="h-20 w-20 bg-[#FE7F2D] rounded-[1.5rem] flex flex-col items-center justify-center text-[#010307] shadow-3xl shadow-[#FE7F2D]/40 border-2 border-white/10 group-hover:scale-110 transition-transform duration-500">
+                      <div className={`h-20 w-20 rounded-[1.5rem] flex flex-col items-center justify-center shadow-3xl border-2 border-white/10 group-hover:scale-110 transition-transform duration-500 ${isBundle ? 'bg-green-500/90 text-white shadow-green-500/20' : 'bg-[#FE7F2D] text-[#010307] shadow-[#FE7F2D]/40'}`}>
                          <p className="text-[11px] font-black opacity-60 uppercase leading-none mb-1">slot</p>
                          <p className="font-black text-4xl leading-none italic">#{slot.slot_number}</p>
                       </div>
@@ -287,9 +300,18 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
                 </div>
 
                 {slot.rent_amount && (
-                  <div className="relative z-10 bg-white/5 p-4 rounded-2xl border border-white/5">
-                    <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1">current rent</p>
-                    <p className="text-2xl font-black text-[#FE7F2D] italic">NPR {slot.rent_amount.toLocaleString()}<span className="text-white/30 text-sm font-bold">/mo</span></p>
+                  <div className="relative z-10 bg-white/5 p-4 rounded-2xl border border-white/5 flex justify-between items-center">
+                    <div>
+                      <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1">current rent</p>
+                      <div className="flex items-baseline gap-2">
+                         <p className="text-2xl font-black text-white italic">NPR {slot.rent_amount.toLocaleString()}<span className="text-white/30 text-sm font-bold">/mo</span></p>
+                         {isBundle && discount && (
+                           <Badge className="bg-green-500/20 text-green-400 border-none font-black text-[8px] uppercase tracking-widest ml-2 px-2 py-0.5">
+                             -{Math.round(discount)}% off
+                           </Badge>
+                         )}
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -306,7 +328,7 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
                    </Badge>
                 </div>
              </div>
-          ))}
+          )})}
         </div>
       )}
 
