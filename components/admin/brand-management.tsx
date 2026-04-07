@@ -22,7 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { supabase, type Brand, type BrandChangeRequest, type BrandContract, type BrandProduct, type Enquiry, type Invoice, type ShelfBooking, type VisitRequest } from "@/lib/supabase"
 import { generateSKU, processImageFile } from "@/lib/utils"
-import { AlertCircle, ArrowLeft, BarChart3, Calendar, Check, ChevronRight, Clock, X as CloseX, DollarSign, FileText, Image as ImageIcon, Info, Instagram, LayoutGrid, Mail, MessageSquare, Package, Phone, Search, ShieldCheck, StickyNote, Trash2, TrendingUp, Users } from "lucide-react"
+import { AlertCircle, ArrowLeft, BarChart3, Calendar, Check, ChevronRight, Clock, X as CloseX, DollarSign, FileText, History, Image as ImageIcon, Info, Instagram, LayoutGrid, Mail, MessageSquare, Package, Phone, Search, ShieldCheck, StickyNote, Trash2, TrendingUp, Users } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
@@ -58,7 +58,9 @@ export function BrandManagement() {
   const [visitRequests, setVisitRequests] = useState<VisitRequest[]>([])
   const [changeRequests, setChangeRequests] = useState<BrandChangeRequest[]>([])
   const [contracts, setContracts] = useState<BrandContract[]>([])
+  const [inventoryLogs, setInventoryLogs] = useState<any[]>([])
   const [loadingDetails, setLoadingDetails] = useState(false)
+  const [loadingLogs, setLoadingLogs] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -131,17 +133,52 @@ export function BrandManagement() {
         supabase.from("brand_contracts").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false })
       ])
 
-      setProducts(productsRes.data || [])
       setInvoices(invoicesRes.data || [])
       setBookings(bookingsRes.data || [])
       setEnquiries(enquiriesRes.data || [])
       setVisitRequests(visitsRes.data || [])
       setChangeRequests(changesRes.data || [])
       setContracts(contractsRes.data || [])
+      
+      // Also fetch inventory logs
+      fetchInventoryLogs(brand.id)
     } catch (err) {
       console.error("Error fetching brand details:", err)
     } finally {
       setLoadingDetails(false)
+    }
+  }
+
+  const fetchInventoryLogs = async (brandId: string) => {
+    setLoadingLogs(true)
+    try {
+      const { data } = await supabase
+        .from("product_stock_logs")
+        .select("*, brand_products(name)")
+        .eq("brand_id", brandId)
+        .order("created_at", { ascending: false })
+      setInventoryLogs(data || [])
+    } catch (err) {
+      console.error("Error fetching stock logs:", err)
+    } finally {
+      setLoadingLogs(false)
+    }
+  }
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!confirm("Are you sure you want to remove this product? This will also remove its sales history and stock logs association.")) return
+    
+    setProcessingId(productId)
+    try {
+      const { error } = await supabase.from('brand_products').delete().eq('id', productId)
+      if (error) throw error
+      
+      toast.success("Product removed from catalog.")
+      if (selectedBrand) handleBrandSelect(selectedBrand)
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete product")
+    } finally {
+      setProcessingId(null)
     }
   }
 
@@ -158,15 +195,43 @@ export function BrandManagement() {
             sku = generateSKU(selectedBrand?.business_name || "BRD", data.name)
           }
 
-          const { error } = await supabase.from('brand_products').insert({
+          const { data: newProd, error } = await supabase.from('brand_products').insert({
             brand_id: request.brand_id,
             ...data,
             sku // Insert the (possibly auto-generated) SKU
-          })
+          }).select().single()
+
           if (error) throw error
+
+          // Log initial stock if any
+          if (newProd && newProd.stock_quantity > 0) {
+            await supabase.from('product_stock_logs').insert({
+              product_id: newProd.id,
+              brand_id: request.brand_id,
+              previous_stock: 0,
+              new_stock: newProd.stock_quantity,
+              change_amount: newProd.stock_quantity,
+              change_type: 'admin_approval',
+              notes: 'Initial stock added via admin approval'
+            })
+          }
         } else if (request.request_type === 'product_update' && request.target_id) {
+          const product = products.find(p => p.id === request.target_id)
           const { error } = await supabase.from('brand_products').update(data).eq('id', request.target_id)
           if (error) throw error
+
+          // Log stock change if applicable
+          if (product && data.stock_quantity !== undefined && data.stock_quantity !== product.stock_quantity) {
+            await supabase.from('product_stock_logs').insert({
+              product_id: product.id,
+              brand_id: request.brand_id,
+              previous_stock: product.stock_quantity,
+              new_stock: data.stock_quantity,
+              change_amount: data.stock_quantity - product.stock_quantity,
+              change_type: 'admin_approval',
+              notes: 'Stock updated via admin approval'
+            })
+          }
         } else if (request.request_type === 'brand_update' || request.request_type === 'profile_update') {
           // Apply all profile fields from new_data to brands table
           const profileFields: Record<string, any> = {}
@@ -371,6 +436,7 @@ export function BrandManagement() {
                   { id: 'performance_analysis', label: 'Performance Report', icon: <BarChart3 className="w-4 h-4 mr-3" /> },
                   { id: 'payouts', label: 'EOM Payouts', icon: <DollarSign className="w-4 h-4 mr-3" /> },
                   { id: 'transactions', label: 'Shelf Ledger', icon: <StickyNote className="w-4 h-4 mr-3" /> },
+                  { id: 'inventory_logs', label: 'Activity Logs', icon: <History className="w-4 h-4 mr-3" /> },
                   { id: 'contracts', label: 'Contracts', count: contracts.length, icon: <FileText className="w-4 h-4 mr-3" /> },
                   { id: 'enquiries', label: 'Enquiries', count: enquiries.length, icon: <MessageSquare className="w-4 h-4 mr-3" /> },
                   { id: 'danger', label: 'Danger Zone', icon: <Trash2 className="w-4 h-4 mr-3 text-red-500" /> },
@@ -622,7 +688,13 @@ export function BrandManagement() {
                                 NPR {(p.price * p.stock_quantity).toLocaleString()}
                               </TableCell>
                               <TableCell className="text-right px-4">
-                                <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 font-black text-[10px] uppercase">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 font-black text-[10px] uppercase"
+                                  onClick={() => handleDeleteProduct(p.id)}
+                                  disabled={!!processingId}
+                                >
                                   <Trash2 className="w-3 h-3 mr-1" /> Remove
                                 </Button>
                               </TableCell>
@@ -669,6 +741,82 @@ export function BrandManagement() {
 
                   <TabsContent value="transactions" className="mt-0 outline-none">
                     <ShelfTransactions brandId={selectedBrand.id} isAdmin={true} />
+                  </TabsContent>
+
+                  <TabsContent value="inventory_logs" className="mt-0 outline-none">
+                    <div className="space-y-6">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="text-xl font-black lowercase italic tracking-tight text-gray-900 flex items-center gap-3">
+                            <History className="w-6 h-6 text-[#FE7F2D]" />
+                            Stock Activity Logs
+                          </h3>
+                          <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">Full audit trail of stock movements.</p>
+                        </div>
+                        <Button 
+                          onClick={() => fetchInventoryLogs(selectedBrand.id)}
+                          variant="outline"
+                          className="rounded-xl font-black uppercase text-[9px] tracking-widest h-10 px-4"
+                          disabled={loadingLogs}
+                        >
+                          {loadingLogs ? "Syncing..." : "Refresh Logs"}
+                        </Button>
+                      </div>
+
+                      <div className="bg-white rounded-[2rem] border border-black/5 overflow-hidden">
+                        <Table>
+                          <TableHeader className="bg-gray-50/50">
+                            <TableRow className="border-none whitespace-nowrap">
+                              <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Date</TableHead>
+                              <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Product</TableHead>
+                              <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400">Type</TableHead>
+                              <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Change</TableHead>
+                              <TableHead className="px-6 py-4 font-black text-[10px] uppercase tracking-widest text-gray-400 text-center">Final Stock</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {loadingLogs ? (
+                              <TableRow>
+                                <TableCell colSpan={5} className="text-center py-20 text-gray-400 font-bold lowercase italic animate-pulse">Syncing logs...</TableCell>
+                              </TableRow>
+                            ) : inventoryLogs.length === 0 ? (
+                              <TableRow>
+                                <TableCell colSpan={5} className="text-center py-20 text-gray-400 font-bold lowercase italic">No logs found for this brand.</TableCell>
+                              </TableRow>
+                            ) : (
+                              inventoryLogs.map((log) => (
+                                <TableRow key={log.id} className="hover:bg-gray-50/50 border-gray-50 transition-colors">
+                                  <TableCell className="px-6 py-4 text-[11px] font-bold text-gray-500 whitespace-nowrap">
+                                    {new Date(log.created_at).toLocaleString()}
+                                  </TableCell>
+                                  <TableCell className="px-6 font-black text-[#010307] tracking-tight lowercase">
+                                    {log.brand_products?.name || 'Unknown Product'}
+                                  </TableCell>
+                                  <TableCell className="px-6">
+                                    <Badge variant="outline" className={`rounded-xl border-none font-black text-[8px] uppercase tracking-widest px-3 py-1 ${
+                                      log.change_type === 'sale' ? 'text-green-600 bg-green-50' :
+                                      log.change_type === 'admin_approval' ? 'text-blue-600 bg-blue-50' :
+                                      'text-orange-600 bg-orange-50'
+                                    }`}>
+                                      {log.change_type.replace('_', ' ')}
+                                    </Badge>
+                                    {log.notes && <p className="text-[9px] text-gray-400 mt-1 max-w-[150px] truncate" title={log.notes}>{log.notes}</p>}
+                                  </TableCell>
+                                  <TableCell className="px-6 text-center">
+                                    <span className={`font-black text-sm ${log.change_amount > 0 ? 'text-green-500' : log.change_amount < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                                      {log.change_amount > 0 ? '+' : ''}{log.change_amount}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="px-6 text-center font-black text-gray-900 text-sm">
+                                    {log.new_stock}
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
                   </TabsContent>
 
                   <TabsContent value="enquiries" className="mt-0 outline-none space-y-4">
