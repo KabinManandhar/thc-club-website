@@ -29,10 +29,6 @@ function AdminDashboardContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const isLocalhost = typeof window !== "undefined" && window.location.origin === "http://localhost:3000"
-    if (isLocalhost && searchParams.get("isTest") === "true") {
-      localStorage.setItem("thc_test_mode", "true");
-    }
     checkAuth();
   }, [searchParams]);
 

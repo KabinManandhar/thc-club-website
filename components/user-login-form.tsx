@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { userAuth } from "@/lib/user-auth"
-import { ArrowLeft, Lock, ShieldCheck, Check, X } from "lucide-react"
+import { ArrowLeft, Check, Lock, ShieldCheck, X } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
 
@@ -139,11 +139,11 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
         <Card className="w-full max-w-md border-[#FE7F2D]/10 shadow-sm overflow-hidden rounded-[2.5rem] bg-white/50 backdrop-blur-sm p-8">
           <div className="text-center space-y-6">
             <Button variant="ghost" onClick={() => setIsForgotView(false)} className="absolute left-4 top-4 p-2 hover:bg-black/5 rounded-full">
-               <ArrowLeft className="w-4 h-4 text-[#010307]/40" />
+              <ArrowLeft className="w-4 h-4 text-[#010307]/40" />
             </Button>
-            
+
             <div className="flex justify-center pt-8">
-               <Image src="/logo.png" alt="THC Club" width={100} height={50} className="h-10 w-auto" />
+              <Image src="/logo.png" alt="THC Club" width={100} height={50} className="h-10 w-auto" />
             </div>
 
             <div className="space-y-2">
@@ -155,11 +155,11 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
               <div className="bg-green-50 p-6 rounded-3xl border border-green-100 space-y-4 animate-in fade-in duration-500">
                 <Check className="w-10 h-10 text-green-500 mx-auto" />
                 <p className="text-sm font-bold text-green-600 lowercase italic">recovery link sent to your email. check your inbox.</p>
-                <Button 
-                   onClick={() => setIsForgotView(false)}
-                   className="w-full bg-[#010307] text-white rounded-2xl h-14 lowercase font-black"
+                <Button
+                  onClick={() => setIsForgotView(false)}
+                  className="w-full bg-[#010307] text-white rounded-2xl h-14 lowercase font-black"
                 >
-                   return home
+                  return home
                 </Button>
               </div>
             ) : (
@@ -242,7 +242,7 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
               </Button>
 
               <div className="flex flex-col gap-4">
-                <button 
+                <button
                   type="button"
                   disabled={isResending}
                   onClick={handleResendOtp}
@@ -250,7 +250,7 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
                 >
                   {isResending ? "sending..." : "resend verification code"}
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowOtp(false)}
                   className="text-[10px] font-bold text-[#010307]/40 hover:text-[#FE7F2D] uppercase tracking-widest"
@@ -273,7 +273,7 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
             <ArrowLeft className="w-4 h-4 text-[#010307]/40 hover:text-[#010307]" />
           </Button>
           <div className="flex justify-center pt-4">
-             <Image src="/logo.png" alt="THC Club" width={120} height={60} className="h-12 w-auto" />
+            <Image src="/logo.png" alt="THC Club" width={120} height={60} className="h-12 w-auto" />
           </div>
           <div className="space-y-2">
             <CardTitle className="text-2xl font-black lowercase italic flex items-center justify-center gap-3">
@@ -308,7 +308,7 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-[11px] font-bold lowercase tracking-widest text-[#010307]/40 ml-1">security password</Label>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setIsForgotView(true)}
                     className="text-[10px] font-black lowercase text-[#FE7F2D] hover:underline"
@@ -319,7 +319,7 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
                 <Input
                   id="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="enter your password"
                   value={loginData.password}
                   onChange={(e) =>
                     setLoginData((prev) => ({ ...prev, password: e.target.value }))
@@ -357,7 +357,7 @@ export function UserLoginForm({ onLoginSuccess, onBack, onSwitchToSignup }: User
             <div className="text-center pt-8 border-t border-[#010307]/10">
               <p className="text-[11px] font-bold text-[#010307]/40 lowercase tracking-widest">
                 new to the collective?{" "}
-                <button 
+                <button
                   onClick={onSwitchToSignup}
                   className="text-[#FE7F2D] hover:underline font-bold"
                 >

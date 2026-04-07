@@ -17,7 +17,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
   AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { PlusCircle, Search, Edit2, Trash2, AlertTriangle, Package, Shield, AlertCircle, Clock, Image as ImageIcon } from "lucide-react"
+import { PlusCircle, Search, Edit2, Trash2, AlertTriangle, Package, Shield, AlertCircle, Clock, Image as ImageIcon, History } from "lucide-react"
 import { FileUpload } from "@/components/ui/file-upload"
 import { SafeImage } from "@/components/ui/safe-image"
 import { toast } from "sonner"
@@ -49,6 +49,23 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
 
   const [isStockOpen, setIsStockOpen] = useState(false)
   const [stockForm, setStockForm] = useState({ id: "", name: "", stock_quantity: "0" })
+
+  const [isLogsOpen, setIsLogsOpen] = useState(false)
+  const [stockLogs, setStockLogs] = useState<any[]>([])
+  const [logsLoading, setLogsLoading] = useState(false)
+
+  const fetchLogs = async () => {
+    setLogsLoading(true)
+    setIsLogsOpen(true)
+    const { data } = await supabase
+      .from("product_stock_logs")
+      .select("*, brand_products(name)")
+      .eq("brand_id", brandId)
+      .order("created_at", { ascending: false })
+    
+    setStockLogs(data || [])
+    setLogsLoading(false)
+  }
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
@@ -210,6 +227,9 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
             </div>
           </Card>
 
+          <Button onClick={fetchLogs} className="bg-white text-black border border-black/5 hover:bg-black/5 px-6 h-auto rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-sm active:scale-95 transition-all">
+            <History className="mr-2 h-4 w-4" /> Activity Logs
+          </Button>
           <Button onClick={openAdd} className="bg-[#FE7F2D] text-white hover:bg-black px-10 h-auto rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all">
             <PlusCircle className="mr-2 h-4 w-4" /> add product
           </Button>
@@ -485,6 +505,80 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
               >
                 {saving ? "Transmitting..." : "Update Stock"}
               </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stock Logs Dialog */}
+      <Dialog open={isLogsOpen} onOpenChange={setIsLogsOpen}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border-none shadow-2xl rounded-[2rem]">
+          <div className="bg-white p-10 space-y-8">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black tracking-tighter uppercase italic">Inventory Activity Logs</DialogTitle>
+              <p className="text-[10px] text-black/30 font-black uppercase tracking-widest flex items-center gap-2">
+                 <History className="w-3.5 h-3.5" /> Recent Stock Movements
+              </p>
+            </DialogHeader>
+
+            <div className="max-h-[60vh] overflow-y-auto pr-2">
+              <Table>
+                <TableHeader className="bg-[#010307]/5">
+                  <TableRow className="border-none">
+                    <TableHead className="px-4 font-bold text-[10px] lowercase tracking-widest text-[#010307]/40">date</TableHead>
+                    <TableHead className="font-bold text-[10px] lowercase tracking-widest text-[#010307]/40">product</TableHead>
+                    <TableHead className="font-bold text-[10px] lowercase tracking-widest text-[#010307]/40">type</TableHead>
+                    <TableHead className="font-bold text-[10px] lowercase tracking-widest text-[#010307]/40 text-center">change</TableHead>
+                    <TableHead className="font-bold text-[10px] lowercase tracking-widest text-[#010307]/40 text-center">new total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {logsLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-20 animate-pulse text-[#010307]/20 font-bold lowercase italic">loading logs...</TableCell>
+                    </TableRow>
+                  ) : stockLogs.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-24">
+                        <History className="h-12 w-12 mx-auto mb-4 text-[#010307]/10" />
+                        <p className="text-[#010307]/20 font-bold lowercase text-[10px] tracking-widest italic">no activity logs found.</p>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    stockLogs.map((log) => (
+                      <TableRow key={log.id} className="hover:bg-gray-50/50 border-gray-50 transition-colors">
+                        <TableCell className="px-4 py-4 text-[11px] font-bold text-gray-500 whitespace-nowrap">
+                          {new Date(log.created_at).toLocaleString('en-NP', { dateStyle: 'short', timeStyle: 'short' })}
+                        </TableCell>
+                        <TableCell className="font-black text-[#010307] tracking-tight lowercase">
+                          {(log.brand_products as any)?.name || 'Unknown Product'}
+                        </TableCell>
+                        <TableCell>
+                           <Badge variant="outline" className={`rounded-xl border-gray-100 font-bold px-3 py-1 capitalize ${
+                             log.change_type === 'sale' ? 'text-green-600 bg-green-50' :
+                             log.change_type === 'admin_approval' ? 'text-blue-600 bg-blue-50' :
+                             'text-orange-600 bg-orange-50'
+                           }`}>
+                             {log.change_type.replace('_', ' ')}
+                           </Badge>
+                           {log.notes && <p className="text-[9px] text-gray-400 mt-1 max-w-[150px] truncate" title={log.notes}>{log.notes}</p>}
+                        </TableCell>
+                        <TableCell className="text-center">
+                           <span className={`font-black text-lg ${log.change_amount > 0 ? 'text-green-500' : log.change_amount < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                              {log.change_amount > 0 ? '+' : ''}{log.change_amount}
+                           </span>
+                        </TableCell>
+                        <TableCell className="text-center font-black text-gray-900 text-lg">
+                           {log.new_stock}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+            <DialogFooter className="pt-4 border-t border-gray-100 mt-2">
+              <Button variant="ghost" onClick={() => setIsLogsOpen(false)} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[10px]">Close</Button>
             </DialogFooter>
           </div>
         </DialogContent>

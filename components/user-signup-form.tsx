@@ -1,16 +1,16 @@
 "use client"
 
-import type React from "react"
-import { useState } from "react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { UserPlus, ArrowLeft, CheckCircle2, ShieldCheck, Check, X } from "lucide-react"
 import { userAuth } from "@/lib/user-auth"
+import { ArrowLeft, Check, CheckCircle2, ShieldCheck, UserPlus, X } from "lucide-react"
 import Image from "next/image"
+import type React from "react"
+import { useState } from "react"
 
 function PasswordRequirement({ label, met }: { label: string; met: boolean }) {
   return (
@@ -203,7 +203,7 @@ export function UserSignupForm({ onSignupSuccess, onBack, onSwitchToLogin }: Use
               </Button>
 
               <div className="flex flex-col gap-4">
-                <button 
+                <button
                   type="button"
                   disabled={isResending}
                   onClick={handleResendOtp}
@@ -211,7 +211,7 @@ export function UserSignupForm({ onSignupSuccess, onBack, onSwitchToLogin }: Use
                 >
                   {isResending ? "sending..." : "resend verification code"}
                 </button>
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowOtp(false)}
                   className="text-[10px] font-bold text-[#010307]/40 hover:text-[#FE7F2D] uppercase tracking-widest"
@@ -313,7 +313,7 @@ export function UserSignupForm({ onSignupSuccess, onBack, onSwitchToLogin }: Use
                     <Input
                       id="password"
                       type="password"
-                      placeholder="••••••••"
+                      placeholder="enter your password"
                       value={formData.password}
                       onChange={handleChange}
                       required
@@ -326,7 +326,7 @@ export function UserSignupForm({ onSignupSuccess, onBack, onSwitchToLogin }: Use
                     <Input
                       id="confirmPassword"
                       type="password"
-                      placeholder="••••••••"
+                      placeholder="enter your password"
                       value={formData.confirmPassword}
                       onChange={handleChange}
                       required
@@ -374,7 +374,7 @@ export function UserSignupForm({ onSignupSuccess, onBack, onSwitchToLogin }: Use
                 <div className="text-center pt-4">
                   <p className="text-[11px] font-bold text-[#010307]/40 lowercase tracking-widest">
                     already a member?{" "}
-                    <button 
+                    <button
                       type="button"
                       onClick={onSwitchToLogin}
                       className="text-[#FE7F2D] hover:underline font-bold"

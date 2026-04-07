@@ -194,6 +194,19 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
           .update({ stock_quantity: request.requested_stock })
           .eq("id", request.product_id)
         if (updateError) throw updateError
+
+        const { error: logError } = await supabase
+          .from("product_stock_logs")
+          .insert({
+            product_id: request.product_id,
+            brand_id: request.brand_id,
+            previous_stock: request.current_stock,
+            new_stock: request.requested_stock,
+            change_amount: request.requested_stock - request.current_stock,
+            change_type: "admin_approval",
+            reference_id: request.id,
+          })
+        if (logError) throw logError
       }
 
       const { error: requestError } = await supabase
@@ -223,14 +236,41 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         const data = request.new_data
 
         if (request.request_type === 'product_add') {
-          const { error } = await supabase.from('brand_products').insert({
+          const { data: insertedProduct, error } = await supabase.from('brand_products').insert({
             brand_id: request.brand_id,
             ...data
-          })
+          }).select().single()
           if (error) throw error
+          
+          if (data.stock_quantity) {
+            await supabase.from('product_stock_logs').insert({
+              product_id: insertedProduct.id,
+              brand_id: request.brand_id,
+              previous_stock: 0,
+              new_stock: data.stock_quantity,
+              change_amount: data.stock_quantity,
+              change_type: "brand_update",
+              reference_id: request.id,
+              notes: "Initial stock added"
+            })
+          }
         } else if (request.request_type === 'product_update' && request.target_id) {
+          const { data: prevProd } = await supabase.from("brand_products").select("stock_quantity").eq("id", request.target_id).single()
           const { error } = await supabase.from('brand_products').update(data).eq('id', request.target_id)
           if (error) throw error
+          
+          if (data.stock_quantity !== undefined && prevProd && data.stock_quantity !== prevProd.stock_quantity) {
+            await supabase.from('product_stock_logs').insert({
+              product_id: request.target_id,
+              brand_id: request.brand_id,
+              previous_stock: prevProd.stock_quantity,
+              new_stock: data.stock_quantity,
+              change_amount: data.stock_quantity - prevProd.stock_quantity,
+              change_type: "admin_approval",
+              reference_id: request.id,
+              notes: "Brand requested update"
+            })
+          }
         } else if (request.request_type === 'brand_update') {
           const { error } = await supabase.from('brands').update(data).eq('id', request.brand_id)
           if (error) throw error

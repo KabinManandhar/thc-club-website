@@ -110,7 +110,7 @@ export function AdminProfile() {
                       value={passwordForm.password}
                       onChange={(e) => setPasswordForm(p => ({ ...p, password: e.target.value }))}
                       className="rounded-2xl h-14 border-black/5 font-bold bg-white"
-                      placeholder="••••••••"
+                      placeholder="enter your password"
                     />
                   </div>
                   <div className="space-y-2">
@@ -120,7 +120,7 @@ export function AdminProfile() {
                       value={passwordForm.confirmPassword}
                       onChange={(e) => setPasswordForm(p => ({ ...p, confirmPassword: e.target.value }))}
                       className="rounded-2xl h-14 border-black/5 font-bold bg-white"
-                      placeholder="••••••••"
+                      placeholder="enter your password"
                     />
                   </div>
                 </div>

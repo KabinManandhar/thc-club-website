@@ -97,11 +97,6 @@ export const userAuth = {
   },
 
   async verifySession(): Promise<boolean> {
-    if (typeof window !== "undefined") {
-      const isLocalhost = window.location.origin === "http://localhost:3000"
-      const isTestSession = localStorage.getItem("thc_test_mode") === "true"
-      if (isLocalhost && isTestSession) return true
-    }
     const user = await this.getCurrentUser()
     return user !== null
   },

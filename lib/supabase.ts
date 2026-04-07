@@ -291,6 +291,21 @@ export interface StockUpdateRequest {
   brand_products?: BrandProduct
 }
 
+export interface ProductStockLog {
+  id: string
+  product_id: string
+  brand_id: string
+  previous_stock: number
+  new_stock: number
+  change_amount: number
+  change_type: "brand_update" | "admin_approval" | "sale" | "manual"
+  reference_id?: string
+  notes?: string
+  created_at: string
+  // joined
+  brand_products?: BrandProduct
+}
+
 // ============================================================
 // Pricing Config
 // ============================================================

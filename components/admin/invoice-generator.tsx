@@ -169,6 +169,19 @@ export function InvoiceGenerator() {
       const { error: lineErr } = await supabase.from("invoice_line_items").insert(lineItems)
       if (lineErr) throw lineErr
 
+      const stockLogs = cart.map((c) => ({
+        product_id: c.product.id,
+        brand_id: selectedBrandId,
+        previous_stock: c.product.stock_quantity,
+        new_stock: c.product.stock_quantity - c.quantity,
+        change_amount: -c.quantity,
+        change_type: "sale" as const,
+        reference_id: invoice.id,
+        notes: `Sale generated via POS`
+      }))
+      const { error: logsErr } = await supabase.from("product_stock_logs").insert(stockLogs)
+      if (logsErr) console.error("Error writing stock logs", logsErr)
+
       setSuccessInvoice({ ...invoice, invoice_line_items: lineItems })
       setShowInvoice(true)
       setCart([])

@@ -52,10 +52,6 @@ function ClubPageContent() {
   }
 
   useEffect(() => {
-    const isLocalhost = typeof window !== "undefined" && window.location.origin === "http://localhost:3000"
-    if (isLocalhost && searchParams.get("isTest") === "true") {
-      localStorage.setItem("thc_test_mode", "true")
-    }
     checkAuth()
     fetchPublicConfig()
   }, [searchParams])
@@ -89,15 +85,8 @@ function ClubPageContent() {
         window.location.href = "/"
         return
       }
-      const isLocalhost = typeof window !== "undefined" && window.location.origin === "http://localhost:3000"
-      const isTestMode = isLocalhost && localStorage.getItem("thc_test_mode") === "true"
 
-      let user = await userAuth.getCurrentUser()
-
-      if (!user && isTestMode) {
-        user = { email: "dev@thcclub.com", business_name: "Dev Brand (Test)", id: "test-user" } as any
-      }
-
+      const user = await userAuth.getCurrentUser()
       setCurrentUser(user)
       if (user) await loadBrandData(user.email)
       setIsAuthenticated(true)
