@@ -45,13 +45,11 @@ export function VisitRequestsManagement() {
 
   const updateVisitRequest = async (id: string, updates: Partial<VisitRequest>) => {
     try {
-      const { error } = await supabase
-        .from("visit_requests")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
+      const { error } = await supabase.rpc('admin_update_visit_request', {
+        p_request_id: id,
+        p_status: updates.status,
+        p_notes: updates.notes || null,
+      })
 
       if (error) throw error
 

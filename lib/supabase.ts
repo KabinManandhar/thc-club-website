@@ -23,9 +23,14 @@ export interface PlatformContent {
 export interface Enquiry {
   id: string
   brand_id?: string
+  name: string
+  email: string
+  phone?: string
   subject: string
   message: string
   status: "new" | "in_progress" | "resolved" | "pending" | "rejected" | "on_hold"
+  priority: "low" | "medium" | "high"
+  assigned_to?: string | null
   admin_reply?: string
   created_at: string
   updated_at: string

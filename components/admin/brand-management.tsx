@@ -170,7 +170,7 @@ export function BrandManagement() {
     
     setProcessingId(productId)
     try {
-      const { error } = await supabase.from('brand_products').delete().eq('id', productId)
+      const { error } = await supabase.rpc('admin_delete_product', { p_product_id: productId })
       if (error) throw error
       
       toast.success("Product removed from catalog.")
@@ -185,77 +185,16 @@ export function BrandManagement() {
   const handleApproval = async (request: BrandChangeRequest, action: 'approve' | 'reject') => {
     setProcessingId(request.id)
     try {
-      if (action === 'approve') {
-        const data = request.new_data
-
-        if (request.request_type === 'product_add') {
-          // Auto Generate SKU if missing
-          let sku = data.sku
-          if (!sku) {
-            sku = generateSKU(selectedBrand?.business_name || "BRD", data.name)
-          }
-
-          const { data: newProd, error } = await supabase.from('brand_products').insert({
-            brand_id: request.brand_id,
-            ...data,
-            sku // Insert the (possibly auto-generated) SKU
-          }).select().single()
-
-          if (error) throw error
-
-          // Log initial stock if any
-          if (newProd && newProd.stock_quantity > 0) {
-            await supabase.from('product_stock_logs').insert({
-              product_id: newProd.id,
-              brand_id: request.brand_id,
-              previous_stock: 0,
-              new_stock: newProd.stock_quantity,
-              change_amount: newProd.stock_quantity,
-              change_type: 'admin_approval',
-              notes: 'Initial stock added via admin approval'
-            })
-          }
-        } else if (request.request_type === 'product_update' && request.target_id) {
-          const product = products.find(p => p.id === request.target_id)
-          const { error } = await supabase.from('brand_products').update(data).eq('id', request.target_id)
-          if (error) throw error
-
-          // Log stock change if applicable
-          if (product && data.stock_quantity !== undefined && data.stock_quantity !== product.stock_quantity) {
-            await supabase.from('product_stock_logs').insert({
-              product_id: product.id,
-              brand_id: request.brand_id,
-              previous_stock: product.stock_quantity,
-              new_stock: data.stock_quantity,
-              change_amount: data.stock_quantity - product.stock_quantity,
-              change_type: 'admin_approval',
-              notes: 'Stock updated via admin approval'
-            })
-          }
-        } else if (request.request_type === 'brand_update' || request.request_type === 'profile_update') {
-          // Apply all profile fields from new_data to brands table
-          const profileFields: Record<string, any> = {}
-          const allowedFields = [
-            'business_name', 'description', 'phone',
-            'instagram_handle', 'website_url', 'logo_url', 'brand_story'
-          ]
-          for (const key of allowedFields) {
-            if (data[key] !== undefined) profileFields[key] = data[key]
-          }
-          if (Object.keys(profileFields).length > 0) {
-            const { error } = await supabase
-              .from('brands')
-              .update({ ...profileFields, updated_at: new Date().toISOString() })
-              .eq('id', request.brand_id)
-            if (error) throw error
-          }
-        }
+      let sku = request.new_data?.sku
+      if (!sku && request.request_type === 'product_add') {
+        sku = generateSKU(selectedBrand?.business_name || "BRD", request.new_data?.name || "PRD")
       }
 
-      const { error } = await supabase
-        .from('brand_change_requests')
-        .update({ status: action === 'approve' ? 'approved' : 'rejected' })
-        .eq('id', request.id)
+      const { error } = await supabase.rpc('admin_process_change_request_atomic', {
+        p_request_id: request.id,
+        p_action: action,
+        p_sku_if_missing: sku || null
+      })
 
       if (error) throw error
 
@@ -273,13 +212,11 @@ export function BrandManagement() {
   const updateBrandCRM = async (data: Partial<Brand>) => {
     if (!selectedBrand) return
     try {
-      const { error } = await supabase
-        .from('brands')
-        .update({
-          admin_notes: data.admin_notes !== undefined ? data.admin_notes : selectedBrand.admin_notes,
-          onboarding_status: data.onboarding_status !== undefined ? data.onboarding_status : selectedBrand.onboarding_status,
-        })
-        .eq('id', selectedBrand.id)
+      const { error } = await supabase.rpc('admin_update_brand_crm', {
+        p_brand_id: selectedBrand.id,
+        p_admin_notes: data.admin_notes !== undefined ? data.admin_notes : selectedBrand.admin_notes,
+        p_onboarding_status: data.onboarding_status !== undefined ? data.onboarding_status : selectedBrand.onboarding_status
+      })
 
       if (error) throw error
       setSelectedBrand({ ...selectedBrand, ...data })
@@ -344,7 +281,7 @@ export function BrandManagement() {
       }
 
       // 2. Delete database record
-      const { error } = await supabase.from('brand_contracts').delete().eq('id', contract.id)
+      const { error } = await supabase.rpc('admin_delete_contract', { p_contract_id: contract.id })
       if (error) throw error
 
       toast.success('Contract deleted.')

@@ -45,13 +45,12 @@ export function EnquiriesManagement() {
 
   const updateEnquiry = async (id: string, updates: Partial<Enquiry>) => {
     try {
-      const { error } = await supabase
-        .from("enquiries")
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
+      const { error } = await supabase.rpc('admin_update_enquiry', {
+        p_enquiry_id: id,
+        p_status: updates.status,
+        p_priority: updates.priority,
+        p_assigned_to: updates.assigned_to || null,
+      })
 
       if (error) throw error
 
