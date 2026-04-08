@@ -268,7 +268,7 @@ export interface BrandSettlement {
 export interface BrandChangeRequest {
   id: string
   brand_id: string
-  request_type: "product_add" | "product_update" | "brand_update" | "profile_update"
+  request_type: "product_add" | "product_update" | "brand_update" | "profile_update" | "general_request"
   target_id?: string
   new_data: any
   status: "pending" | "approved" | "rejected" | "on_hold"

@@ -117,11 +117,8 @@ export function BrandManagement() {
     setLoading(false)
   }
 
-  const handleBrandSelect = async (brand: Brand) => {
+  const loadBrandDetails = async (brand: Brand) => {
     setLoadingDetails(true)
-    setSelectedBrand(brand)
-    setView("detail")
-
     try {
       const [productsRes, invoicesRes, bookingsRes, enquiriesRes, visitsRes, changesRes, contractsRes] = await Promise.all([
         supabase.from("brand_products").select("*").eq("brand_id", brand.id).order("name", { ascending: true }),
@@ -133,20 +130,26 @@ export function BrandManagement() {
         supabase.from("brand_contracts").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false })
       ])
 
+      setProducts(productsRes.data || [])
       setInvoices(invoicesRes.data || [])
       setBookings(bookingsRes.data || [])
       setEnquiries(enquiriesRes.data || [])
       setVisitRequests(visitsRes.data || [])
       setChangeRequests(changesRes.data || [])
       setContracts(contractsRes.data || [])
-      
-      // Also fetch inventory logs
+
       fetchInventoryLogs(brand.id)
     } catch (err) {
       console.error("Error fetching brand details:", err)
     } finally {
       setLoadingDetails(false)
     }
+  }
+
+  const handleBrandSelect = async (brand: Brand) => {
+    setSelectedBrand(brand)
+    setView("detail")
+    await loadBrandDetails(brand)
   }
 
   const fetchInventoryLogs = async (brandId: string) => {
@@ -174,7 +177,7 @@ export function BrandManagement() {
       if (error) throw error
       
       toast.success("Product removed from catalog.")
-      if (selectedBrand) handleBrandSelect(selectedBrand)
+      if (selectedBrand) await loadBrandDetails(selectedBrand)
     } catch (err: any) {
       toast.error(err.message || "Failed to delete product")
     } finally {
@@ -201,7 +204,7 @@ export function BrandManagement() {
       toast.success(`Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`)
 
       // Refresh details
-      if (selectedBrand) handleBrandSelect(selectedBrand)
+      if (selectedBrand) await loadBrandDetails(selectedBrand)
     } catch (err: any) {
       toast.error(err.message || 'Failed to process request')
     } finally {
@@ -938,7 +941,7 @@ export function BrandManagement() {
                                     const { error: brandError } = await supabase.from('brands').update({ onboarding_status: 'active' }).eq('id', selectedBrand.id)
                                     if (brandError) throw brandError
                                     toast.success('Contract activated & brand approved.')
-                                    handleBrandSelect(selectedBrand)
+                                    await loadBrandDetails(selectedBrand)
                                     fetchBrands()
                                   }}
                                   className="bg-[#FE7F2D] text-white hover:bg-black rounded-xl h-10 px-4 font-black uppercase text-[9px] tracking-widest"

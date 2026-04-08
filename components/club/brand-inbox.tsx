@@ -36,6 +36,7 @@ interface BrandInboxProps {
 export function BrandInbox({ brandId }: BrandInboxProps) {
   const [enquiries, setEnquiries] = useState<any[]>([])
   const [requests, setRequests] = useState<any[]>([])
+  const [requestView, setRequestView] = useState<"active" | "history" | "all">("active")
   const [loading, setLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [formType, setFormType] = useState<"enquiry" | "request">("enquiry")
@@ -116,6 +117,13 @@ export function BrandInbox({ brandId }: BrandInboxProps) {
         return <Badge className="bg-gray-100 text-gray-500 border-none font-black uppercase text-[8px] px-2 py-0.5 tracking-widest">{status}</Badge>
     }
   }
+  const filteredRequests = requests.filter((req) => {
+    if (requestView === "active") return req.status === "pending" || req.status === "on_hold"
+    if (requestView === "history") return ["approved", "rejected"].includes(req.status)
+    return true
+  })
+  const activeRequestsCount = requests.filter((req) => req.status === "pending" || req.status === "on_hold").length
+  const historyRequestsCount = requests.filter((req) => ["approved", "rejected"].includes(req.status)).length
 
   return (
     <div className="space-y-10">
@@ -207,18 +215,41 @@ export function BrandInbox({ brandId }: BrandInboxProps) {
               <Zap className="w-5 h-5 text-orange-600" />
               System Requests
             </h3>
-            <Badge variant="outline" className="rounded-full font-black text-[9px] uppercase px-3">{requests.length}</Badge>
+            <Badge variant="outline" className="rounded-full font-black text-[9px] uppercase px-3">{filteredRequests.length}</Badge>
+          </div>
+          <div className="flex items-center gap-2 px-2">
+            <Button
+              variant={requestView === "active" ? "default" : "outline"}
+              onClick={() => setRequestView("active")}
+              className="rounded-xl h-9 px-4 font-black uppercase text-[9px] tracking-widest"
+            >
+              Active ({activeRequestsCount})
+            </Button>
+            <Button
+              variant={requestView === "history" ? "default" : "outline"}
+              onClick={() => setRequestView("history")}
+              className="rounded-xl h-9 px-4 font-black uppercase text-[9px] tracking-widest"
+            >
+              History ({historyRequestsCount})
+            </Button>
+            <Button
+              variant={requestView === "all" ? "default" : "outline"}
+              onClick={() => setRequestView("all")}
+              className="rounded-xl h-9 px-4 font-black uppercase text-[9px] tracking-widest"
+            >
+              All ({requests.length})
+            </Button>
           </div>
 
           <div className="space-y-4">
             {loading ? (
               <div className="h-64 bg-white/50 animate-pulse rounded-[2.5rem]" />
-            ) : requests.length === 0 ? (
+            ) : filteredRequests.length === 0 ? (
               <div className="p-10 text-center border-2 border-dashed border-gray-100 rounded-[2.5rem]">
-                <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest opacity-60">No system requests found.</p>
+                <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest opacity-60">No system requests found for this view.</p>
               </div>
             ) : (
-              requests.map((req) => (
+              filteredRequests.map((req) => (
                 <Card key={req.id} className="border border-black/5 shadow-sm rounded-2xl bg-white overflow-hidden group transition-all">
                   <CardContent className="p-8">
                     <div className="flex justify-between items-start mb-4">

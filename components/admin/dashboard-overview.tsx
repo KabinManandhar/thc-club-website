@@ -232,56 +232,15 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
   const handleChangeAction = async (request: BrandChangeRequest, action: 'approve' | 'reject') => {
     setProcessingId(request.id)
     try {
-      if (action === 'approve') {
-        const data = request.new_data
-
-        if (request.request_type === 'product_add') {
-          const { data: insertedProduct, error } = await supabase.from('brand_products').insert({
-            brand_id: request.brand_id,
-            ...data
-          }).select().single()
-          if (error) throw error
-          
-          if (data.stock_quantity) {
-            await supabase.from('product_stock_logs').insert({
-              product_id: insertedProduct.id,
-              brand_id: request.brand_id,
-              previous_stock: 0,
-              new_stock: data.stock_quantity,
-              change_amount: data.stock_quantity,
-              change_type: "brand_update",
-              reference_id: request.id,
-              notes: "Initial stock added"
-            })
-          }
-        } else if (request.request_type === 'product_update' && request.target_id) {
-          const { data: prevProd } = await supabase.from("brand_products").select("stock_quantity").eq("id", request.target_id).single()
-          const { error } = await supabase.from('brand_products').update(data).eq('id', request.target_id)
-          if (error) throw error
-          
-          if (data.stock_quantity !== undefined && prevProd && data.stock_quantity !== prevProd.stock_quantity) {
-            await supabase.from('product_stock_logs').insert({
-              product_id: request.target_id,
-              brand_id: request.brand_id,
-              previous_stock: prevProd.stock_quantity,
-              new_stock: data.stock_quantity,
-              change_amount: data.stock_quantity - prevProd.stock_quantity,
-              change_type: "admin_approval",
-              reference_id: request.id,
-              notes: "Brand requested update"
-            })
-          }
-        } else if (request.request_type === 'brand_update') {
-          const { error } = await supabase.from('brands').update(data).eq('id', request.brand_id)
-          if (error) throw error
-        }
+      let sku = request.new_data?.sku
+      if (!sku && request.request_type === "product_add") {
+        sku = `SKU-${Date.now()}`
       }
-
-      const { error } = await supabase
-        .from('brand_change_requests')
-        .update({ status: action === 'approve' ? 'approved' : 'rejected' })
-        .eq('id', request.id)
-
+      const { error } = await supabase.rpc('admin_process_change_request_atomic', {
+        p_request_id: request.id,
+        p_action: action,
+        p_sku_if_missing: sku || null
+      })
       if (error) throw error
 
       toast.success(`Request ${action === 'approve' ? 'approved' : 'rejected'} successfully`)

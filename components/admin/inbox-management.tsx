@@ -21,6 +21,7 @@ export function InboxManagement() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState("enquiries")
+  const [requestView, setRequestView] = useState<"active" | "history" | "all">("active")
   
   const [selectedEntry, setSelectedEntry] = useState<any>(null)
   const [entryType, setEntryType] = useState<"enquiry" | "request" | null>(null)
@@ -109,6 +110,13 @@ export function InboxManagement() {
     r.request_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.brands?.business_name?.toLowerCase().includes(searchTerm.toLowerCase())
   )
+  const requestStatusFiltered = filteredRequests.filter((r) => {
+    if (requestView === "active") return r.status === "pending" || r.status === "on_hold"
+    if (requestView === "history") return ["approved", "rejected"].includes(r.status)
+    return true
+  })
+  const activeRequestsCount = changeRequests.filter((r) => r.status === "pending" || r.status === "on_hold").length
+  const historyRequestsCount = changeRequests.filter((r) => ["approved", "rejected"].includes(r.status)).length
 
   if (loading) {
     return (
@@ -207,7 +215,30 @@ export function InboxManagement() {
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-6">
-            {filteredRequests.map(req => (
+            <div className="flex items-center gap-2">
+              <Button
+                variant={requestView === "active" ? "default" : "outline"}
+                className="rounded-xl h-9 px-4 font-black uppercase tracking-widest text-[9px]"
+                onClick={() => setRequestView("active")}
+              >
+                Active ({activeRequestsCount})
+              </Button>
+              <Button
+                variant={requestView === "history" ? "default" : "outline"}
+                className="rounded-xl h-9 px-4 font-black uppercase tracking-widest text-[9px]"
+                onClick={() => setRequestView("history")}
+              >
+                History ({historyRequestsCount})
+              </Button>
+              <Button
+                variant={requestView === "all" ? "default" : "outline"}
+                className="rounded-xl h-9 px-4 font-black uppercase tracking-widest text-[9px]"
+                onClick={() => setRequestView("all")}
+              >
+                All ({changeRequests.length})
+              </Button>
+            </div>
+            {requestStatusFiltered.map(req => (
               <Card key={req.id} className="border-none shadow-xl rounded-[2.5rem] bg-white overflow-hidden group hover:scale-[1.01] transition-transform">
                 <CardContent className="p-8">
                   <div className="flex justify-between items-start mb-6">
