@@ -21,6 +21,18 @@ import { PlusCircle, Search, Edit2, Trash2, AlertTriangle, Package, Shield, Aler
 import { FileUpload } from "@/components/ui/file-upload"
 import { SafeImage } from "@/components/ui/safe-image"
 import { toast } from "sonner"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+
+const PAGE_SIZE = 10
+const LOGS_PAGE_SIZE = 10
 
 interface InventoryManagementProps {
   brandId: string
@@ -54,29 +66,56 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
   const [stockLogs, setStockLogs] = useState<any[]>([])
   const [logsLoading, setLogsLoading] = useState(false)
 
-  const fetchLogs = async () => {
+  const [productsCount, setProductsCount] = useState(0)
+  const [productsPage, setProductsPage] = useState(1)
+  const [logsCount, setLogsCount] = useState(0)
+  const [logsPage, setLogsPage] = useState(1)
+
+  const fetchLogs = async (page = 1) => {
     setLogsLoading(true)
     setIsLogsOpen(true)
-    const { data } = await supabase
+    setLogsPage(page)
+    const from = (page - 1) * LOGS_PAGE_SIZE
+    const to = from + LOGS_PAGE_SIZE - 1
+
+    const { data, count } = await supabase
       .from("product_stock_logs")
-      .select("*, brand_products(name)")
+      .select("*, brand_products(name)", { count: 'exact' })
       .eq("brand_id", brandId)
       .order("created_at", { ascending: false })
+      .range(from, to)
     
     setStockLogs(data || [])
+    if (count !== null) setLogsCount(count)
     setLogsLoading(false)
   }
 
   const fetchProducts = useCallback(async () => {
     setLoading(true)
+    const from = (productsPage - 1) * PAGE_SIZE
+    const to = from + PAGE_SIZE - 1
+
+    let query = supabase
+      .from("brand_products")
+      .select("*", { count: 'exact' })
+      .eq("brand_id", brandId)
+
+    if (searchTerm) {
+      query = query.ilike("name", `%${searchTerm}%`)
+    }
+
     const [prodRes, reqRes] = await Promise.all([
-      supabase.from("brand_products").select("*").eq("brand_id", brandId).order("name"),
+      query.order("name").range(from, to),
       supabase.from("brand_change_requests").select("*").eq("brand_id", brandId).eq("status", "pending").order("created_at", { ascending: false })
     ])
-    if (!prodRes.error) setProducts(prodRes.data || [])
+
+    if (!prodRes.error) {
+      setProducts(prodRes.data || [])
+      if (prodRes.count !== null) setProductsCount(prodRes.count)
+    }
     if (!reqRes.error) setPendingRequests(reqRes.data || [])
     setLoading(false)
-  }, [brandId])
+  }, [brandId, productsPage, searchTerm])
 
   useEffect(() => { fetchProducts() }, [fetchProducts])
 
@@ -193,9 +232,12 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
     }
   }
 
-  const filtered = products.filter(
-    (p) => p.name.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filtered = products // Now handled server-side
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+    setProductsPage(1)
+  }
 
   const getStockBadge = (p: BrandProduct) => {
     if (p.stock_quantity === 0)
@@ -272,7 +314,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
             <Input
               placeholder="search catalog..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
               className="pl-12 rounded-2xl h-12 border-[#010307]/5 bg-[#010307]/5 font-bold lowercase"
             />
           </div>
@@ -577,6 +619,29 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                 </TableBody>
               </Table>
             </div>
+            {logsCount > LOGS_PAGE_SIZE && (
+              <div className="flex justify-center pt-4">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => fetchLogs(Math.max(1, logsPage - 1))}
+                        className={logsPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <span className="text-[10px] font-black uppercase text-gray-400 px-4">Page {logsPage} of {Math.ceil(logsCount / LOGS_PAGE_SIZE)}</span>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => fetchLogs(Math.min(Math.ceil(logsCount / LOGS_PAGE_SIZE), logsPage + 1))}
+                        className={logsPage === Math.ceil(logsCount / LOGS_PAGE_SIZE) ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
             <DialogFooter className="pt-4 border-t border-gray-100 mt-2">
               <Button variant="ghost" onClick={() => setIsLogsOpen(false)} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-[10px]">Close</Button>
             </DialogFooter>

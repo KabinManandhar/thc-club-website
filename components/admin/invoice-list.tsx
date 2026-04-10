@@ -10,28 +10,55 @@ import { supabase } from "@/lib/supabase"
 import { Printer, Receipt, Search } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { ReceiptPrinter } from "./receipt-printer"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+
+const PAGE_SIZE = 10
 
 export function InvoiceList() {
   const [invoices, setInvoices] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [totalCount, setTotalCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState(1)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null)
   const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetchInvoices()
-  }, [])
+  }, [currentPage, searchTerm]) // Re-fetch on page or search change
 
   const fetchInvoices = async () => {
     setLoading(true)
     try {
-      const { data, error } = await supabase
+      const from = (currentPage - 1) * PAGE_SIZE
+      const to = from + PAGE_SIZE - 1
+
+      let query = supabase
         .from("invoices")
-        .select("*, brands(business_name), invoice_line_items(*)")
+        .select("*, brands(business_name), invoice_line_items(*)", { count: "exact" })
+
+      if (searchTerm) {
+        // If searching, we filter by invoice number. 
+        // Note: filtering by joined brand name via ilike is complex in standard Supabase calls 
+        // without a view, so we stick to invoice number or exact brand_id search if needed.
+        query = query.ilike("invoice_number", `%${searchTerm}%`)
+      }
+
+      const { data, error, count } = await query
         .order("created_at", { ascending: false })
+        .range(from, to)
       
       if (error) throw error
       setInvoices(data || [])
+      if (count !== null) setTotalCount(count)
     } catch (err: any) {
       console.error("Error fetching invoices:", err.message || err)
     } finally {
@@ -39,10 +66,12 @@ export function InvoiceList() {
     }
   }
 
-  const filteredInvoices = invoices.filter(inv => 
-    inv.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (inv.brands?.business_name || "").toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE)
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+    setCurrentPage(1) // Reset to first page on search
+  }
 
   const handlePrint = () => {
     const printContent = printRef.current;
@@ -88,9 +117,9 @@ export function InvoiceList() {
         <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
-            placeholder="Search invoice or brand..."
+            placeholder="Search invoice number..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             className="pl-10 rounded-xl"
           />
         </div>
@@ -109,9 +138,18 @@ export function InvoiceList() {
                 <TableHead className="font-black text-[10px] uppercase tracking-widest text-right px-4 sm:px-6">Actions</TableHead>
               </TableRow>
             </TableHeader>
-          <TableBody>
-            {filteredInvoices.map((inv) => (
-              <TableRow key={inv.id} className="hover:bg-gray-50/50 transition-colors">
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-10 animate-pulse text-gray-400 font-bold lowercase italic">Loading invoices...</TableCell>
+                </TableRow>
+              ) : invoices.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-20 text-gray-400 font-bold">No invoices found.</TableCell>
+                </TableRow>
+              ) : (
+                invoices.map((inv) => (
+                <TableRow key={inv.id} className="hover:bg-gray-50/50 transition-colors">
                 <TableCell className="font-bold px-4 sm:px-6">{inv.invoice_number}</TableCell>
                 <TableCell className="font-medium whitespace-nowrap">{inv.brands?.business_name}</TableCell>
                 <TableCell className="font-black whitespace-nowrap">NPR {inv.total_amount.toLocaleString()}</TableCell>
@@ -232,20 +270,55 @@ export function InvoiceList() {
                   </Dialog>
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            )))}
+            </TableBody>
+          </Table>
         </div>
       </Card>
       
-      {filteredInvoices.length === 0 && (
-        <div className="py-20 text-center space-y-4">
-           <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-gray-300">
-             <Receipt className="w-8 h-8" />
-           </div>
-           <p className="text-gray-400 font-bold">No invoices found matching your criteria.</p>
+      {totalPages > 1 && (
+        <div className="flex justify-center pt-4">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+              
+              {[...Array(totalPages)].map((_, i) => {
+                const page = i + 1
+                // logic to show only few pages around current page
+                if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                  return (
+                    <PaginationItem key={page}>
+                      <PaginationLink 
+                        isActive={currentPage === page}
+                        onClick={() => setCurrentPage(page)}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                } else if (page === currentPage - 2 || page === currentPage + 2) {
+                  return <PaginationItem key={page}><PaginationEllipsis /></PaginationItem>
+                }
+                return null
+              })}
+
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
+      
     </div>
   )
 }

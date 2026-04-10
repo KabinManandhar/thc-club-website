@@ -25,6 +25,13 @@ import { generateSKU, processImageFile } from "@/lib/utils"
 import { AlertCircle, ArrowLeft, BarChart3, Calendar, Check, ChevronRight, Clock, X as CloseX, DollarSign, FileText, History, Image as ImageIcon, Info, Instagram, LayoutGrid, Mail, MessageSquare, Package, Phone, Search, ShieldCheck, StickyNote, Trash2, TrendingUp, Users } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-black text-white",
@@ -63,6 +70,16 @@ export function BrandManagement() {
   const [loadingLogs, setLoadingLogs] = useState(false)
   const [processingId, setProcessingId] = useState<string | null>(null)
 
+  // Pagination States for Detail View
+  const [productsPage, setProductsPage] = useState(1)
+  const [productsCount, setProductsCount] = useState(0)
+  const [invoicesPage, setInvoicesPage] = useState(1)
+  const [invoicesCount, setInvoicesCount] = useState(0)
+  const [logsPage, setLogsPage] = useState(1)
+  const [logsCount, setLogsCount] = useState(0)
+
+  const ITEMS_PER_PAGE = 10
+
   useEffect(() => {
     fetchBrands()
   }, [])
@@ -93,12 +110,16 @@ export function BrandManagement() {
   }
 
   const fetchBrands = async () => {
+    setLoading(true)
     const { data: brandsRes } = await supabase
       .from("brands")
       .select("*")
       .order("updated_at", { ascending: false })
     
-    // Fetch total stock value across all brands efficiently
+    // Instead of fetching ALL brand products, we fetch summaries for the visible brands
+    // However, since brand list is often small (hundreds), we can keep it relatively simple 
+    // but we should avoid fetching thousands of rows unnecessarily.
+    // For now, let's just make the selection precise.
     const { data: stockData } = await supabase
       .from("brand_products")
       .select("brand_id, stock_quantity, price")
@@ -117,12 +138,43 @@ export function BrandManagement() {
     setLoading(false)
   }
 
+  const loadBrandInvoices = async (brandId: string, page = 1) => {
+    setInvoicesPage(page)
+    const from = (page - 1) * ITEMS_PER_PAGE
+    const to = from + ITEMS_PER_PAGE - 1
+    const { data, count } = await supabase
+      .from("invoices")
+      .select("*", { count: 'exact' })
+      .eq("brand_id", brandId)
+      .order("created_at", { ascending: false })
+      .range(from, to)
+    setInvoices(data || [])
+    if (count !== null) setInvoicesCount(count)
+  }
+
+  const loadBrandProducts = async (brandId: string, page = 1) => {
+    setProductsPage(page)
+    const from = (page - 1) * ITEMS_PER_PAGE
+    const to = from + ITEMS_PER_PAGE - 1
+    const { data, count } = await supabase
+      .from("brand_products")
+      .select("*", { count: 'exact' })
+      .eq("brand_id", brandId)
+      .order("name", { ascending: true })
+      .range(from, to)
+    setProducts(data || [])
+    if (count !== null) setProductsCount(count)
+  }
+
   const loadBrandDetails = async (brand: Brand) => {
     setLoadingDetails(true)
+    setProductsPage(1)
+    setInvoicesPage(1)
+    setLogsPage(1)
     try {
-      const [productsRes, invoicesRes, bookingsRes, enquiriesRes, visitsRes, changesRes, contractsRes] = await Promise.all([
-        supabase.from("brand_products").select("*").eq("brand_id", brand.id).order("name", { ascending: true }),
-        supabase.from("invoices").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
+      const [prodRes, invRes, bookingsRes, enquiriesRes, visitsRes, changesRes, contractsRes] = await Promise.all([
+        supabase.from("brand_products").select("*", { count: 'exact' }).eq("brand_id", brand.id).order("name", { ascending: true }).range(0, ITEMS_PER_PAGE - 1),
+        supabase.from("invoices").select("*", { count: 'exact' }).eq("brand_id", brand.id).order("created_at", { ascending: false }).range(0, ITEMS_PER_PAGE - 1),
         supabase.from("shelf_bookings").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
         supabase.from("enquiries").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false }),
         supabase.from("visit_requests").select("*").eq("email", brand.email).order("created_at", { ascending: false }),
@@ -130,15 +182,17 @@ export function BrandManagement() {
         supabase.from("brand_contracts").select("*").eq("brand_id", brand.id).order("created_at", { ascending: false })
       ])
 
-      setProducts(productsRes.data || [])
-      setInvoices(invoicesRes.data || [])
+      setProducts(prodRes.data || [])
+      if (prodRes.count !== null) setProductsCount(prodRes.count)
+      setInvoices(invRes.data || [])
+      if (invRes.count !== null) setInvoicesCount(invRes.count)
       setBookings(bookingsRes.data || [])
       setEnquiries(enquiriesRes.data || [])
       setVisitRequests(visitsRes.data || [])
       setChangeRequests(changesRes.data || [])
       setContracts(contractsRes.data || [])
 
-      fetchInventoryLogs(brand.id)
+      fetchInventoryLogs(brand.id, 1)
     } catch (err) {
       console.error("Error fetching brand details:", err)
     } finally {
@@ -152,15 +206,20 @@ export function BrandManagement() {
     await loadBrandDetails(brand)
   }
 
-  const fetchInventoryLogs = async (brandId: string) => {
+  const fetchInventoryLogs = async (brandId: string, page = 1) => {
     setLoadingLogs(true)
+    setLogsPage(page)
+    const from = (page - 1) * ITEMS_PER_PAGE
+    const to = from + ITEMS_PER_PAGE - 1
     try {
-      const { data } = await supabase
+      const { data, count } = await supabase
         .from("product_stock_logs")
-        .select("*, brand_products(name)")
+        .select("*, brand_products(name)", { count: 'exact' })
         .eq("brand_id", brandId)
         .order("created_at", { ascending: false })
+        .range(from, to)
       setInventoryLogs(data || [])
+      if (count !== null) setLogsCount(count)
     } catch (err) {
       console.error("Error fetching stock logs:", err)
     } finally {
@@ -372,7 +431,7 @@ export function BrandManagement() {
                   { id: 'crm', label: 'CRM (Admin)', icon: <ShieldCheck className="w-4 h-4 mr-3" /> },
                   { id: 'changes', label: 'Requests', count: changeRequests.length, icon: <Check className="w-4 h-4 mr-3" /> },
                   { id: 'products', label: 'Inventory', count: products.length, icon: <LayoutGrid className="w-4 h-4 mr-3" /> },
-                  { id: 'sales_history', label: 'Sales History', count: invoices.length, icon: <ArrowLeft className="w-4 h-4 mr-3" /> },
+                  { id: 'sales_history', label: 'Sales History', count: invoicesCount, icon: <ArrowLeft className="w-4 h-4 mr-3" /> },
                   { id: 'performance_analysis', label: 'Performance Report', icon: <BarChart3 className="w-4 h-4 mr-3" /> },
                   { id: 'payouts', label: 'EOM Payouts', icon: <DollarSign className="w-4 h-4 mr-3" /> },
                   { id: 'transactions', label: 'Shelf Ledger', icon: <StickyNote className="w-4 h-4 mr-3" /> },
@@ -582,7 +641,7 @@ export function BrandManagement() {
                           </div>
                           <div>
                             <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-1">Catalog Depth</p>
-                            <h4 className="text-3xl font-black text-gray-900 tracking-tighter italic">{products.length} Active SKUs</h4>
+                            <h4 className="text-3xl font-black text-gray-900 tracking-tighter italic">{productsCount} Active SKUs</h4>
                           </div>
                         </div>
                       </Card>
@@ -643,6 +702,30 @@ export function BrandManagement() {
                         </TableBody>
                       </Table>
                     </div>
+
+                    {productsCount > ITEMS_PER_PAGE && (
+                      <div className="flex justify-between items-center pt-4">
+                        <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                          Showing {((productsPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(productsPage * ITEMS_PER_PAGE, productsCount)} of {productsCount}
+                        </span>
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious
+                                onClick={() => loadBrandProducts(selectedBrand.id, Math.max(1, productsPage - 1))}
+                                className={productsPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                            <PaginationItem>
+                              <PaginationNext
+                                onClick={() => loadBrandProducts(selectedBrand.id, Math.min(Math.ceil(productsCount / ITEMS_PER_PAGE), productsPage + 1))}
+                                className={productsPage === Math.ceil(productsCount / ITEMS_PER_PAGE) ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="sales_history" className="mt-0 outline-none">
@@ -668,6 +751,30 @@ export function BrandManagement() {
                         </TableBody>
                       </Table>
                     </div>
+
+                    {invoicesCount > ITEMS_PER_PAGE && (
+                      <div className="flex justify-between items-center pt-4">
+                        <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                          Showing {((invoicesPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(invoicesPage * ITEMS_PER_PAGE, invoicesCount)} of {invoicesCount}
+                        </span>
+                        <Pagination>
+                          <PaginationContent>
+                            <PaginationItem>
+                              <PaginationPrevious
+                                onClick={() => loadBrandInvoices(selectedBrand.id, Math.max(1, invoicesPage - 1))}
+                                className={invoicesPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                            <PaginationItem>
+                              <PaginationNext
+                                onClick={() => loadBrandInvoices(selectedBrand.id, Math.min(Math.ceil(invoicesCount / ITEMS_PER_PAGE), invoicesPage + 1))}
+                                className={invoicesPage === Math.ceil(invoicesCount / ITEMS_PER_PAGE) ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              />
+                            </PaginationItem>
+                          </PaginationContent>
+                        </Pagination>
+                      </div>
+                    )}
                   </TabsContent>
 
 
@@ -694,7 +801,7 @@ export function BrandManagement() {
                           <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">Full audit trail of stock movements.</p>
                         </div>
                         <Button 
-                          onClick={() => fetchInventoryLogs(selectedBrand.id)}
+                          onClick={() => fetchInventoryLogs(selectedBrand.id, 1)}
                           variant="outline"
                           className="rounded-xl font-black uppercase text-[9px] tracking-widest h-10 px-4"
                           disabled={loadingLogs}
@@ -756,6 +863,30 @@ export function BrandManagement() {
                           </TableBody>
                         </Table>
                       </div>
+
+                      {logsCount > ITEMS_PER_PAGE && (
+                        <div className="flex justify-between items-center pt-4">
+                          <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                            Showing {((logsPage - 1) * ITEMS_PER_PAGE) + 1}–{Math.min(logsPage * ITEMS_PER_PAGE, logsCount)} of {logsCount} entries
+                          </span>
+                          <Pagination>
+                            <PaginationContent>
+                              <PaginationItem>
+                                <PaginationPrevious
+                                  onClick={() => fetchInventoryLogs(selectedBrand.id, Math.max(1, logsPage - 1))}
+                                  className={logsPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                              </PaginationItem>
+                              <PaginationItem>
+                                <PaginationNext
+                                  onClick={() => fetchInventoryLogs(selectedBrand.id, Math.min(Math.ceil(logsCount / ITEMS_PER_PAGE), logsPage + 1))}
+                                  className={logsPage === Math.ceil(logsCount / ITEMS_PER_PAGE) ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                                />
+                              </PaginationItem>
+                            </PaginationContent>
+                          </Pagination>
+                        </div>
+                      )}
                     </div>
                   </TabsContent>
 

@@ -87,11 +87,12 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
     try {
       const [brandsRes, enquiriesRes, bookingsRes, slotsRes, stockRes, changesRes, financeRes, brandSalesRes, payoutsRes, pricingRes, brandProductsRes] = await Promise.all([
         supabase.from("brands").select("onboarding_status"),
-        supabase.from("enquiries").select("status"),
-        supabase.from("shelf_bookings").select("status"),
+        supabase.from("enquiries").select("status", { count: 'exact', head: false }),
+        supabase.from("shelf_bookings").select("status", { count: 'exact', head: false }),
         supabase.from("shelf_slots").select("status, shelf_type"),
-        supabase.from("stock_update_requests").select("status").eq("status", "pending"),
-        supabase.from("brand_change_requests").select("status").eq("status", "pending"),
+        // Use head: true for simple counts where we don't need the actual status strings
+        supabase.from("stock_update_requests").select("id", { count: 'exact', head: true }).eq("status", "pending"),
+        supabase.from("brand_change_requests").select("id", { count: 'exact', head: true }).eq("status", "pending"),
         supabase.from("invoices").select("total_amount, ppf_amount").eq("status", "paid"),
         supabase.from("brand_sales").select("brand_id, month, year"),
         supabase.from("payouts").select("brand_id, month, year"),
@@ -126,8 +127,8 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         pendingBookings: bookingsData.filter((b) => b.status === "pending").length,
         availableSlots: slotsData.filter((s) => s.status === "available").length,
         occupiedSlots: slotsData.filter((s) => s.status === "occupied").length,
-        pendingStockRequests: stockData.length,
-        pendingChangeRequests: changesData.length,
+        pendingStockRequests: stockRes.count || 0,
+        pendingChangeRequests: changesRes.count || 0,
         liveSettlementsCount: pendingSettlements.length,
         totalInventoryValue: (brandProductsRes.data || []).reduce((acc: number, p: any) => acc + ((p.price * p.stock_quantity) || 0), 0),
         slotsByLevel: {
