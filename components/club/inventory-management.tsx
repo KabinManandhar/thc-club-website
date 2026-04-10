@@ -383,7 +383,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                      </div>
                   </div>
 
-                  <div className="space-y-4">
+                  {/* <div className="space-y-4">
                      <Label className="text-[10px] font-black uppercase text-gray-400 ml-1">Product Visual</Label>
                      <FileUpload 
                         bucket="media"
@@ -393,7 +393,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
                         onRemove={() => setForm(f => ({ ...f, image_url: "" }))}
                         className="h-32 rounded-2xl"
                      />
-                  </div>
+                  </div> */}
                </div>
 
                <div className="grid grid-cols-3 gap-6">
