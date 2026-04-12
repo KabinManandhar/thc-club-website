@@ -1,1 +1,1 @@
-the hidden collective club
+the hidden collective club.
