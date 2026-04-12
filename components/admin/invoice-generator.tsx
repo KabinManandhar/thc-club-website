@@ -12,10 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  ShoppingCart, Plus, Minus, Trash2, Receipt, Printer, CheckCircle2, Package, X
-} from "lucide-react"
+import { ShoppingCart, Plus, Minus, Trash2, Receipt, Printer, CheckCircle2, Package, X } from "lucide-react"
 import { ReceiptPrinter } from "./receipt-printer"
+import { adminAuth } from "@/lib/auth"
 
 interface CartItem {
   product: BrandProduct
@@ -132,6 +131,9 @@ export function InvoiceGenerator() {
     setError(null)
 
     try {
+      const currentUser = await adminAuth.getCurrentUser()
+      if (!currentUser) throw new Error("Not authenticated")
+
       const { data: numData } = await supabase.rpc("generate_invoice_number")
       const invoiceNumber = numData || `INV-${Date.now()}`
 
@@ -140,7 +142,7 @@ export function InvoiceGenerator() {
         .insert({
           invoice_number: invoiceNumber,
           brand_id: selectedBrandId,
-          created_by: "admin",
+          created_by: currentUser.id,
           customer_name: customerName || null,
           customer_phone: customerPhone || null,
           subtotal,

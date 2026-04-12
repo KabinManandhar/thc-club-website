@@ -264,8 +264,25 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
     }
   }
 
+  const renderFooter = (backProps?: any, nextProps?: any) => (
+    <div className="fixed bottom-0 left-0 right-0 sm:left-72 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 z-50 shadow-[0_-8px_30px_-15px_rgba(0,0,0,0.1)] transition-all animate-in slide-in-from-bottom-8">
+      <div className="w-full max-w-4xl mx-auto flex justify-between gap-4 items-center px-2">
+        {backProps ? (
+          <Button variant="outline" className="px-6 h-12 rounded-xl bg-white" {...backProps}>
+            <ArrowLeft className="mr-2 w-4 h-4" /> {backProps.label || "Back"}
+          </Button>
+        ) : <div />}
+        {nextProps ? (
+          <Button className="bg-[#FE7F2D] hover:bg-black text-white px-8 h-12 rounded-xl font-bold transition-all" {...nextProps}>
+            {nextProps.label || "Next"} {nextProps.icon !== false && <ArrowRight className="ml-2 w-4 h-4" />}
+          </Button>
+        ) : <div />}
+      </div>
+    </div>
+  )
+
   return (
-    <div ref={scrollRef} className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-12 scroll-mt-24">
+    <div ref={scrollRef} className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-12 pb-32 scroll-mt-24 relative">
       <div className="w-full max-w-2xl mb-10">
         <div className="flex items-center justify-between mb-3">
           {STEPS.map((s, i) => (
@@ -457,7 +474,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               )
             })}
           </div>
-          <div className="flex justify-end pt-4"><Button disabled={!selectedSection} onClick={() => setStep(1)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Next Zone <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
+          {renderFooter(null, { label: "Next Zone", disabled: !selectedSection, onClick: () => setStep(1) })}
         </div>
       )}
 
@@ -514,12 +531,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               </div>
             )
           })}
-          <div className="flex justify-between pt-4">
-            <Button variant="outline" onClick={() => setStep(selectedBundle ? 0 : 2)}>
-              <ArrowLeft className="mr-2 w-4 h-4" /> Back
-            </Button>
-            <Button disabled={!businessName} onClick={() => setStep(4)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Next <ArrowRight className="ml-2 w-4 h-4" /></Button>
-          </div>
+          {renderFooter({ onClick: () => setStep(0) }, { disabled: !businessName, onClick: () => setStep(2) })}
         </div>
       )}
 
@@ -540,7 +552,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               )
             })}
           </div>
-          <div className="flex justify-between pt-4"><Button variant="outline" onClick={() => setStep(1)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button><Button disabled={!duration} onClick={() => setStep(3)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Club Protocols <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
+          {renderFooter({ onClick: () => setStep(1) }, { label: "Club Protocols", disabled: !duration, onClick: () => setStep(3) })}
         </div>
       )}
 
@@ -578,12 +590,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               </div>
             </div>
           </Card>
-          <div className="flex justify-between pt-4">
-            <Button variant="outline" onClick={() => setStep(selectedBundle ? 0 : 2)}>
-              <ArrowLeft className="mr-2 w-4 h-4" /> Back
-            </Button>
-            <Button onClick={() => setStep(4)} className="bg-[#FE7F2D] hover:bg-black text-white px-12 h-12 rounded-2xl font-black italic lowercase transition-all">I Accept the Protocols <ArrowRight className="ml-2 w-4 h-4" /></Button>
-          </div>
+          {renderFooter({ onClick: () => setStep(selectedBundle ? 0 : 2) }, { label: "I Accept the Protocols", onClick: () => setStep(4) })}
         </div>
       )}
 
@@ -600,7 +607,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               </div>
             ))}
           </div>
-          <div className="flex justify-between pt-4"><Button variant="outline" onClick={() => setStep(3)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button><Button disabled={!paymentMethod} onClick={() => setStep(5)} className="bg-[#FE7F2D] hover:bg-black text-white px-8">Review Summary <ArrowRight className="ml-2 w-4 h-4" /></Button></div>
+          {renderFooter({ onClick: () => setStep(3) }, { label: "Review Summary", disabled: !paymentMethod, onClick: () => setStep(5) })}
         </div>
       )}
 
@@ -652,7 +659,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
             <label htmlFor="agree" className="text-xs text-gray-400 italic font-medium lowercase cursor-pointer">i understand that specific slot allotment is handled by the thc club team to ensure the best brand-mix across the collective. all financials including the registration fee are settled in-person.</label>
           </div>
 
-          <div className="flex justify-between pt-2"><Button variant="outline" onClick={() => setStep(4)}><ArrowLeft className="mr-2 w-4 h-4" /> Back</Button><Button disabled={!agreed || submitting} onClick={handleSubmitBooking} className="bg-[#010307] hover:bg-[#FE7F2D] text-white px-10 transition-all">{submitting ? "Initiating Protocols..." : "Submit Booking Request"}</Button></div>
+          {renderFooter({ onClick: () => setStep(4) }, { label: submitting ? "Initiating Protocols..." : "Submit Booking Request", disabled: !agreed || submitting, onClick: handleSubmitBooking, icon: false })}
         </div>
       )}
 
