@@ -269,7 +269,7 @@ export function InventoryManagement({ brandId }: InventoryManagementProps) {
             </div>
           </Card>
 
-          <Button onClick={fetchLogs} className="bg-white text-black border border-black/5 hover:bg-black/5 px-6 h-auto rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-sm active:scale-95 transition-all">
+          <Button onClick={() => fetchLogs(1)} className="bg-white text-black border border-black/5 hover:bg-black/5 px-6 h-auto rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-sm active:scale-95 transition-all">
             <History className="mr-2 h-4 w-4" /> Activity Logs
           </Button>
           <Button onClick={openAdd} className="bg-[#FE7F2D] text-white hover:bg-black px-10 h-auto rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-orange-500/20 active:scale-95 transition-all">

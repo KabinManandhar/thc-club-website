@@ -19,6 +19,8 @@ import { UserLoginForm } from "@/components/user-login-form"
 import { UserSignupForm } from "@/components/user-signup-form"
 import { supabase, type Brand } from "@/lib/supabase"
 import { userAuth } from "@/lib/user-auth"
+import { useSearchParams } from "next/navigation"
+import { Suspense } from "react"
 
 function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, origins, storeImages }: {
   brands: Brand[],
@@ -307,6 +309,14 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
 }
 
 export default function LandingPage() {
+  return (
+    <Suspense fallback={null}>
+      <LandingPageContent />
+    </Suspense>
+  )
+}
+
+function LandingPageContent() {
 
   const [authView, setAuthView] = useState<"none" | "login" | "signup">("none")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -320,6 +330,7 @@ export default function LandingPage() {
   const [origins, setOrigins] = useState("")
   const [storeImages, setStoreImages] = useState<any[]>([])
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const searchParams = useSearchParams()
 
   // Lightbox State
   const [previewIdx, setPreviewIdx] = useState<number | null>(null)
@@ -346,7 +357,11 @@ export default function LandingPage() {
     fetchBrands()
     fetchOrigins()
     fetchStoreImages()
-  }, [])
+
+    const auth = searchParams.get("auth")
+    if (auth === "login") setAuthView("login")
+    if (auth === "signup") setAuthView("signup")
+  }, [searchParams])
 
   const fetchStoreImages = async () => {
     try {
