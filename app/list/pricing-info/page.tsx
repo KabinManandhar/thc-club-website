@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ImageLightbox } from "@/components/ui/lightbox"
 import { SafeImage } from "@/components/ui/safe-image"
-import { DURATION_MONTHS, supabase, type Duration, type ShelfBundle, type ShelfPricingTier, type ShelfSection, type ShelfType } from "@/lib/supabase"
-import { ArrowRight, Banknote, Camera, CheckCircle2, Clock, Info, Layout, Lock, Package, QrCode, Tag, Users, Zap } from "lucide-react"
+import { DURATION_MONTHS, supabase, type Duration, type PPFTier, type ShelfBundle, type ShelfPricingTier, type ShelfSection, type ShelfType } from "@/lib/supabase"
+import { ArrowRight, Banknote, BarChart3, Camera, CheckCircle2, Clock, Info, Layout, Lock, Package, QrCode, Tag, Users, Zap } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
@@ -40,9 +41,11 @@ export default function PricingInfoPage() {
   const [pricingTiers, setPricingTiers] = useState<ShelfPricingTier[]>([])
   const [bundles, setBundles] = useState<any[]>([])
   const [dynamicProtocols, setDynamicProtocols] = useState<{ title: string; items: string[] }[]>([])
+  const [ppfTiers, setPpfTiers] = useState<PPFTier[]>([])
   const [storeImages, setStoreImages] = useState<any[]>([])
   const [sectionCapacity, setSectionCapacity] = useState<Record<string, { total: number, remaining: number }>>({})
   const [shelfAvailability, setShelfAvailability] = useState<{ sectionId: string, type: ShelfType, remaining: number }[]>([])
+  const [selectedDuration, setSelectedDuration] = useState<Duration>("yearly")
 
   const [lbOpen, setLbOpen] = useState(false)
   const [lbImages, setLbImages] = useState<string[]>([])
@@ -58,18 +61,20 @@ export default function PricingInfoPage() {
     async function fetchData() {
       setLoading(true)
       try {
-        const [secRes, priceRes, slotsRes, protRes, imgRes, bundleRes] = await Promise.all([
+        const [secRes, priceRes, slotsRes, protRes, imgRes, bundleRes, ppfRes] = await Promise.all([
           supabase.from("shelf_sections").select("*"),
           supabase.from("shelf_pricing_tiers").select("*"),
           supabase.from("shelf_slots").select("id, shelf_type, slot_number, status, section_id"),
           supabase.from("platform_content").select("protocols").eq("id", 1).single(),
           supabase.from("store_images").select("*"),
-          supabase.from("shelf_bundles").select("*, items:shelf_bundle_items(*)").eq("is_active", true)
+          supabase.from("shelf_bundles").select("*, items:shelf_bundle_items(*)").eq("is_active", true),
+          supabase.from("ppf_tiers").select("*").order("min_sales_amount", { ascending: true })
         ])
 
         setSections(secRes.data || [])
         setPricingTiers(priceRes.data || [])
         setStoreImages(imgRes.data || [])
+        setPpfTiers(ppfRes.data || [])
         if (protRes.data) setDynamicProtocols(protRes.data.protocols || [])
 
         // Calculate market values for bundles
@@ -253,10 +258,21 @@ export default function PricingInfoPage() {
               <p className="text-sm text-[#010307]/40 italic max-w-xl mx-auto">prefer to build your own presence? choose the zone and level that fits your brand profile.</p>
            </div>
 
+           {/* Duration Toggle */}
+           <div className="flex justify-center">
+              <Tabs value={selectedDuration} onValueChange={(v) => setSelectedDuration(v as Duration)} className="w-full max-w-md">
+                <TabsList className="grid grid-cols-3 bg-white/50 border border-[#FE7F2D]/10 rounded-2xl h-12 p-1">
+                  <TabsTrigger value="quarterly" className="rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-[#FE7F2D] data-[state=active]:text-white">Quarterly</TabsTrigger>
+                  <TabsTrigger value="half_yearly" className="rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-[#FE7F2D] data-[state=active]:text-white">Half-Yearly</TabsTrigger>
+                  <TabsTrigger value="yearly" className="rounded-xl text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-[#FE7F2D] data-[state=active]:text-white">Yearly</TabsTrigger>
+                </TabsList>
+              </Tabs>
+           </div>
+
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
               {sections.map(sec => {
                 const zoneImages = storeImages.filter(img => img.section.toLowerCase().includes(sec.name.toLowerCase()))
-                const yearPricing = pricingTiers.filter(t => t.section_tier === sec.section_tier && t.duration === 'yearly')[0]
+                const tierPricing = pricingTiers.filter(t => t.section_tier === sec.section_tier && t.duration === selectedDuration)[0]
                 
                 return (
                   <div key={sec.id} className="space-y-6">
@@ -272,8 +288,8 @@ export default function PricingInfoPage() {
                               </div>
                            </div>
                            <div className="text-right">
-                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300">Base Rate</p>
-                              <p className="text-xl font-black italic text-[#010307]">NPR {yearPricing?.bottom_price.toLocaleString()}<span className="text-[10px] font-bold text-gray-400 lowercase">/mo</span></p>
+                              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300">{selectedDuration.replace('_', '-')} Rate</p>
+                              <p className="text-xl font-black italic text-[#010307]">NPR {tierPricing?.bottom_price.toLocaleString()}<span className="text-[10px] font-bold text-gray-400 lowercase">/mo</span></p>
                            </div>
                         </div>
 
@@ -282,7 +298,7 @@ export default function PricingInfoPage() {
                         <div className="space-y-3">
                            {(["top_level", "eye_level", "bottom"] as ShelfType[]).map((type) => {
                              const info = LEVEL_INFO[type]
-                             const price = getPrice('yearly', type, sec.section_tier)
+                             const price = getPrice(selectedDuration, type, sec.section_tier)
                              const avail = shelfAvailability.find(la => la.sectionId === sec.id && la.type === type)?.remaining || 0
                              
                              return (
@@ -317,6 +333,35 @@ export default function PricingInfoPage() {
                   </div>
                 )
               })}
+           </div>
+        </div>
+
+        {/* PPF Tiers Section */}
+        <div className="max-w-6xl mx-auto space-y-12">
+           <div className="text-center space-y-4">
+              <h2 className="text-4xl font-black lowercase italic">partner processing fee (PPF)</h2>
+              <p className="text-sm text-[#010307]/40 italic max-w-xl mx-auto">the club takes a small fee based on your sales performance to maintain operations and staffing.</p>
+           </div>
+
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {ppfTiers.map((tier) => (
+                <Card key={tier.id} className="border border-gray-100 rounded-[2rem] p-8 space-y-4 bg-white/50 backdrop-blur-sm transition-all hover:border-[#FE7F2D]/30 text-center">
+                   <div className="space-y-1">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300">{tier.tier_name}</p>
+                      <h3 className="text-3xl font-black italic text-[#FE7F2D]">{tier.ppf_rate}%</h3>
+                   </div>
+                   <div className="pt-4 border-t border-gray-50">
+                      <p className="text-xs text-gray-400 italic font-medium lowercase">Sales above</p>
+                      <p className="text-lg font-black italic text-[#010307]">NPR {tier.min_sales_amount.toLocaleString()}</p>
+                   </div>
+                   {tier.rent_waiver_percent > 0 && (
+                     <div className="bg-green-50 rounded-xl p-3">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-green-600 mb-1">Performance Credit</p>
+                        <p className="text-xs font-bold italic text-green-700">{tier.rent_waiver_percent}% Rent Refunded</p>
+                     </div>
+                   )}
+                </Card>
+              ))}
            </div>
         </div>
 
