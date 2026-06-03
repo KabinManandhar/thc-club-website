@@ -48,16 +48,21 @@ export const ReceiptPrinter = React.forwardRef<HTMLDivElement, ReceiptPrinterPro
         }
       `}</style>
 
-      <div className="text-center space-y-3 mb-8">
-        <div className="flex justify-center mb-2">
-           <div className="w-12 h-12 bg-black rounded-xl flex items-center justify-center text-white font-black text-2xl italic">T</div>
+      <div className="text-center space-y-2 mb-6">
+        <div className="flex justify-center mb-1">
+           <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white font-black text-xl italic">T</div>
         </div>
         <div>
-          <h1 className="text-2xl font-black tracking-tighter italic">THC CLUB</h1>
-          <p className="text-[9px] font-bold lowercase tracking-[0.2em] text-gray-500">the hidden collective</p>
+          <h1 className="text-xl font-black tracking-tighter italic">THC CLUB</h1>
+          <p className="text-[8px] font-bold uppercase tracking-[0.2em] text-gray-500">the hidden collective</p>
         </div>
-        <div className="pt-2 border-t border-black/10 mx-10">
-          <p className="text-[9px] font-bold lowercase tracking-widest text-gray-400">kathmandu • outlet 01 access</p>
+        <div className="pt-2">
+          <h2 className="text-sm font-black tracking-widest uppercase border-y border-dashed border-black/20 py-1.5 my-2">Proforma Invoice</h2>
+        </div>
+        <div className="text-[9px] font-bold tracking-widest text-gray-600 space-y-0.5">
+          <p className="uppercase">Sayummy's Foods Pvt Ltd.</p>
+          <p className="uppercase">Pan No: 622393542</p>
+          <p className="text-[8px] text-gray-400 uppercase pt-1">kathmandu • outlet 01 access</p>
         </div>
       </div>
 
@@ -117,20 +122,21 @@ export const ReceiptPrinter = React.forwardRef<HTMLDivElement, ReceiptPrinterPro
         </div>
       </div>
 
-      <div className="mt-12 text-center space-y-6">
+      <div className="mt-8 text-center space-y-6">
         <div className="inline-block px-4 py-2 border-2 border-black rounded-lg">
            <p className="text-[10px] font-black lowercase tracking-widest">settled via {props.paymentMethod}</p>
         </div>
         
         <div className="space-y-1">
            <p className="text-[10px] font-black lowercase italic">"thanks for building with the club."</p>
-           <p className="text-[8px] font-bold lowercase text-gray-300 tracking-[0.3em]">www.thcclub.com</p>
+           <p className="text-[8px] font-bold uppercase text-gray-500 tracking-[0.1em] mt-3 border-t border-dashed border-gray-200 pt-3">for pan bill need to pick from counter.</p>
+           <p className="text-[8px] font-bold lowercase text-gray-400 tracking-[0.2em] pt-1">www.thehiddencollectiveclub.com</p>
         </div>
 
-        <div className="flex justify-center pt-4">
-           <div className="w-2 h-2 bg-black rounded-full mx-1"></div>
-           <div className="w-2 h-2 bg-black rounded-full mx-1"></div>
-           <div className="w-2 h-2 bg-black rounded-full mx-1"></div>
+        <div className="flex justify-center pt-2">
+           <div className="w-1.5 h-1.5 bg-black rounded-full mx-1"></div>
+           <div className="w-1.5 h-1.5 bg-black rounded-full mx-1"></div>
+           <div className="w-1.5 h-1.5 bg-black rounded-full mx-1"></div>
         </div>
       </div>
     </div>
