@@ -56,8 +56,18 @@ export function PosInvoiceCheckout({
   const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    supabase.from("brands").select("*").eq("is_active", true).order("business_name")
-      .then(({ data }) => setBrands(data || []))
+    supabase
+      .from("brands")
+      .select("*")
+      .order("business_name")
+      .then(({ data, error }) => {
+        if (error) {
+          console.error("Failed to load brands:", error.message)
+          setBrands([])
+          return
+        }
+        setBrands(data || [])
+      })
     supabase.from("ppf_tiers").select("*").order("min_sales_amount", { ascending: false })
       .then(({ data }) => setPpfTiers(data || []))
   }, [])

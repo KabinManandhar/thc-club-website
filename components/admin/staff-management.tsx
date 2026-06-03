@@ -22,10 +22,23 @@ interface StaffRow {
 }
 
 async function getAuthHeaders(): Promise<HeadersInit> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session?.access_token) throw new Error("Not authenticated")
+  const { data: sessionData } = await supabase.auth.getSession()
+  let accessToken = sessionData.session?.access_token
+
+  if (!accessToken && typeof window !== "undefined") {
+    accessToken = localStorage.getItem("admin_session") || undefined
+  }
+
+  if (!accessToken) {
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession()
+    if (refreshError || !refreshed.session?.access_token) {
+      throw new Error("Not authenticated. Please sign out and sign in to admin again.")
+    }
+    accessToken = refreshed.session.access_token
+  }
+
   return {
-    Authorization: `Bearer ${session.access_token}`,
+    Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/json",
   }
 }
