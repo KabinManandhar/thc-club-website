@@ -2,9 +2,9 @@
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { SafeImage } from "@/components/ui/safe-image"
 import { ArrowLeft, ArrowRight, BarChart3, Camera, CheckCircle2, Eye, Heart, Instagram, Lock, LogIn, Menu, Package, ShieldCheck, TrendingUp, Users, X, Zap } from "lucide-react"
 import Image from "next/image"
-import { SafeImage } from "@/components/ui/safe-image"
 import { useEffect, useState } from "react"
 
 import {
@@ -865,7 +865,7 @@ function LandingPageContent() {
                         className="bg-[#FE7F2D] hover:bg-white hover:text-black text-white font-black lowercase italic tracking-widest px-10 py-8 rounded-2xl h-auto"
                         onClick={() => setAuthView("signup")}
                       >
-                        apply first, pricing later.
+                        apply and discover pricing.
                       </Button>
                       <p className="mt-4 text-[10px] text-white/30 font-bold uppercase tracking-widest italic">
                         exact pricing is shared once you're ready to onboard.
