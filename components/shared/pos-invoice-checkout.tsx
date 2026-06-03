@@ -12,8 +12,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { ShoppingCart, Plus, Minus, Trash2, Receipt, Printer, CheckCircle2, Package, X } from "lucide-react"
+import { ShoppingCart, Plus, Minus, Trash2, Receipt, Printer, CheckCircle2, Package, X, ChevronsUpDown, Check } from "lucide-react"
 import { ReceiptPrinter } from "@/components/admin/receipt-printer"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { cn } from "@/lib/utils"
 
 interface CartItem {
   product: BrandProduct
@@ -53,23 +56,29 @@ export function PosInvoiceCheckout({
   const [successInvoice, setSuccessInvoice] = useState<any>(null)
   const [showInvoice, setShowInvoice] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [brandPopoverOpen, setBrandPopoverOpen] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    supabase
-      .from("brands")
-      .select("*")
-      .order("business_name")
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Failed to load brands:", error.message)
-          setBrands([])
-          return
-        }
-        setBrands(data || [])
-      })
-    supabase.from("ppf_tiers").select("*").order("min_sales_amount", { ascending: false })
-      .then(({ data }) => setPpfTiers(data || []))
+    async function loadBrandsAndTiers() {
+      const [brandsRes, productsRes, tiersRes] = await Promise.all([
+        supabase.from("brands").select("*").order("business_name"),
+        supabase.from("brand_products").select("brand_id").eq("is_active", true),
+        supabase.from("ppf_tiers").select("*").order("min_sales_amount", { ascending: false })
+      ])
+
+      if (brandsRes.error) {
+        console.error("Failed to load brands:", brandsRes.error.message)
+        setBrands([])
+      } else {
+        const activeBrandIds = new Set((productsRes.data || []).map(p => p.brand_id))
+        const brandsWithProducts = (brandsRes.data || []).filter(b => activeBrandIds.has(b.id))
+        setBrands(brandsWithProducts)
+      }
+
+      setPpfTiers(tiersRes.data || [])
+    }
+    loadBrandsAndTiers()
   }, [])
 
   const fetchProducts = useCallback(async () => {
@@ -253,16 +262,49 @@ export function PosInvoiceCheckout({
               <CardTitle className="text-base">Select Brand</CardTitle>
             </CardHeader>
             <CardContent>
-              <Select value={selectedBrandId} onValueChange={setSelectedBrandId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose a brand..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {brands.map((b) => (
-                    <SelectItem key={b.id} value={b.id}>{b.business_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={brandPopoverOpen} onOpenChange={setBrandPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={brandPopoverOpen}
+                    className="w-full justify-between"
+                  >
+                    {selectedBrandId
+                      ? brands.find((brand) => brand.id === selectedBrandId)?.business_name
+                      : "Choose a brand..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0 min-w-56" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search brands..." />
+                    <CommandList>
+                      <CommandEmpty>No brand found.</CommandEmpty>
+                      <CommandGroup>
+                        {brands.map((brand) => (
+                          <CommandItem
+                            key={brand.id}
+                            value={brand.business_name}
+                            onSelect={() => {
+                              setSelectedBrandId(brand.id === selectedBrandId ? "" : brand.id)
+                              setBrandPopoverOpen(false)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedBrandId === brand.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {brand.business_name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </CardContent>
           </Card>
 
