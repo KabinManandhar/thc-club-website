@@ -19,6 +19,7 @@ import {
   Receipt,
   Settings,
   TrendingUp,
+  UserCog,
   Users,
   Zap,
   X
@@ -74,6 +75,7 @@ export function AdminLayout({
     { id: "brands", label: "Brand Management", icon: Users },
     { id: "bookings", label: "Shelf Bookings", icon: BookOpen },
     { id: "invoices", label: "Create Invoice", icon: Receipt },
+    { id: "staff", label: "Staff Accounts", icon: UserCog },
     { id: "invoice-list", label: "Sales History", icon: FileText },
     { id: "accounts", label: "Accounts", icon: Landmark },
     { id: "payouts", label: "Payouts Tracker", icon: DollarSign },
@@ -150,7 +152,9 @@ export function AdminLayout({
           {/* Navigation */}
           <nav className="flex-1 p-4">
             <ul className="space-y-1">
-              {menuItems.map((item) => {
+              {menuItems
+                .filter((item) => item.id !== "staff" || currentUser?.role !== "viewer")
+                .map((item) => {
                 const Icon = item.icon;
                 return (
                   <li key={item.id}>

@@ -54,6 +54,8 @@ export const adminAuth = {
         is_active: admins.is_active,
       }
 
+      localStorage.removeItem("staff_session")
+      localStorage.removeItem("staff_user")
       localStorage.setItem("admin_session", sessionToken)
       localStorage.setItem("admin_user", JSON.stringify(user))
 

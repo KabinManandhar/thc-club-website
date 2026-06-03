@@ -18,6 +18,7 @@ import { ContentManagement } from "@/components/admin/content-management";
 import { AccountsManagement } from "@/components/admin/accounts-view";
 import { AdminProfile } from "@/components/admin/admin-profile";
 import { BundleManagement } from "@/components/admin/bundle-management";
+import { StaffManagement } from "@/components/admin/staff-management";
 import { adminAuth } from "@/lib/auth";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -83,6 +84,8 @@ function AdminDashboardContent() {
         return <ContentManagement />;
       case "profile":
         return <AdminProfile />;
+      case "staff":
+        return <StaffManagement />;
       default:
         return <DashboardOverview onTabChange={setActiveTab} />;
     }
