@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ImageLightbox } from "@/components/ui/lightbox"
+import { FloorExplorer } from "@/components/floor-explorer"
+import { buildFloor, STATIC_FLOOR, type FloorData } from "@/lib/floor-data"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { supabase } from "@/lib/supabase"
 import { userAuth, type ApprovedUser } from "@/lib/user-auth"
@@ -41,6 +43,7 @@ function ClubPageContent() {
   const [storeImages, setStoreImages] = useState<any[]>([])
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("dashboard")
+  const [floor, setFloor] = useState<FloorData>(STATIC_FLOOR)
   const [lbOpen, setLbOpen] = useState(false)
   const [lbImages, setLbImages] = useState<string[]>([])
   const [lbIndex, setLbIndex] = useState(0)
@@ -65,6 +68,10 @@ function ClubPageContent() {
         supabase.from("platform_content").select("faqs, terms_conditions, origins").eq("id", 1).single(),
         supabase.from("store_images").select("*").order("created_at", { ascending: false })
       ])
+      supabase
+        .from("shelf_slots")
+        .select("slot_number, shelf_type, status, shelf_id, shelves(name), shelf_sections(name)")
+        .then(({ data }) => { if (data) setFloor(buildFloor(data as any)) })
       if (pt) setPricingTiers(pt)
       if (ppf) setPpfTiers(ppf)
       if (offers) setActiveOffers(offers)
@@ -198,7 +205,7 @@ function ClubPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#FFFCEB] text-[#010307] font-space-grotesk relative overflow-x-clip">
       {isPendingApproval && (
         <div className="fixed top-0 left-0 right-0 z-[60] bg-[#FE7F2D] text-white py-3 px-4 sm:px-10 text-center flex items-center justify-center gap-2 sm:gap-4">
           <Clock className="w-4 h-4 shrink-0" />
@@ -240,6 +247,7 @@ function ClubPageContent() {
             <TabsTrigger value="pricing" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap">economics</TabsTrigger>
             <TabsTrigger value="whyus" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap">why us?</TabsTrigger>
             <TabsTrigger value="slots" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap">slot space</TabsTrigger>
+            <TabsTrigger value="floor" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap">the floor</TabsTrigger>
             {pendingBookings.length > 0 && (
               <TabsTrigger value="pending" className="data-[state=active]:border-b-2 data-[state=active]:border-[#FE7F2D] data-[state=active]:text-[#FE7F2D] rounded-none py-4 px-0 text-[10px] sm:text-xs font-bold lowercase tracking-wide bg-transparent transition-all border-b-2 border-transparent whitespace-nowrap flex items-center gap-2">
                 pending requests <Badge className="bg-[#FE7F2D] text-white h-4 w-4 p-0 flex items-center justify-center text-[8px]">{pendingBookings.length}</Badge>
@@ -294,7 +302,7 @@ function ClubPageContent() {
                       <Zap className="w-8 h-8" />
                     </div>
                     <h3 className="text-3xl font-black tracking-tight italic lowercase">cross-selling advantage</h3>
-                    <p className="text-[#010307]/60 font-medium leading-relaxed italic lowercase">Every shelf gets bonus exposure through Sayummys Cafe next door. People come for burgers and discover your brand.</p>
+                    <p className="text-[#010307]/60 font-medium leading-relaxed italic lowercase">Every shelf slot gets bonus exposure through Sayummys Cafe next door. People come for burgers and discover your brand.</p>
                     <div className="pt-6 border-t border-[#010307]/5 flex flex-col md:flex-row items-center justify-between text-[11px] font-bold lowercase tracking-widest text-[#010307]/30 gap-4">
                       <span>location: bijeshwori, swyambhu</span>
                       <span className="bg-[#FE7F2D]/10 text-[#FE7F2D] px-3 py-1 rounded-full text-[9px]">108 shelf spaces</span>
@@ -388,12 +396,12 @@ function ClubPageContent() {
                 <Card className="p-8 border border-[#FE7F2D]/10 bg-white/50 rounded-3xl">
                   <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest mb-2">entry</p>
                   <h4 className="text-2xl font-black lowercase italic">Rs. 800 Registration</h4>
-                  <p className="text-sm text-[#010307]/50 italic">One-time fee for onboarding and slot setup.</p>
+                  <p className="text-sm text-[#010307]/50 italic">One-time fee for onboarding and shelf slot setup.</p>
                 </Card>
                 <Card className="p-8 border border-[#FE7F2D]/10 bg-white/50 rounded-3xl">
                   <p className="text-[10px] font-bold text-[#FE7F2D] uppercase tracking-widest mb-2">transparency</p>
                   <h4 className="text-2xl font-black lowercase italic">No Hidden Cuts</h4>
-                  <p className="text-sm text-[#010307]/50 italic">Just simple shelf rent plus a performance-based fee.</p>
+                  <p className="text-sm text-[#010307]/50 italic">Just simple shelf slot rent plus a performance-based fee.</p>
                 </Card>
               </div>
 
@@ -457,7 +465,7 @@ function ClubPageContent() {
                       <p className="text-white/80 text-sm font-medium italic lowercase">{activeOffers[0].description || "Limited time promotional rates for qualified brands."}</p>
                       {activeOffers[0].target_limit && (
                         <p className="text-[10px] font-black uppercase tracking-widest bg-black/20 w-fit px-3 py-1 rounded-full mt-2">
-                          {Math.max(0, activeOffers[0].target_limit - activeOffers[0].current_uses)} / {activeOffers[0].target_limit} Slots Left
+                          {Math.max(0, activeOffers[0].target_limit - activeOffers[0].current_uses)} / {activeOffers[0].target_limit} Shelf Slots Left
                         </p>
                       )}
                     </div>
@@ -469,7 +477,7 @@ function ClubPageContent() {
                 </div>
               )}
 
-              <h2 className="text-5xl font-black tracking-tighter lowercase italic text-center text-[#010307]">shelf <span className="italic opacity-30">tiers</span></h2>
+              <h2 className="text-5xl font-black tracking-tighter lowercase italic text-center text-[#010307]">shelf slot <span className="italic opacity-30">tiers</span></h2>
 
               {/* Space Visualization */}
               {storeImages.length > 0 && (
@@ -537,8 +545,8 @@ function ClubPageContent() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="p-10 bg-[#010307] text-white rounded-[3rem] space-y-4 relative overflow-hidden">
                   <div className="relative z-10">
-                    <h3 className="text-2xl font-black italic lowercase tracking-tighter">Multiple Shelves</h3>
-                    <p className="text-white/40 text-sm italic lowercase leading-relaxed">Brands taking multiple shelves get special discounts. We are open to talking about making this collab fruitful.</p>
+                    <h3 className="text-2xl font-black italic lowercase tracking-tighter">Multiple Shelf Slots</h3>
+                    <p className="text-white/40 text-sm italic lowercase leading-relaxed">Brands taking multiple shelf slots get special discounts. We are open to talking about making this collab fruitful.</p>
                   </div>
                 </div>
 
@@ -577,7 +585,7 @@ function ClubPageContent() {
                           {booking.bundle_id ? (
                             <span>{(booking as any).shelf_bundles?.name || "Package"} Bundle Request</span>
                           ) : (
-                            <span>{booking.shelf_type?.replace('_', ' ') || 'Standard'} Slot Request</span>
+                            <span>{booking.shelf_type?.replace('_', ' ') || 'Standard'} Shelf Slot Request</span>
                           )}
                         </CardTitle>
                         <CardDescription className="text-[10px] uppercase font-bold tracking-[0.2em] text-[#FE7F2D]">
@@ -616,6 +624,7 @@ function ClubPageContent() {
                 <OnboardingWizard
                   brandId={brand.id}
                   businessName={brand.business_name}
+                  onViewOffers={() => setActiveTab("slots")}
                   onComplete={() => {
                     loadBrandData(brand.email)
                     setActiveTab("dashboard")
@@ -627,6 +636,10 @@ function ClubPageContent() {
           </TabsContent>
 
           {/* --- SUPPORT & FAQ --- */}
+          <TabsContent value="floor" className="-mx-6 animate-in fade-in slide-in-from-bottom-4 duration-700 outline-none">
+            <FloorExplorer floor={floor} showFuture={false} onClaim={() => setActiveTab("onboarding")} />
+          </TabsContent>
+
           <TabsContent value="support" className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 outline-none">
             <div className="max-w-3xl mx-auto space-y-10">
               <div className="text-center space-y-4">

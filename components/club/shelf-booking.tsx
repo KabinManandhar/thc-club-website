@@ -57,7 +57,7 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
 
   const handleBooking = async () => {
     if (!brandId) {
-      toast.error("You must be logged in to book a slot.")
+      toast.error("You must be logged in to book a shelf slot.")
       return
     }
 
@@ -79,7 +79,7 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
 
       if (error) throw error
 
-      toast.success("Application submitted. The club team will verify your brand and assign a slot shortly.")
+      toast.success("Application submitted. The club team will verify your brand and assign a shelf slot shortly.")
       if (onComplete) onComplete()
     } catch (err: any) {
       console.error("Booking submission error:", err)
@@ -102,8 +102,9 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
       <div className="grid md:grid-cols-2 gap-8">
         <Card className="border-[#FE7F2D]/20 shadow-none bg-white p-2">
           <CardHeader>
-            <CardTitle className="text-2xl font-black lowercase italic tracking-tighter">book your slot</CardTitle>
+            <CardTitle className="text-2xl font-black lowercase italic tracking-tighter">book your shelf slot</CardTitle>
             <CardDescription className="text-xs uppercase font-bold tracking-widest text-[#010307]/40">select your preferred zone and duration</CardDescription>
+            <a href="/the-floor" target="_blank" rel="noopener noreferrer" className="inline-block mt-1 text-[10px] font-black uppercase tracking-widest text-[#FE7F2D] hover:text-black transition-colors">explore the floor ↗</a>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">

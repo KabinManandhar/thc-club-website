@@ -52,7 +52,7 @@ export function PricingOffersManagement() {
           top_level_price: tier.top_level_price
         }).eq("id", tier.id)
       }
-      toast.success("Shelf Pricing updated successfully!")
+      toast.success("Shelf Slot Pricing updated successfully!")
     } catch (err: any) {
       toast.error("Error updating pricing.")
     } finally {
@@ -124,7 +124,7 @@ export function PricingOffersManagement() {
              <DollarSign className="w-8 h-8 text-[#FE7F2D]" />
              Pricing & Economics
            </h1>
-           <p className="text-gray-500 font-medium text-sm">Configure dynamic shelf base prices, payment processing fee (PPF) thresholds, and global platform offers.</p>
+           <p className="text-gray-500 font-medium text-sm">Configure dynamic shelf slot base prices, payment processing fee (PPF) thresholds, and global platform offers.</p>
         </div>
       </div>
 
@@ -133,7 +133,7 @@ export function PricingOffersManagement() {
          <CardHeader className="bg-gray-50/50 border-b border-black/5 flex flex-col sm:flex-row items-center justify-between">
             <div className="space-y-1">
                <CardTitle className="text-base font-black italic lowercase tracking-tighter flex items-center gap-2">
-                 <Package className="w-5 h-5 text-[#FE7F2D]" /> Platform Slot Economics
+                 <Package className="w-5 h-5 text-[#FE7F2D]" /> Platform Shelf Slot Economics
                </CardTitle>
                <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Base monthly subscription fees</CardDescription>
             </div>

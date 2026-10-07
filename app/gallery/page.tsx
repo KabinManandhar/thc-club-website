@@ -50,6 +50,9 @@ export default function GalleryPage() {
             <p className="text-lg sm:text-2xl text-[#010307]/40 font-medium italic lowercase max-w-2xl">
               a visual exploration of the hidden collective space. every corner, every shelf, every story.
             </p>
+            <Link href="/the-floor" className="inline-flex items-center text-[10px] font-black uppercase tracking-widest text-[#FE7F2D] hover:text-black transition-colors">
+              explore the floor plan →
+            </Link>
           </div>
           <div className="hidden md:block">
              <div className="w-24 h-24 bg-black text-white rounded-[2rem] flex items-center justify-center rotate-12 shadow-2xl">

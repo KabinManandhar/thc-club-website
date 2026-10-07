@@ -244,7 +244,7 @@ export function UserSignupForm({ onSignupSuccess, onBack, onSwitchToLogin }: Use
                   join the collective
                 </CardTitle>
                 <CardDescription className="text-xs font-bold lowercase tracking-widest text-[#010307]/40 mt-2">
-                  apply for membership & view shelf pricing
+                  apply for membership & view shelf slot pricing
                 </CardDescription>
               </div>
             </CardHeader>

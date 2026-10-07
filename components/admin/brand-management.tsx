@@ -445,7 +445,7 @@ export function BrandManagement() {
                   { id: 'sales_history', label: 'Sales History', count: invoicesCount, icon: <ArrowLeft className="w-4 h-4 mr-3" /> },
                   { id: 'performance_analysis', label: 'Performance Report', icon: <BarChart3 className="w-4 h-4 mr-3" /> },
                   { id: 'payouts', label: 'EOM Payouts', icon: <DollarSign className="w-4 h-4 mr-3" /> },
-                  { id: 'transactions', label: 'Shelf Ledger', icon: <StickyNote className="w-4 h-4 mr-3" /> },
+                  { id: 'transactions', label: 'Shelf Slot Ledger', icon: <StickyNote className="w-4 h-4 mr-3" /> },
                   { id: 'inventory_logs', label: 'Activity Logs', icon: <History className="w-4 h-4 mr-3" /> },
                   { id: 'contracts', label: 'Contracts', count: contracts.length, icon: <FileText className="w-4 h-4 mr-3" /> },
                   { id: 'enquiries', label: 'Enquiries', count: enquiries.length, icon: <MessageSquare className="w-4 h-4 mr-3" /> },
@@ -530,7 +530,7 @@ export function BrandManagement() {
                     </div>
                     <div className="space-y-4">
                       <h4 className="text-[10px] uppercase font-black text-[#FE7F2D] tracking-[0.2em] flex items-center gap-2">
-                        <LayoutGrid className="w-4 h-4" /> Active Subscriptions & Shelves
+                        <LayoutGrid className="w-4 h-4" /> Active Subscriptions & Shelf Slots
                       </h4>
                       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {bookings.map(booking => (
@@ -538,7 +538,7 @@ export function BrandManagement() {
                             <div className="p-5 space-y-3">
                               <div className="flex justify-between items-center">
                                 <Badge className="bg-blue-50 text-blue-700 border-none font-black uppercase text-[8px] tracking-widest px-3 py-1">
-                                  Slot #{booking.slot_number || "TBD"}
+                                  Shelf Slot #{booking.slot_number || "TBD"}
                                 </Badge>
                                 <Badge variant="outline" className={`text-[8px] font-black uppercase tracking-widest px-3 py-1 ${booking.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : ''}`}>
                                   {booking.status}
@@ -560,7 +560,7 @@ export function BrandManagement() {
                         ))}
                         {bookings.length === 0 && (
                           <div className="col-span-full py-12 text-center bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100 italic text-gray-400 font-medium">
-                            No active shelf bookings found.
+                            No active shelf slot bookings found.
                           </div>
                         )}
                       </div>
@@ -1152,7 +1152,7 @@ export function BrandManagement() {
                         <h3 className="text-3xl font-black tracking-tighter lowercase italic text-red-900 leading-none">nuclear deletion</h3>
                         <p className="text-red-700/60 font-medium italic text-lg leading-relaxed">
                           You are about to permanently wipe <span className="font-black text-red-800 underline decoration-red-800/20">{selectedBrand.business_name}</span>.
-                          This will erase all sales history, invoices, shelf allotments, and inventory records. <span className="font-black">This action is IRREVERSIBLE.</span>
+                          This will erase all sales history, invoices, shelf slot allotments, and inventory records. <span className="font-black">This action is IRREVERSIBLE.</span>
                         </p>
                       </div>
 

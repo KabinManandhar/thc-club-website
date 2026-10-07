@@ -112,7 +112,7 @@ export function BundleManagement() {
   }
 
   const handleDeleteBundle = async (id: string) => {
-    if (!confirm("Are you sure? This will not delete the physical slots, just the bundle definition.")) return
+    if (!confirm("Are you sure? This will not delete the shelf slots, just the bundle definition.")) return
     try {
       // First delete associated items
       const { error: itemsError } = await supabase.from("shelf_bundle_items").delete().eq("bundle_id", id)
@@ -156,7 +156,7 @@ export function BundleManagement() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-black italic lowercase tracking-tight">Shelf Bundling</h1>
+        <h1 className="text-3xl font-black italic lowercase tracking-tight">Shelf Slot Bundling</h1>
         <Button onClick={() => setIsCreateOpen(true)} className="bg-[#FE7F2D] text-white">
           <Plus className="w-4 h-4 mr-2" /> New Bundle
         </Button>
@@ -225,7 +225,7 @@ export function BundleManagement() {
         <DialogContent className="max-w-4xl scrollbar-hide max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black lowercase italic">Configure Bundle</DialogTitle>
-            <DialogDescription className="lowercase italic italic">Hierarchical selection: section {">"} shelf {">"} slots</DialogDescription>
+            <DialogDescription className="lowercase italic italic">Hierarchical selection: section {">"} shelf {">"} shelf slots</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 pt-4">
@@ -274,10 +274,10 @@ export function BundleManagement() {
 
             <div className="space-y-4">
               <div className="flex justify-between items-center px-2">
-                <Label className="font-black italic lowercase">Define Slot Requirements</Label>
+                <Label className="font-black italic lowercase">Define Shelf Slot Requirements</Label>
                 <div className="flex gap-2">
                     <Badge variant="outline" className="bg-orange-50 text-[#FE7F2D] border-orange-100 font-bold px-3 py-1">
-                      {newBundle.eyeLevelCount + newBundle.topLevelCount + newBundle.bottomLevelCount} Total Slots
+                      {newBundle.eyeLevelCount + newBundle.topLevelCount + newBundle.bottomLevelCount} Total Shelf Slots
                     </Badge>
                 </div>
               </div>

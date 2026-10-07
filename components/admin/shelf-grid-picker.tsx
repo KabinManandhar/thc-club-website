@@ -70,7 +70,7 @@ export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, sele
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
-            placeholder="Search slot #, brand or shelf..."
+            placeholder="Search shelf slot #, brand or shelf..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-10 text-xs shadow-none border-gray-200"
@@ -89,7 +89,7 @@ export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, sele
           </Select>
           <div className="bg-[#FE7F2D] text-white px-3 py-2 rounded-md font-black text-xs flex items-center gap-2">
              <LayoutGrid className="w-3.5 h-3.5" />
-             {filteredSlots.length} Slots Shown
+             {filteredSlots.length} Shelf Slots Shown
           </div>
         </div>
       </div>
@@ -111,7 +111,7 @@ export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, sele
                   <Badge className="bg-[#FE7F2D] text-white text-[9px] uppercase tracking-wider">Requested by brand</Badge>
                 )}
                 <div className="h-[1px] flex-1 bg-gray-100"></div>
-                <span className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">{sectionSlotsData.length} Slots</span>
+                <span className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">{sectionSlotsData.length} Shelf Slots</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -124,7 +124,7 @@ export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, sele
                           {(shelfName as string) || "Unassigned Shelf"}
                         </div>
                         <span className="text-[9px] font-bold text-[#FE7F2D] bg-[#FE7F2D]/10 px-1.5 py-0.5 rounded leading-none">
-                           {sectionSlotsData.filter(s => s.shelf_name === shelfName).length} slots
+                           {sectionSlotsData.filter(s => s.shelf_name === shelfName).length} shelf slots
                         </span>
                       </div>
                     </CardHeader>
@@ -145,7 +145,7 @@ export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, sele
                                 ${slot.status === "occupied" ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed grayscale" : ""}
                                 ${(selectedSlotId === slot.id || (selectedSlotIds || []).includes(slot.id)) ? "bg-[#FE7F2D] border-[#FE7F2D] text-white ring-4 ring-[#FE7F2D]/20 -translate-y-1 shadow-xl z-20" : ""}
                               `}
-                              title={slot.status === "occupied" ? `Occupied by ${slot.occupied_by}` : `Slot #${slot.slot_number}`}
+                              title={slot.status === "occupied" ? `Occupied by ${slot.occupied_by}` : `Shelf slot #${slot.slot_number}`}
                             >
                               <span className="opacity-50 text-[9px]">#</span>
                               <span>{slot.slot_number}</span>
@@ -168,7 +168,7 @@ export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, sele
         {!matchesAtLeastOne && (
           <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100">
              <AlertCircle className="w-12 h-12 text-gray-200 mb-4" />
-             <p className="text-gray-500 font-bold text-lg">No slots available for this filter.</p>
+             <p className="text-gray-500 font-bold text-lg">No shelf slots available for this filter.</p>
              <p className="text-gray-400 text-sm">Try changing the search or status filter.</p>
              <Button variant="ghost" onClick={() => {setSearchTerm(""); setStatusFilter("all")}} className="mt-4 text-[#FE7F2D] font-bold">Clear All Filters</Button>
           </div>

@@ -123,7 +123,7 @@ export function AccountsManagement() {
             entity_name: brandName || "Unknown Brand",
             gross_amount: b.total_amount,
             net_impact: b.total_amount,
-            description: `Shelf Booking · ${b.section} (${b.duration})`,
+            description: `Shelf Slot Booking · ${b.section} (${b.duration})`,
             status: b.status,
             reference: `BK-${b.id.slice(0, 8)}`,
             original_data: b
@@ -269,7 +269,7 @@ export function AccountsManagement() {
   const typeStyles: Record<string, { label: string; icon: any; color: string; bg: string }> = {
     product_sale: { label: "Sale", icon: Package, color: "text-blue-600", bg: "bg-blue-50" },
     payout: { label: "Payout", icon: ArrowUpCircle, color: "text-amber-600", bg: "bg-amber-50" },
-    shelf_rent: { label: "Shelf Rent", icon: Landmark, color: "text-green-600", bg: "bg-green-50" },
+    shelf_rent: { label: "Shelf Slot Rent", icon: Landmark, color: "text-green-600", bg: "bg-green-50" },
     expense: { label: "Expense", icon: TrendingDown, color: "text-red-500", bg: "bg-red-50" }
   }
 

@@ -412,7 +412,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
           <div className="px-8 py-6 border-b border-black/5 flex justify-between items-center bg-gray-50/30">
             <div className="space-y-1">
               <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                <Target className="w-4 h-4 text-[#FE7F2D]" /> Shelf Rental Insights
+                <Target className="w-4 h-4 text-[#FE7F2D]" /> Shelf Slot Rental Insights
               </CardTitle>
               <p className="text-[10px] text-gray-400 font-bold lowercase">Occupied Revenue Projection based on chosen plan.</p>
             </div>
@@ -461,7 +461,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
                       <div key={lvl} className={cn("space-y-2 transition-opacity", !isSelected && "opacity-20 grayscale")}>
                         <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
                           <span className="text-gray-400">{lvl.replace('_', ' ')}</span>
-                          <span className="text-black">{data.total - data.available} / {data.total} <span className="text-gray-300 lowercase italic font-bold">slots taken</span></span>
+                          <span className="text-black">{data.total - data.available} / {data.total} <span className="text-gray-300 lowercase italic font-bold">shelf slots taken</span></span>
                         </div>
                         <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                           <div
@@ -489,7 +489,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
                     <Layers className="w-3 h-3" />
                     <span>Filter: <strong className="text-black">{projectionPlan}</strong> / <strong className="text-black">{projectionLevel}</strong></span>
                   </div>
-                  <p className="text-[9px] text-gray-300 italic max-w-[200px] mx-auto">Projected revenue if all current occupied slots were on this plan.</p>
+                  <p className="text-[9px] text-gray-300 italic max-w-[200px] mx-auto">Projected revenue if all current occupied shelf slots were on this plan.</p>
                 </div>
               </div>
             </div>

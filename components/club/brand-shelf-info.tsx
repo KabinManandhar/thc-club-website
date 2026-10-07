@@ -188,7 +188,7 @@ export function BrandShelfInfo({ brandId, onTabChange }: BrandShelfInfoProps) {
                          <LayoutGrid className="w-7 h-7" />
                       </div>
                       <div>
-                         <h4 className="font-black italic text-lg lowercase leading-tight">{booking.shelf_type?.replace("_", " ")} shelf • {booking.section || "standard zone"}</h4>
+                         <h4 className="font-black italic text-lg lowercase leading-tight">{booking.shelf_type?.replace("_", " ")} shelf slot • {booking.section || "standard zone"}</h4>
                          <div className="flex items-center gap-2 mt-1 flex-wrap">
                            <p className="text-[10px] font-bold text-[#010307]/30 uppercase tracking-[0.2em] italic">Ref: {booking.id.split('-')[0]} • {booking.duration?.replace('_', ' ')}</p>
                            {booking.section_tier && (

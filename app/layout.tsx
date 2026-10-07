@@ -14,7 +14,7 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata = {
   title: "thc club - the hidden collective club — curated shelf rental space in kathmandu",
   description:
-    "nepal's first curated shelf-rental retail space.no gatekeeping. just a shelf, a spotlight, and 100% of what you earn.",
+    "nepal's first curated shelf-rental retail space.no gatekeeping. just a shelf slot, a spotlight, and 100% of what you earn.",
 
   keywords: [
     /* Brand-Specific & Core */

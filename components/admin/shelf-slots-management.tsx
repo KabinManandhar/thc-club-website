@@ -190,7 +190,7 @@ export function ShelfSlotsManagement() {
 
       setIsCreateShelfOpen(false)
       fetchSlots()
-      toast.success("Physical shelf and slots synchronized.")
+      toast.success("Shelf and its shelf slots created.")
     } catch (error) {
       console.error("Error creating shelf:", error)
       toast.error("Critical failure during shelf generation.")
@@ -231,7 +231,7 @@ export function ShelfSlotsManagement() {
   }
 
   const handleDeleteSection = async (id: string) => {
-    if (!confirm("Caution: Deleting a section will remove ALL physical shelves and slots within it. Continue?")) return
+    if (!confirm("Caution: Deleting a section will remove ALL shelves and shelf slots within it. Continue?")) return
     try {
       const { error } = await supabase.from('shelf_sections').delete().eq('id', id)
       if (error) throw error
@@ -275,7 +275,7 @@ export function ShelfSlotsManagement() {
 
   const handleDeleteShelf = async () => {
     if (!editingShelf || !editingShelf.id) return
-    if (!confirm(`Are you sure you want to delete ${editingShelf.name}? This will remove all associated slots.`)) return
+    if (!confirm(`Are you sure you want to delete ${editingShelf.name}? This will remove all its shelf slots.`)) return
     try {
       const { error } = await supabase.from('shelves').delete().eq('id', editingShelf.id)
       if (error) throw error
@@ -283,7 +283,7 @@ export function ShelfSlotsManagement() {
       setIsEditShelfOpen(false)
       setEditingShelf(null)
       fetchSlots()
-      toast.success("Physical shelf and slots purged.")
+      toast.success("Shelf and its shelf slots deleted.")
     } catch (e: any) {
       toast.error(e.message)
     }
@@ -332,7 +332,7 @@ export function ShelfSlotsManagement() {
       await supabase.from("shelves").update({ total_slots: (shelf.total_slots || 0) + 1 }).eq("id", shelf.id)
 
       fetchSlots()
-      toast.success(`Slot #${maxSlotNumber + 1} added to ${shelf.name}`)
+      toast.success(`Shelf slot #${maxSlotNumber + 1} added to ${shelf.name}`)
       
       // Auto-open management for the new slot
       setSelectedSlot(createdSlot)
@@ -355,7 +355,7 @@ export function ShelfSlotsManagement() {
   }
 
   const handleDeleteSlot = async (id: string, shelfId: string) => {
-    if (!confirm("Caution: Are you sure you want to permanently remove this specific slot? This action is irreversible.")) return
+    if (!confirm("Caution: Are you sure you want to permanently remove this shelf slot? This action is irreversible.")) return
     try {
       const { error } = await supabase.from("shelf_slots").delete().eq("id", id)
       if (error) throw error
@@ -368,7 +368,7 @@ export function ShelfSlotsManagement() {
 
       setSelectedSlot(null)
       fetchSlots()
-      toast.success("Slot removed from registry.")
+      toast.success("Shelf slot removed.")
     } catch (error: any) {
       toast.error(error.message)
     }
@@ -395,7 +395,7 @@ export function ShelfSlotsManagement() {
 
           if (fallbackError) throw fallbackError;
 
-          toast.warning(`Slot updated locally, but formal Brand Linking failed. Run the SQL migration in Supabase to sync the schema.`);
+          toast.warning(`Shelf slot updated locally, but formal Brand Linking failed. Run the SQL migration in Supabase to sync the schema.`);
           fetchSlots()
           setSelectedSlot(null)
           return;
@@ -403,7 +403,7 @@ export function ShelfSlotsManagement() {
         throw error;
       }
 
-      toast.success(`Slot #${slots.find(s => s.id === id)?.slot_number} adjusted.`)
+      toast.success(`Shelf slot #${slots.find(s => s.id === id)?.slot_number} adjusted.`)
       fetchSlots()
       setSelectedSlot(null)
     } catch (error: any) {
@@ -440,7 +440,7 @@ export function ShelfSlotsManagement() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <h1 className="text-2xl sm:text-3xl font-black">Shelf Slots Management</h1>
+        <h1 className="text-2xl sm:text-3xl font-black">Shelves & Shelf Slots</h1>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button variant="outline" onClick={() => setIsSectionManagerOpen(true)} className="border-black/5 hover:bg-gray-50 font-bold w-full sm:w-auto">
             <Settings className="w-4 h-4 mr-2" />
@@ -453,7 +453,7 @@ export function ShelfSlotsManagement() {
           <div className="relative flex-1 min-w-[140px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
-              placeholder="Search slots..."
+              placeholder="Search shelf slots..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-full"
@@ -489,7 +489,7 @@ export function ShelfSlotsManagement() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Bottom Shelf</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-600">Bottom Level</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -565,7 +565,7 @@ export function ShelfSlotsManagement() {
             <CardContent className="flex flex-col items-center justify-center py-20 text-center">
               <LayoutGrid className="w-12 h-12 text-gray-200 mb-4" />
               <h3 className="text-xl font-black text-gray-500 italic">No Infrastructure Registered</h3>
-              <p className="text-sm text-gray-400 max-w-xs mb-6 font-medium">Please define your club sections and add physical shelves to start managing slots.</p>
+              <p className="text-sm text-gray-400 max-w-xs mb-6 font-medium">Please define your club sections and add shelves to start managing shelf slots.</p>
               <Button onClick={() => setIsCreateSectionOpen(true)} className="bg-black text-white font-bold rounded-2xl">Register First Section</Button>
             </CardContent>
           </Card>
@@ -585,7 +585,7 @@ export function ShelfSlotsManagement() {
                   <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">{section.description || "Active Club Area"}</p>
                 </div>
                 <Badge variant="outline" className="bg-[#FE7F2D]/5 text-[#FE7F2D] border-[#FE7F2D]/20 h-fit">
-                  {sectionSlots.length} Slots
+                  {sectionSlots.length} Shelf Slots
                 </Badge>
               </div>
 
@@ -604,7 +604,7 @@ export function ShelfSlotsManagement() {
                             size="icon" 
                             className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
                             onClick={() => handleAddSlot(shelf)}
-                            title="Add Slot"
+                            title="Add Shelf Slot"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </Button>
@@ -663,7 +663,7 @@ export function ShelfSlotsManagement() {
         {filteredSlots.some(s => !s.section_id || !s.shelf_id) && (
           <section className="space-y-6 pt-10 border-t border-dashed border-gray-100">
             <div className="flex items-center gap-4">
-              <h2 className="text-xl font-bold text-gray-400">Legacy / Unassigned Slots</h2>
+              <h2 className="text-xl font-bold text-gray-400">Legacy / Unassigned Shelf Slots</h2>
               <Badge variant="outline" className="animate-pulse">Migration Required</Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 opacity-50 hover:opacity-100 transition-opacity">
@@ -708,12 +708,12 @@ export function ShelfSlotsManagement() {
       <Dialog open={!!selectedSlot} onOpenChange={(open) => !open && setSelectedSlot(null)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Manage Slot #{selectedSlot?.slot_number}</DialogTitle>
+            <DialogTitle>Manage Shelf Slot #{selectedSlot?.slot_number}</DialogTitle>
           </DialogHeader>
           {selectedSlot && (
             <div className="space-y-6">
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-2 text-[#FE7F2D]">Slot Information</h4>
+                <h4 className="font-semibold mb-2 text-[#FE7F2D]">Shelf Slot Information</h4>
                 <div className="grid grid-cols-2 gap-y-2 text-sm text-gray-600">
                   <p><strong>Section:</strong> {selectedSlot.section || "N/A"}</p>
                   <p><strong>Shelf:</strong> {selectedSlot.shelf_name || "N/A"}</p>
@@ -723,7 +723,7 @@ export function ShelfSlotsManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Slot Display #</Label>
+                  <Label>Shelf Slot Display #</Label>
                   <Input 
                     type="number" 
                     value={updateData.slot_number} 
@@ -905,7 +905,7 @@ export function ShelfSlotsManagement() {
       <Dialog open={isCreateShelfOpen} onOpenChange={setIsCreateShelfOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add New Physical Shelf</DialogTitle>
+            <DialogTitle>Add New Shelf</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -939,11 +939,11 @@ export function ShelfSlotsManagement() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Total Slots</Label>
+                <Label>Number of Shelf Slots on this Shelf</Label>
                 <Input type="number" min={1} value={newShelf.total_slots} onChange={e => setNewShelf({ ...newShelf, total_slots: parseInt(e.target.value) || 1 })} />
               </div>
               <div>
-                <Label>Primary Slot Type</Label>
+                <Label>Primary Shelf Slot Level</Label>
                 <Select value={newShelf.shelf_type} onValueChange={(v: any) => setNewShelf({ ...newShelf, shelf_type: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -1012,12 +1012,12 @@ export function ShelfSlotsManagement() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label>Total Slots (Read Only)</Label>
+                  <Label>Number of Shelf Slots (Read Only)</Label>
                   <Input type="number" disabled value={editingShelf.total_slots} className="bg-gray-100" />
-                  <p className="text-[10px] text-gray-500 mt-1 italic">Re-create shelf to alter slots length</p>
+                  <p className="text-[10px] text-gray-500 mt-1 italic">Use + on the shelf to add shelf slots</p>
                 </div>
                 <div>
-                  <Label>Primary Slot Type</Label>
+                  <Label>Primary Shelf Slot Level</Label>
                   <Select value={editingShelf.shelf_type} onValueChange={(v: any) => setEditingShelf({ ...editingShelf, shelf_type: v })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>

@@ -141,7 +141,7 @@ export function ShelfTransactions({ brandId, isAdmin = false }: Props) {
           {bookings.length === 0 ? (
             <div className="p-8 text-center border-2 border-dashed border-gray-100 rounded-3xl">
               <LayoutGrid className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-              <p className="text-xs font-black uppercase text-gray-300 tracking-widest">No Shelf Records Found.</p>
+              <p className="text-xs font-black uppercase text-gray-300 tracking-widest">No Shelf Slot Records Found.</p>
             </div>
           ) : bookings.map(booking => {
             const paid = booking.amount_paid || 0
@@ -304,11 +304,11 @@ export function ShelfTransactions({ brandId, isAdmin = false }: Props) {
         </DialogContent>
       </Dialog>
 
-      {/* Shelf Payment Statement Modal */}
+      {/* Shelf Slot Payment Statement Modal */}
       <Dialog open={isStatementOpen} onOpenChange={setIsStatementOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white border-none shadow-2xl rounded-3xl">
           <DialogHeader className="sr-only">
-            <DialogTitle>Shelf Payment Statement</DialogTitle>
+            <DialogTitle>Shelf Slot Payment Statement</DialogTitle>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto p-12 space-y-10 print:p-0">

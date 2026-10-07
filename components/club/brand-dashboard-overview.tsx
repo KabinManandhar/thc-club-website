@@ -207,7 +207,7 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
                 <LayoutGrid className="w-5 h-5" />
              </div>
           </div>
-          <p className="text-[10px] font-bold lowercase text-white/30 tracking-widest mb-1 italic">allotted slots</p>
+          <p className="text-[10px] font-bold lowercase text-white/30 tracking-widest mb-1 italic">allotted shelf slots</p>
           <h3 className="text-2xl font-black text-white tracking-tighter italic">
             {allottedSlots.length > 0 
                ? `${allottedSlots.length} slot${allottedSlots.length > 1 ? 's' : ''}` 
@@ -239,7 +239,7 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
                               <div className="space-y-1">
                                  <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]"></div>
-                                    <p className="text-[8px] font-black text-[#FE7F2D] uppercase tracking-[0.3em]">certified slot</p>
+                                    <p className="text-[8px] font-black text-[#FE7F2D] uppercase tracking-[0.3em]">certified shelf slot</p>
                                  </div>
                                   <h4 className="font-black text-2xl text-white lowercase italic leading-none truncate max-w-[200px]">{slot.shelf_name || (slot.shelves?.name) || 'Collective'}</h4>
                                  <div className="flex items-center gap-2 mt-1">

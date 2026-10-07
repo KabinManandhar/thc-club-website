@@ -153,7 +153,7 @@ export default function PricingInfoPage() {
             <img src="/logo.png" alt="thc club logo" className="h-6 sm:h-8 w-auto" />
           </Link>
           <div className="flex items-center gap-4">
-             <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D] text-[10px] font-black uppercase tracking-widest">Secret Pricing List</Badge>
+             <Badge variant="outline" className="border-[#FE7F2D]/20 text-[#FE7F2D] text-[10px] font-black uppercase tracking-widest">Public Pricing</Badge>
           </div>
         </div>
       </nav>
@@ -162,7 +162,7 @@ export default function PricingInfoPage() {
         {/* Hero Section */}
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <div className="inline-flex items-center gap-2 bg-[#FE7F2D]/10 text-[#FE7F2D] px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.3em]">
-            exclusive information
+            every price, upfront
           </div>
           <h1 className="text-5xl sm:text-7xl font-black lowercase italic tracking-tighter leading-none">
             the <span className="text-[#FE7F2D]">economics</span> of the club.
@@ -254,8 +254,11 @@ export default function PricingInfoPage() {
         {/* Section Breakdown */}
         <div className="max-w-6xl mx-auto space-y-12">
            <div className="text-center space-y-4">
-              <h2 className="text-4xl font-black lowercase italic">individual shelf tiers</h2>
+              <h2 className="text-4xl font-black lowercase italic">individual shelf slot tiers</h2>
               <p className="text-sm text-[#010307]/40 italic max-w-xl mx-auto">prefer to build your own presence? choose the zone and level that fits your brand profile.</p>
+              <Link href="/the-floor" className="inline-block text-[10px] font-black uppercase tracking-widest text-[#FE7F2D] hover:text-black transition-colors">
+                see where each zone and level sits →
+              </Link>
            </div>
 
            {/* Duration Toggle */}
@@ -309,7 +312,7 @@ export default function PricingInfoPage() {
                                   </div>
                                   <div className="text-right">
                                      <p className="text-base font-black italic text-[#FE7F2D]">NPR {price.toLocaleString()}<span className="text-[10px] font-bold text-gray-400 lowercase">/mo</span></p>
-                                     <p className="text-[9px] font-black uppercase tracking-tighter text-gray-300">{avail} slots open</p>
+                                     <p className="text-[9px] font-black uppercase tracking-tighter text-gray-300">{avail} shelf slots open</p>
                                   </div>
                                </div>
                              )
@@ -411,7 +414,7 @@ export default function PricingInfoPage() {
             </div>
             <h3 className="text-2xl font-black lowercase italic">no payment required today.</h3>
             <p className="text-sm text-[#010307]/50 italic leading-relaxed max-w-md mx-auto">
-              we finalize all partner agreements in person at the club. this ensures you are 100% satisfied with your physical slot placement and visual positioning before any commitment is made.
+              we finalize all partner agreements in person at the club. this ensures you are 100% satisfied with your shelf slot placement and visual positioning before any commitment is made.
             </p>
             <div className="grid grid-cols-3 gap-4 pt-4 max-w-sm mx-auto opacity-50 grayscale">
                <div className="flex flex-col items-center gap-2">
@@ -435,7 +438,7 @@ export default function PricingInfoPage() {
           <div className="space-y-6">
             <h2 className="text-5xl sm:text-7xl font-black italic lowercase tracking-tighter leading-tight">
               ready to take <br />
-              <span className="text-[#FE7F2D]">your shelf?</span>
+              <span className="text-[#FE7F2D]">your shelf slot?</span>
             </h2>
             <p className="text-lg sm:text-2xl text-[#010307]/60 font-medium italic leading-relaxed max-w-2xl mx-auto">
               membership is curated. apply today to reserve your position in the collective.

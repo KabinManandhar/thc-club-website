@@ -18,6 +18,7 @@ interface OnboardingWizardProps {
   businessName: string
   onComplete: () => void
   isSecondary?: boolean
+  onViewOffers?: () => void
 }
 
 const STEPS = ["choose zone", "shelf level", "duration", "club protocols", "finalization", "review", "submitted"]
@@ -46,7 +47,7 @@ const DURATION_INFO: Record<Duration, { label: string; months: number }> = {
   yearly: { label: "yearly (best value)", months: 12 },
 }
 
-export function OnboardingWizard({ brandId, businessName, onComplete, isSecondary = false }: OnboardingWizardProps) {
+export function OnboardingWizard({ brandId, businessName, onComplete, isSecondary = false, onViewOffers }: OnboardingWizardProps) {
   const [step, setStep] = useState(0)
   const [sections, setSections] = useState<ShelfSection[]>([])
   const [selectedSection, setSelectedSection] = useState<ShelfSection | null>(null)
@@ -71,6 +72,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
   const [storeImages, setStoreImages] = useState<any[]>([])
   const [shelfAvailability, setShelfAvailability] = useState<{ sectionId: string, type: ShelfType, remaining: number }[]>([])
   const [sectionCapacity, setSectionCapacity] = useState<Record<string, { total: number, remaining: number }>>({})
+  const [liveCodes, setLiveCodes] = useState<string[]>([])
 
   const [lbOpen, setLbOpen] = useState(false)
   const [lbImages, setLbImages] = useState<string[]>([])
@@ -97,8 +99,11 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
       supabase.from("shelf_slots").select("id, shelf_type, slot_number, status, section_id"),
       supabase.from("platform_content").select("protocols").eq("id", 1).single(),
       supabase.from("store_images").select("*"),
-      supabase.from("shelf_bundles").select("*, items:shelf_bundle_items(*)").eq("is_active", true)
-    ]).then(([secRes, priceRes, slotsRes, protRes, imgRes, bundleRes]) => {
+      supabase.from("shelf_bundles").select("*, items:shelf_bundle_items(*)").eq("is_active", true),
+      supabase.from("promotional_offers").select("promo_code, target_limit, current_uses").eq("is_active", true).not("promo_code", "is", null)
+    ]).then(([secRes, priceRes, slotsRes, protRes, imgRes, bundleRes, offerRes]) => {
+      if (slotsRes.error) toast.error("couldn't load shelf slot availability. refresh to try again.")
+      setLiveCodes((offerRes.data || []).filter(o => !o.target_limit || o.current_uses < o.target_limit).map(o => o.promo_code!))
       setSections(secRes.data || [])
       setPricingTiers(priceRes.data || [])
       setStoreImages(imgRes.data || [])
@@ -173,6 +178,14 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
     })
   }, [])
 
+  const levelLeft = (sectionId: string | undefined, type: ShelfType) =>
+    shelfAvailability.find(la => la.sectionId === sectionId && la.type === type)?.remaining ?? 0
+  const zoneFull = (sectionId: string) => (sectionCapacity[sectionId]?.remaining ?? 0) === 0
+  const bundleNeeds = (b: any): Record<string, number> => ({ eye_level: b.eye_level_count || 0, top_level: b.top_level_count || 0, bottom: b.bottom_level_count || 0 })
+  const bundleFits = (b: any) =>
+    sections.some(s => s.id === b.section_id) &&
+    Object.entries(bundleNeeds(b)).every(([t, n]) => levelLeft(b.section_id, t as ShelfType) >= n)
+
   const getPrice = (d: Duration, type: ShelfType, tierOverride?: string) => {
     const tier = tierOverride || selectedSection?.section_tier || 'regular'
     const pricing = pricingTiers.find(t => t.duration === d && t.section_tier === tier)
@@ -217,20 +230,36 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
   const monthlyRent = selectedBundle ? (selectedBundle.price / (duration ? DURATION_MONTHS[duration] : 12)) : (shelfType && duration ? getPrice(duration, shelfType) : 0)
   const baseTotal = selectedBundle ? selectedBundle.price : (monthlyRent * (duration ? DURATION_MONTHS[duration] : 0))
   let discountAmount = 0
-  if (activeOffer) {
-    discountAmount = activeOffer.discount_type === "percentage"
-      ? baseTotal * (activeOffer.discount_value / 100)
-      : activeOffer.discount_value
+  const appliedOffer = selectedBundle ? null : activeOffer
+  if (appliedOffer) {
+    discountAmount = appliedOffer.discount_type === "percentage"
+      ? baseTotal * (appliedOffer.discount_value / 100)
+      : appliedOffer.discount_value
   }
   const totalAmount = Math.max(0, baseTotal - discountAmount)
 
   const handleSubmitBooking = async () => {
     if ((!shelfType || !duration) && !selectedBundle) return
-    if (!agreed) return
+    if (!agreed || !selectedSection) return
     setSubmitting(true)
     setError(null)
 
     try {
+      // someone may have taken the slot since this page loaded
+      const { data: free, error: freeError } = await supabase
+        .from("shelf_slots")
+        .select("shelf_type")
+        .eq("section_id", selectedSection.id)
+        .eq("status", "available")
+      if (freeError) throw freeError
+      const needs = selectedBundle ? bundleNeeds(selectedBundle) : { [shelfType!]: 1 }
+      const short = Object.entries(needs).some(([t, n]) => (free || []).filter(f => f.shelf_type === t).length < n)
+      if (short) {
+        toast.error("that shelf slot was just booked by another brand. please pick again.")
+        setStep(selectedBundle ? 0 : 1)
+        return
+      }
+
       const { error: bookingError } = await supabase.from("shelf_bookings").insert({
         brand_id: brandId,
         shelf_type: selectedBundle ? "eye_level" : shelfType,
@@ -245,12 +274,12 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
         bundle_id: selectedBundle?.id,
         original_total: selectedBundle?.marketValue,
         discount_percentage: selectedBundle?.discount_percentage,
-        admin_notes: `${selectedBundle ? `Applied Bundle: ${selectedBundle.name}. ` : `Requested Zone: ${selectedSection?.name}. `}${activeOffer ? `Applied Offer: ${activeOffer.name}` : ''}. Includes 800 NPR Registration Fee.`
+        admin_notes: `${selectedBundle ? `Applied Bundle: ${selectedBundle.name}. ` : `Requested Zone: ${selectedSection?.name}. `}${appliedOffer ? `Applied Offer: ${appliedOffer.name}. ` : ''}Includes 800 NPR Registration Fee.`
       })
 
       if (bookingError) throw bookingError
-      if (activeOffer) {
-        await supabase.rpc('increment_offer_uses', { offer_id: activeOffer.id })
+      if (appliedOffer) {
+        await supabase.rpc('increment_offer_uses', { offer_id: appliedOffer.id })
       }
 
       if (!isSecondary) {
@@ -259,14 +288,15 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
       setStep(6)
     } catch (err: any) {
       setError(err.message || "Failed to submit booking")
+      toast.error("booking request failed. please try again.")
     } finally {
       setSubmitting(false)
     }
   }
 
   const renderFooter = (backProps?: any, nextProps?: any) => (
-    <div className="fixed bottom-0 left-0 right-0 sm:left-72 p-4 bg-white/80 backdrop-blur-md border-t border-gray-100 z-50 shadow-[0_-8px_30px_-15px_rgba(0,0,0,0.1)] transition-all animate-in slide-in-from-bottom-8">
-      <div className="w-full max-w-4xl mx-auto flex justify-between gap-4 items-center px-2">
+    <div className="sticky bottom-0 z-40 -mx-4 !mt-8 px-4 py-4 bg-[#FFFCEB]/90 backdrop-blur-md border-t border-[#FE7F2D]/10">
+      <div className="flex justify-between gap-4 items-center">
         {backProps ? (
           <Button variant="outline" className="px-6 h-12 rounded-xl bg-white" {...backProps}>
             <ArrowLeft className="mr-2 w-4 h-4" /> {backProps.label || "Back"}
@@ -282,15 +312,15 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
   )
 
   return (
-    <div ref={scrollRef} className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-12 pb-32 scroll-mt-24 relative">
+    <div ref={scrollRef} className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-12 scroll-mt-24 relative">
       <div className="w-full max-w-2xl mb-10">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center mb-3">
           {STEPS.map((s, i) => (
-            <div key={s} className="flex items-center">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${i < step ? "bg-green-500 text-white" : i === step ? "bg-[#FE7F2D] text-white" : "bg-gray-200 text-gray-500"}`}>
+            <div key={s} className="flex items-center flex-1 last:flex-none">
+              <div className={`w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-sm font-bold transition-all ${i < step ? "bg-green-500 text-white" : i === step ? "bg-[#FE7F2D] text-white" : "bg-gray-200 text-gray-500"}`}>
                 {i < step ? <CheckCircle2 className="w-4 h-4" /> : i + 1}
               </div>
-              {i < STEPS.length - 1 && <div className={`h-0.5 w-10 sm:w-16 mx-1 transition-all ${i < step ? "bg-green-500" : "bg-gray-200"}`} />}
+              {i < STEPS.length - 1 && <div className={`h-0.5 flex-1 mx-1 transition-all ${i < step ? "bg-green-500" : "bg-gray-200"}`} />}
             </div>
           ))}
         </div>
@@ -299,7 +329,19 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
 
       {step === 0 && (
         <div className="w-full max-w-4xl space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
-          <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic">select your collective zone</h2><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">premium zones offer higher footfall exposure</p></div>
+          <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic">select your collective zone</h2><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">premium zones offer higher footfall exposure</p><a href="/the-floor" target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-[10px] font-black uppercase tracking-widest text-[#FE7F2D] hover:text-black transition-colors">see the zones on the floor plan ↗</a></div>
+
+          {liveCodes.length > 0 && (
+            onViewOffers ? (
+              <button type="button" onClick={onViewOffers} className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-[#FE7F2D]/30 bg-[#FE7F2D]/5 text-[11px] font-black lowercase italic text-[#FE7F2D] hover:bg-[#FE7F2D]/10 transition-colors">
+                <Tag className="w-3.5 h-3.5" /> a promo code is live — grab it from the slot space tab →
+              </button>
+            ) : (
+              <p className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-[#FE7F2D]/30 bg-[#FE7F2D]/5 text-[11px] font-black lowercase italic text-[#FE7F2D]">
+                <Tag className="w-3.5 h-3.5" /> live promo code: {liveCodes[0]} — apply it at the review step
+              </p>
+            )
+          )}
           
           {bundles.length > 0 && (
             <div className="space-y-4 mb-10">
@@ -319,7 +361,10 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                   return (
                     <div
                       key={bundle.id}
+                      aria-disabled={!bundleFits(bundle)}
                       onClick={() => {
+                        if (!bundleFits(bundle)) return
+                        setActiveOffer(null)
                         setSelectedBundle(bundle)
                         const section = sections.find(s => s.id === (bundle as any).section_id)
                         if (section) setSelectedSection(section)
@@ -327,14 +372,16 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                         setDuration("yearly")
                         setStep(3)
                       }}
-                      className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-4 group ${selectedBundle?.id === bundle.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-dashed border-gray-200 bg-gray-50/10 hover:border-[#FE7F2D]/30"}`}
+                      className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-4 group ${!bundleFits(bundle) ? "opacity-50 grayscale cursor-not-allowed" : ""} ${selectedBundle?.id === bundle.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-dashed border-gray-200 bg-gray-50/10 hover:border-[#FE7F2D]/30"}`}
                     >
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
                           <h4 className="font-black lowercase italic text-xl group-hover:text-[#FE7F2D] transition-colors">{bundle.name}</h4>
                           <p className="text-xs text-gray-400 lowercase italic line-clamp-1">{bundle.description}</p>
                         </div>
-                        {savingsPct > 0 && (
+                        {!bundleFits(bundle) ? (
+                          <Badge className="bg-gray-400 text-white font-black italic rounded-lg">sold out</Badge>
+                        ) : savingsPct > 0 && (
                           <Badge className="bg-green-500 text-white font-black italic rounded-lg">Save {savingsPct}%</Badge>
                         )}
                       </div>
@@ -342,7 +389,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                       <div className="bg-white/70 border border-gray-100 rounded-xl p-4 space-y-3">
                          {/* Per-slot type pricing breakdown */}
                          <div className="space-y-2 pb-3 border-b border-gray-50">
-                           <p className="text-[9px] font-black uppercase tracking-widest text-gray-300 mb-1">slot breakdown • yearly</p>
+                           <p className="text-[9px] font-black uppercase tracking-widest text-gray-300 mb-1">shelf slot breakdown • yearly</p>
                            {bundle.eye_level_count > 0 && pr && (
                              <div className="flex justify-between items-center">
                                <div className="flex items-center gap-1.5">
@@ -403,7 +450,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
 
                       <div className="flex items-center gap-3 mt-auto">
                          <div className="px-3 py-1 bg-[#FE7F2D]/10 rounded-lg text-[9px] font-black uppercase tracking-tighter text-[#FE7F2D]">
-                            {(bundle.eye_level_count || 0) + (bundle.top_level_count || 0) + (bundle.bottom_level_count || 0)} Slots Included
+                            {(bundle.eye_level_count || 0) + (bundle.top_level_count || 0) + (bundle.bottom_level_count || 0)} Shelf Slots Included
                          </div>
                          <div className="text-[10px] font-black lowercase italic text-gray-300">Yearly Protocol</div>
                       </div>
@@ -423,7 +470,16 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
             {sections.map(sec => {
               const zoneImages = storeImages.filter(img => img.section.toLowerCase().includes(sec.name.toLowerCase()))
               return (
-                <div key={sec.id} onClick={() => setSelectedSection(sec)} className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-4 ${selectedSection?.id === sec.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
+                <div
+                  key={sec.id}
+                  aria-disabled={zoneFull(sec.id)}
+                  onClick={() => {
+                    if (zoneFull(sec.id)) return
+                    setSelectedSection(sec)
+                    setSelectedBundle(null)
+                    if (shelfType && levelLeft(sec.id, shelfType) === 0) setShelfType(null)
+                  }}
+                  className={`border-2 rounded-2xl p-6 transition-all flex flex-col gap-4 ${zoneFull(sec.id) ? "opacity-50 grayscale cursor-not-allowed" : "cursor-pointer"} ${selectedSection?.id === sec.id ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}>
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center"><Layout className="w-6 h-6 text-[#FE7F2D]" /></div>
                     <div className="flex-1">
@@ -431,7 +487,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                         <h3 className="font-bold lowercase italic text-lg">{sec.name}</h3>
                         {sec.section_tier === 'premium' && <Badge className="bg-orange-500 text-white text-[8px] font-black uppercase tracking-widest">Premium Zone</Badge>}
                         {sectionCapacity[sec.id] && sectionCapacity[sec.id].remaining <= 3 && sectionCapacity[sec.id].remaining > 0 && (
-                          <Badge className="bg-red-500 text-white text-[8px] font-black uppercase tracking-widest animate-pulse">Few Shelves Left</Badge>
+                          <Badge className="bg-red-500 text-white text-[8px] font-black uppercase tracking-widest animate-pulse">Few Shelf Slots Left</Badge>
                         )}
                         {sectionCapacity[sec.id] && sectionCapacity[sec.id].remaining === 0 && (
                           <Badge className="bg-gray-400 text-white text-[8px] font-black uppercase tracking-widest">Zone Full</Badge>
@@ -474,34 +530,39 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               )
             })}
           </div>
-          {renderFooter(null, { label: "Next Zone", disabled: !selectedSection, onClick: () => setStep(1) })}
+          {renderFooter(null, { label: "Next Zone", disabled: !selectedSection || zoneFull(selectedSection.id), onClick: () => { setSelectedBundle(null); setStep(1) } })}
         </div>
       )}
 
       {step === 1 && (
         <div className="w-full max-w-3xl space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
-          <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic text-[#010307]">choose shelf level</h2></div>
+          <div className="text-center mb-8"><h2 className="text-3xl font-black lowercase italic text-[#010307]">choose shelf level</h2><a href="/the-floor" target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-[10px] font-black uppercase tracking-widest text-[#FE7F2D] hover:text-black transition-colors">see where each level sits ↗</a></div>
           
           <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl flex gap-3 items-start mb-6">
             <Info className="w-5 h-5 text-blue-500 mt-0.5" /><p className="text-xs text-blue-700 italic lowercase font-medium">note: the thc team allots the specific shelf slot within your chosen level based on category fit and best visual placement for your products.</p>
           </div>
           {(["top_level", "eye_level", "bottom"] as ShelfType[]).map((type) => {
             const info = LEVEL_INFO[type]
+            const left = levelLeft(selectedSection?.id, type)
             return (
-              <div 
-                key={type} 
+              <div
+                key={type}
+                aria-disabled={left === 0}
                 onClick={() => {
+                  if (left === 0) return
                   setShelfType(type)
                   setSelectedBundle(null) // Reset bundle
-                }} 
-                className={`border-2 rounded-2xl p-6 cursor-pointer transition-all flex flex-col gap-4 ${shelfType === type ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}
+                }}
+                className={`border-2 rounded-2xl p-6 transition-all flex flex-col gap-4 ${left === 0 ? "opacity-50 grayscale cursor-not-allowed" : "cursor-pointer"} ${shelfType === type ? "border-[#FE7F2D] bg-[#FE7F2D]/5 shadow-sm" : "border-gray-100 hover:border-[#FE7F2D]/30"}`}
               >
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-gray-50 flex items-center justify-center"><Package className="w-6 h-6 text-[#FE7F2D]" /></div>
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
                       <h3 className="text-lg font-bold lowercase italic">{info.label}</h3>
-                      {selectedSection && (shelfAvailability.find(la => la.sectionId === selectedSection.id && la.type === type)?.remaining ?? 10) <= 2 && (
+                      {left === 0 ? (
+                        <Badge className="bg-gray-400 text-white text-[7px] font-black uppercase tracking-widest">Fully Booked</Badge>
+                      ) : left <= 2 && (
                         <Badge className="bg-red-500 text-white text-[7px] font-black uppercase tracking-widest">High Demand</Badge>
                       )}
                     </div>
@@ -521,7 +582,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
                       <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-gray-100 text-gray-400">Slots: {slotRanges[type]}</Badge>
                       {selectedSection && (
                         <p className="text-[10px] text-[#FE7F2D]/60 font-black uppercase tracking-tighter italic">
-                          {shelfAvailability.find(la => la.sectionId === selectedSection.id && la.type === type)?.remaining || 0} slots available
+                          {left} shelf slots available
                         </p>
                       )}
                     </div>
@@ -531,7 +592,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               </div>
             )
           })}
-          {renderFooter({ onClick: () => setStep(0) }, { disabled: !businessName, onClick: () => setStep(2) })}
+          {renderFooter({ onClick: () => setStep(0) }, { disabled: !shelfType || levelLeft(selectedSection?.id, shelfType) === 0, onClick: () => setStep(2) })}
         </div>
       )}
 
@@ -631,11 +692,11 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
               <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Lease Cycle</span><span>{duration ? DURATION_INFO[duration].label : 'Yearly'}</span></div>
               <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Monthly Est.</span><span className="font-black">NPR {monthlyRent.toLocaleString()}</span></div>
               <div className="flex justify-between py-2 border-b text-sm italic font-medium"><span className="text-gray-400">Lease Total</span><span className="font-black">NPR {baseTotal.toLocaleString()}</span></div>
-              {activeOffer && <div className="flex justify-between py-2 border-b text-green-600 text-sm font-black italic"><span className="flex items-center gap-2 uppercase tracking-widest text-[10px]"><Tag className="w-3 h-3" /> Offer applied</span><span>- NPR {discountAmount.toLocaleString()}</span></div>}
+              {appliedOffer && <div className="flex justify-between py-2 border-b text-green-600 text-sm font-black italic"><span className="flex items-center gap-2 uppercase tracking-widest text-[10px]"><Tag className="w-3 h-3" /> Offer applied</span><span>- NPR {discountAmount.toLocaleString()}</span></div>}
               <div className="flex justify-between py-2 border-b text-sm italic font-medium">
                 <span className="flex flex-col gap-0.5">
                   <span className="text-gray-400">one-time registration fee</span>
-                  <span className="text-[9px] font-black uppercase text-[#FE7F2D]/60 tracking-widest">identity onboarding + slot setup</span>
+                  <span className="text-[9px] font-black uppercase text-[#FE7F2D]/60 tracking-widest">identity onboarding + shelf slot setup</span>
                 </span>
                 <span className="font-black text-[#FE7F2D]">NPR 800</span>
               </div>
@@ -646,18 +707,31 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
           <div className={`flex gap-3 items-center p-6 bg-white border border-gray-100 rounded-2xl shadow-sm ${selectedBundle ? "opacity-50 grayscale pointer-events-none" : ""}`}>
             <div className="flex-1 space-y-1">
               <Label className="text-[8px] font-black uppercase tracking-widest text-gray-400">Promotional Offer Index</Label>
-              <Input placeholder="CODE" value={promoCode} onChange={(e) => setPromoCode(e.target.value.toUpperCase())} className="h-10 rounded-xl font-black uppercase border-gray-100" />
+              <Input placeholder="CODE" value={promoCode} onChange={(e) => { setPromoCode(e.target.value.toUpperCase()); setActiveOffer(null) }} className="h-10 rounded-xl font-black uppercase border-gray-100" />
             </div>
             <Button onClick={handleValidateCode} disabled={!promoCode || isValidating || !!selectedBundle} className="mt-5 h-10 bg-[#FE7F2D] text-white hover:bg-black rounded-xl">Claim</Button>
           </div>
+          {!selectedBundle && !appliedOffer && <div className="!mt-[-8px]">{liveCodes.length > 0 && (
+            onViewOffers ? (
+              <button type="button" onClick={onViewOffers} className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-[#FE7F2D]/30 bg-[#FE7F2D]/5 text-[11px] font-black lowercase italic text-[#FE7F2D] hover:bg-[#FE7F2D]/10 transition-colors">
+                <Tag className="w-3.5 h-3.5" /> a promo code is live — grab it from the slot space tab →
+              </button>
+            ) : (
+              <p className="flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed border-[#FE7F2D]/30 bg-[#FE7F2D]/5 text-[11px] font-black lowercase italic text-[#FE7F2D]">
+                <Tag className="w-3.5 h-3.5" /> live promo code: {liveCodes[0]} — apply it at the review step
+              </p>
+            )
+          )}</div>}
           {selectedBundle && (
             <p className="text-[9px] text-[#FE7F2D] font-black italic lowercase text-center bg-[#FE7F2D]/5 py-2 rounded-xl border border-dashed border-[#FE7F2D]/20 mt-[-16px]">bundle deals already include maximum collective discount. promo codes cannot be stacked.</p>
           )}
 
           <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl">
             <Checkbox id="agree" checked={agreed} onCheckedChange={(c) => setAgreed(!!c)} className="mt-0.5" />
-            <label htmlFor="agree" className="text-xs text-gray-400 italic font-medium lowercase cursor-pointer">i understand that specific slot allotment is handled by the thc club team to ensure the best brand-mix across the collective. all financials including the registration fee are settled in-person.</label>
+            <label htmlFor="agree" className="text-xs text-gray-400 italic font-medium lowercase cursor-pointer">i understand that specific shelf slot allotment is handled by the thc club team to ensure the best brand-mix across the collective. all financials including the registration fee are settled in-person.</label>
           </div>
+
+          {error && <p className="text-xs text-red-600 font-bold text-center">{error}</p>}
 
           {renderFooter({ onClick: () => setStep(4) }, { label: submitting ? "Initiating Protocols..." : "Submit Booking Request", disabled: !agreed || submitting, onClick: handleSubmitBooking, icon: false })}
         </div>
@@ -666,7 +740,7 @@ export function OnboardingWizard({ brandId, businessName, onComplete, isSecondar
       {step === 6 && (
         <div className="w-full max-w-lg text-center space-y-8 py-10 animate-in fade-in zoom-in duration-500">
           <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto shadow-sm"><CheckCircle2 className="w-12 h-12 text-green-500" /></div>
-          <div className="space-y-2"><h2 className="text-4xl font-black lowercase italic">prototcol initiated</h2><p className="text-sm text-gray-400 italic lowercase leading-relaxed">your request for <span className="text-[#FE7F2D] font-bold">{businessName}</span> is now being reviewed by the collective council.</p></div>
+          <div className="space-y-2"><h2 className="text-4xl font-black lowercase italic">protocol initiated</h2><p className="text-sm text-gray-400 italic lowercase leading-relaxed">your request for <span className="text-[#FE7F2D] font-bold">{businessName}</span> is now being reviewed by the collective council.</p></div>
           <Card className="bg-blue-50/30 border-blue-100 rounded-[2rem] p-6 "><p className="text-xs text-blue-800 italic lowercase leading-relaxed font-medium">our team will contact you within <strong>48-72 hours</strong> to schedule your in-person walkthrough and finalize the contractual handover.</p></Card>
           <Button onClick={onComplete} className="bg-[#FE7F2D] hover:bg-black text-white px-12 h-12 rounded-2xl font-black italic lowercase transition-all">Go to Dashboard</Button>
         </div>

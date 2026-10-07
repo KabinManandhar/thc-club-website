@@ -84,7 +84,7 @@ export function BookingsManagement() {
     if (actionType === "approve") {
       const slotsToProcess = actionBooking.bundle_id ? selectedBundleSlots : (selectedSlot ? [selectedSlot] : [])
       if (slotsToProcess.length === 0) {
-        toast.error("Please select at least one slot.")
+        toast.error("Please select at least one shelf slot.")
         setSaving(false)
         return
       }
@@ -95,7 +95,7 @@ export function BookingsManagement() {
         p_slot_number: slotsToProcess[0].slot_number,
         p_start_date: startDate.toISOString().split("T")[0],
         p_end_date: endDate.toISOString().split("T")[0],
-        p_admin_notes: adminNotes + (actionBooking.bundle_id ? ` [Multiple slots assigned: ${slotsToProcess.map(s => s.slot_number).join(', ')}]` : ''),
+        p_admin_notes: adminNotes + (actionBooking.bundle_id ? ` [Multiple shelf slots assigned: ${slotsToProcess.map(s => s.slot_number).join(', ')}]` : ''),
         p_brand_id: actionBooking.brand_id,
         p_slot_ids: slotsToProcess.map(s => s.id),
         p_monthly_rent: actionBooking.monthly_rent
@@ -126,7 +126,7 @@ export function BookingsManagement() {
       }
     }
 
-    toast.success(actionType === "approve" ? "Booking approved and slot assigned." : "Booking rejected.")
+    toast.success(actionType === "approve" ? "Booking approved and shelf slot assigned." : "Booking rejected.")
     setSaving(false)
     setActionBooking(null)
     setActionType(null)
@@ -147,8 +147,8 @@ export function BookingsManagement() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Shelf Booking Requests</h2>
-          <p className="text-gray-600">Bookings submitted by brands from their portal. Approve to assign a slot.</p>
+          <h2 className="text-2xl font-bold">Shelf Slot Booking Requests</h2>
+          <p className="text-gray-600">Bookings submitted by brands from their portal. Approve to assign a shelf slot.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {["pending", "active", "rejected", "all"].map((s) => (
@@ -191,7 +191,7 @@ export function BookingsManagement() {
                 <TableRow className="whitespace-nowrap">
                   <TableHead className="px-4">Brand</TableHead>
                   <TableHead>Section</TableHead>
-                  <TableHead>Requested shelf</TableHead>
+                  <TableHead>Requested shelf slot</TableHead>
                   <TableHead>Term &amp; payment</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead>Submitted</TableHead>
@@ -254,7 +254,7 @@ export function BookingsManagement() {
                               {bundle.eye_level_count || 0} eye · {bundle.top_level_count || 0} top · {bundle.bottom_level_count || 0} bottom
                             </div>
                           )}
-                          {b.slot_number && <div className="text-xs text-[#FE7F2D] mt-1">Assigned slot #{b.slot_number}</div>}
+                          {b.slot_number && <div className="text-xs text-[#FE7F2D] mt-1">Assigned shelf slot #{b.slot_number}</div>}
                           {b.admin_notes && <div className="text-[11px] text-gray-400 mt-1 max-w-xs whitespace-normal">{b.admin_notes}</div>}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
@@ -308,7 +308,7 @@ export function BookingsManagement() {
               <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
                 <p><strong>Brand:</strong> {(actionBooking!.brands as any)?.business_name}</p>
                 <p><strong>Requested section:</strong> {actionBooking!.section ? `${actionBooking!.section}${actionBooking!.section_tier ? ` (${actionBooking!.section_tier})` : ""}` : "Not specified"}</p>
-                <p><strong>Shelf:</strong> {actionBooking!.bundle_id ? (
+                <p><strong>Shelf slot:</strong> {actionBooking!.bundle_id ? (
                   <span className="text-[#FE7F2D] font-bold">Bundle: {(actionBooking! as any).shelf_bundles?.name || "Package"}</span>
                 ) : (
                   SHELF_LABELS[actionBooking!.shelf_type]
@@ -388,7 +388,7 @@ export function BookingsManagement() {
                     <div className="bg-[#FE7F2D]/5 border border-[#FE7F2D]/20 rounded-lg p-4 animate-in slide-in-from-top-2">
                        <div className="flex justify-between items-center mb-3">
                           <span className="font-black text-[#FE7F2D] uppercase tracking-widest text-[10px]">
-                            Selected slots: {selectedBundleSlots.length} / {((actionBooking! as any).shelf_bundles.eye_level_count || 0) + ((actionBooking! as any).shelf_bundles.top_level_count || 0) + ((actionBooking! as any).shelf_bundles.bottom_level_count || 0)}
+                            Selected shelf slots: {selectedBundleSlots.length} / {((actionBooking! as any).shelf_bundles.eye_level_count || 0) + ((actionBooking! as any).shelf_bundles.top_level_count || 0) + ((actionBooking! as any).shelf_bundles.bottom_level_count || 0)}
                           </span>
                        </div>
                        <div className="flex flex-wrap gap-2">
@@ -398,7 +398,7 @@ export function BookingsManagement() {
                             </Badge>
                           ))}
                           {selectedBundleSlots.length === 0 && (
-                            <span className="text-[10px] text-gray-400 font-bold lowercase italic">tap slots above to assign to this bundle...</span>
+                            <span className="text-[10px] text-gray-400 font-bold lowercase italic">tap shelf slots above to assign to this bundle...</span>
                           )}
                        </div>
                     </div>

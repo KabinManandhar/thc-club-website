@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { SafeImage } from "@/components/ui/safe-image"
 import { ArrowLeft, ArrowRight, BarChart3, Camera, CheckCircle2, Eye, Heart, Instagram, Lock, LogIn, Menu, Package, ShieldCheck, TrendingUp, Users, X, Zap } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 import { useEffect, useState } from "react"
 
 import {
@@ -22,8 +23,9 @@ import { userAuth } from "@/lib/user-auth"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
 
-function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, origins, storeImages }: {
+function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, origins, storeImages, minPrice }: {
   brands: Brand[],
+  minPrice: number | null,
   isAuthenticated: boolean,
   setAuthView: (view: "none" | "login" | "signup") => void,
   setActiveTab: (tab: "home" | "members" | "origins") => void,
@@ -36,13 +38,11 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
       <section className="py-12 bg-[#010307] text-white">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-4xl mx-auto text-center space-y-4 sm:space-y-6">
-            <div className="flex items-center justify-center gap-2 sm:gap-4">
-              <Lock className="w-4 h-4 sm:w-6 sm:h-6 text-[#FE7F2D]" />
-              <h2 className="text-lg sm:text-2xl lg:text-3xl font-black lowercase italic tracking-tight">exclusive access required</h2>
-              <Lock className="w-4 h-4 sm:w-6 sm:h-6 text-[#FE7F2D]" />
-            </div>
+            <h2 className="text-4xl sm:text-6xl lg:text-7xl font-black lowercase italic tracking-tighter leading-none">
+              shelf slots from <span className="text-[#FE7F2D]">{minPrice ? `Rs. ${minPrice.toLocaleString()}` : "..."}/mo</span>
+            </h2>
             <p className="text-base sm:text-lg text-white/60 max-w-2xl mx-auto font-medium lowercase italic">
-              Register your account to get full access to pricing, shelf availability, and membership applications.
+              a fraction of storefront rent, a fraction of the usual retail cut. no login needed to see a single price.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-6 mt-8 sm:mt-12">
               <div className="text-center space-y-1 sm:space-y-2">
@@ -51,7 +51,7 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
               </div>
               <div className="text-center space-y-1 sm:space-y-2 border-y sm:border-y-0 sm:border-x border-white/5 py-4 sm:py-0">
                 <div className="text-3xl sm:text-4xl font-black text-[#FE7F2D] lowercase italic leading-none">step 2</div>
-                <div className="text-[10px] sm:text-xs text-white/40 font-black uppercase tracking-widest italic">book slot</div>
+                <div className="text-[10px] sm:text-xs text-white/40 font-black uppercase tracking-widest italic">book shelf slot</div>
               </div>
               <div className="text-center space-y-1 sm:space-y-2">
                 <div className="text-3xl sm:text-4xl font-black text-[#FE7F2D] lowercase italic leading-none">step 3</div>
@@ -67,6 +67,18 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
                 apply for membership
                 <ArrowRight className="ml-2 sm:ml-3 h-4 w-4 sm:h-5 sm:w-5 transition-transform group-hover:translate-x-1" />
               </Button>
+              <Link
+                href="/list/pricing-info"
+                className="inline-flex items-center justify-center border border-white/20 text-white hover:bg-white hover:text-black font-black lowercase italic tracking-widest text-base sm:text-lg px-10 py-6 sm:py-8 rounded-2xl transition-all"
+              >
+                see all pricing
+              </Link>
+              <Link
+                href="/the-floor"
+                className="inline-flex items-center justify-center border border-white/20 text-white hover:bg-white hover:text-black font-black lowercase italic tracking-widest text-base sm:text-lg px-10 py-6 sm:py-8 rounded-2xl transition-all"
+              >
+                explore the floor
+              </Link>
               {!isAuthenticated && (
                 <Button
                   size="lg"
@@ -253,7 +265,7 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
                 THC club isn't just retail space. it's what happens when a founder gets tired of being turned away and decides to build the door they kept being shut out of.
               </p>
               <p className="text-xl sm:text-3xl font-black text-[#FE7F2D] lowercase italic">
-                if you're building something real, there's a shelf here with your name on it.
+                if you're building something real, there's a shelf slot here with your name on it.
               </p>
             </div>
             <div className="pt-12">
@@ -276,7 +288,7 @@ function CommonBanners({ brands, isAuthenticated, setAuthView, setActiveTab, ori
               ready to <span className="text-[#FE7F2D]">join</span>?
             </h2>
             <div className="space-y-4">
-              <p className="text-lg sm:text-3xl font-black lowercase italic text-white/80 tracking-tight">108 shelf slots. curated community. exclusive access.</p>
+              <p className="text-lg sm:text-3xl font-black lowercase italic text-white/80 tracking-tight">108 shelf slots. curated community. prices out in the open.</p>
               <p className="text-base sm:text-xl text-white/40 font-medium italic lowercase">if you're building something real, we want you here.</p>
               <p className="text-2xl sm:text-4xl font-black text-[#FE7F2D] mt-8 italic lowercase">🖤 this is THC club.</p>
             </div>
@@ -329,6 +341,8 @@ function LandingPageContent() {
   const [count, setCount] = useState(0)
   const [origins, setOrigins] = useState("")
   const [storeImages, setStoreImages] = useState<any[]>([])
+  const [minPrice, setMinPrice] = useState<number | null>(null)
+  const [minFee, setMinFee] = useState<number | null>(null)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const searchParams = useSearchParams()
 
@@ -357,6 +371,7 @@ function LandingPageContent() {
     fetchBrands()
     fetchOrigins()
     fetchStoreImages()
+    fetchMinPrice()
 
     const auth = searchParams.get("auth")
     if (auth === "login") setAuthView("login")
@@ -370,6 +385,14 @@ function LandingPageContent() {
     } catch (e) {
       console.error("Failed to fetch store images", e)
     }
+  }
+
+  const fetchMinPrice = async () => {
+    const { data } = await supabase.from("shelf_pricing_tiers").select("bottom_price, eye_level_price, top_level_price")
+    const prices = (data || []).flatMap(t => [t.bottom_price, t.eye_level_price, t.top_level_price]).filter(Boolean)
+    if (prices.length) setMinPrice(Math.min(...prices))
+    const { data: ppf } = await supabase.from("ppf_tiers").select("ppf_rate")
+    if (ppf?.length) setMinFee(Math.min(...ppf.map(t => t.ppf_rate)))
   }
 
   const fetchOrigins = async () => {
@@ -526,6 +549,9 @@ function LandingPageContent() {
               >
                 store gallery
               </button>
+              <Link href="/list/pricing-info" className="text-xs font-black lowercase italic tracking-widest text-[#FE7F2D] hover:text-[#010307] transition-all">
+                pricing
+              </Link>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-6 shrink-0">
@@ -672,8 +698,8 @@ function LandingPageContent() {
                             },
                             {
                               icon: Package,
-                              title: "02 — Choose your shelf",
-                              desc: "shelves are priced by positioning — eye-level and floor-level aren't the same, and we're upfront about that. you pick what works for your budget and your stage.."
+                              title: "02 — Choose your shelf slot",
+                              desc: "shelf slots are priced by positioning — eye-level and floor-level aren't the same, and we're upfront about that. you pick what works for your budget and your stage.."
                             },
                             {
                               icon: BarChart3,
@@ -710,6 +736,12 @@ function LandingPageContent() {
                       </div>
                     </div>
                   </div>
+                  <Link href="/list/pricing-info" className="block w-fit">
+                    <p className="text-3xl sm:text-5xl font-black italic lowercase tracking-tighter text-[#010307] leading-none">
+                      from <span className="text-[#FE7F2D]">{minPrice ? `Rs. ${minPrice.toLocaleString()}` : "..."}</span>/mo
+                    </p>
+                    <p className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-[#010307]/40 mt-2">per shelf slot · sales fee from {minFee ?? "..."}%, not 20–35% · no login to see prices</p>
+                  </Link>
                   <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                     <Button
                       size="lg"
@@ -720,16 +752,15 @@ function LandingPageContent() {
                       <Zap className="ml-3 h-5 w-5 animate-pulse text-white" />
                     </Button>
                     <Button
+                      asChild
                       variant="outline"
                       size="lg"
                       className="border-[#010307]/20 text-[#010307] hover:bg-[#010307]/5 font-bold lowercase tracking-wide text-base sm:text-lg px-8 sm:px-10 py-6 sm:py-8 rounded-2xl transition-all"
-                      onClick={() => {
-                        if (isAuthenticated) window.location.href = "/club"
-                        else setAuthView("login")
-                      }}
                     >
-                      <Eye className="mr-3 h-4 w-4" />
-                      {isAuthenticated ? "go to club" : "view pricing"}
+                      <Link href={isAuthenticated ? "/club" : "/list/pricing-info"}>
+                        <Eye className="mr-3 h-4 w-4" />
+                        {isAuthenticated ? "go to club" : "view pricing"}
+                      </Link>
                     </Button>
                   </div>
                 </div>
@@ -825,7 +856,7 @@ function LandingPageContent() {
                   {[
                     { icon: Heart, title: "community first", desc: "real creators, real stories" },
                     { icon: Users, title: "curated collective", desc: "quality over quantity" },
-                    { icon: Lock, title: "exclusive access", desc: "apply now to view pricing & details" },
+                    { icon: Eye, title: "open pricing", desc: minPrice ? `shelf slots from Rs. ${minPrice.toLocaleString()}/mo. every price is public.` : "every price is public." },
                   ].map((item, index) => (
                     <div key={index} className="text-center space-y-4 hover-lift">
                       <div className="w-16 h-16 bg-[#FE7F2D]/10 rounded-2xl flex items-center justify-center mx-auto">
@@ -862,14 +893,14 @@ function LandingPageContent() {
                     </p>
                     <div className="pt-4">
                       <Button
+                        asChild
                         size="lg"
                         className="bg-[#FE7F2D] hover:bg-white hover:text-black text-white font-black lowercase italic tracking-widest px-10 py-8 rounded-2xl h-auto"
-                        onClick={() => setAuthView("signup")}
                       >
-                        apply and discover pricing.
+                        <Link href="/list/pricing-info">see the full price list</Link>
                       </Button>
                       <p className="mt-4 text-[10px] text-white/30 font-bold uppercase tracking-widest italic">
-                        exact pricing is shared once you're ready to onboard.
+                        every tier, every level. no login.
                       </p>
                     </div>
                   </div>
@@ -898,9 +929,10 @@ function LandingPageContent() {
                     </div>
 
                     <div className="p-8 sm:p-12 bg-[#FE7F2D] rounded-[3rem] shadow-2xl shadow-orange-500/20 rotate-1 group">
-                      <h3 className="text-2xl sm:text-3xl font-black text-white lowercase italic mb-4 leading-tight">our model is different.</h3>
+                      <Badge variant="outline" className="border-white/30 text-white font-black uppercase tracking-widest text-[8px] mb-6">THC club</Badge>
+                      <h3 className="text-4xl sm:text-5xl font-black text-white mb-2 italic">{minPrice ? `Rs. ${minPrice.toLocaleString()}` : "..."}/mo</h3>
                       <p className="text-sm sm:text-lg text-white/90 lowercase italic font-medium leading-snug">
-                        no hidden cuts. no monthly panic. just a shelf, a spotlight, and a pricing structure built to actually make sense for a growing brand.
+                        per shelf slot, plus a {minFee ?? "..."}% sales fee — not 20–35%. no hidden fees, no monthly panic.
                       </p>
                     </div>
                   </div>
@@ -1054,7 +1086,7 @@ function LandingPageContent() {
           </section>
 
           {/* SHARED SECTIONS FOR HOME */}
-          <CommonBanners storeImages={storeImages} brands={brands} isAuthenticated={isAuthenticated} setAuthView={setAuthView} setActiveTab={setActiveTab} origins={origins} />
+          <CommonBanners storeImages={storeImages} brands={brands} isAuthenticated={isAuthenticated} setAuthView={setAuthView} setActiveTab={setActiveTab} origins={origins} minPrice={minPrice} />
         </>
       ) : activeTab === "gallery" ? (
         <section className="py-20 sm:py-40 bg-[#FFFCEB] animate-in fade-in slide-in-from-bottom-12 duration-1000 min-h-screen">
@@ -1066,7 +1098,7 @@ function LandingPageContent() {
                   the <span className="text-[#FE7F2D]">club</span> tour.
                 </h2>
                 <p className="text-lg sm:text-2xl text-[#010307]/40 font-medium italic lowercase max-w-2xl mx-auto">
-                  curated energy. 108 slots. 3 rooms. here for you! take a walk through the collective.
+                  curated energy. 108 shelf slots. 3 rooms. here for you! take a walk through the collective.
                 </p>
               </div>
 
@@ -1238,7 +1270,7 @@ function LandingPageContent() {
             </div>
           </section>
 
-          <CommonBanners storeImages={storeImages} brands={brands} isAuthenticated={isAuthenticated} setAuthView={setAuthView} setActiveTab={setActiveTab} origins={origins} />
+          <CommonBanners storeImages={storeImages} brands={brands} isAuthenticated={isAuthenticated} setAuthView={setAuthView} setActiveTab={setActiveTab} origins={origins} minPrice={minPrice} />
         </>
       ) : (
         <section className="py-12 sm:py-20 lg:py-32 bg-[#FFFCEB] min-h-[60vh]">
@@ -1347,8 +1379,8 @@ function LandingPageContent() {
               <div className="space-y-6">
                 <h4 className="text-[#FE7F2D] font-black lowercase italic text-xl">membership process</h4>
                 <ul className="space-y-4 text-[#010307]/60 font-medium lowercase italic leading-relaxed">
-                  <li>• login to get instant pricing access</li>
-                  <li>• select your slot: low, eye, or top level tier and your section</li>
+                  <li>• see every price upfront — no login needed</li>
+                  <li>• select your shelf slot: low, eye, or top level tier and your section</li>
                   <li>• instant access to your brand growth dashboard</li>
                 </ul>
               </div>

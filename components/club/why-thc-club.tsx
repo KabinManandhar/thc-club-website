@@ -245,7 +245,7 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
             ],
             us: [
                 "low upfront cost with no long-term lease commitments",
-                "shelf rental allows you to validate demand before scaling",
+                "shelf slot rental allows you to validate demand before scaling",
                 "capital remains flexible instead of being locked into infrastructure",
                 "easy entry and exit without operational burden",
             ],
@@ -260,7 +260,7 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                 "profitability depends on consistently high sales volume",
             ],
             us: [
-                "fixed shelf cost with a controlled and predictable baseline",
+                "fixed shelf slot cost with a controlled and predictable baseline",
                 `a variable processing fee of ${minPPF}–${maxPPF}% tied directly to performance`,
                 "lower downside risk during slower sales cycles",
                 "cost structure designed to scale with your revenue, not against it",
@@ -427,14 +427,14 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                                     </div>
                                 </div>
                                 <div className="space-y-4 text-center">
-                                    <p className="text-xs font-bold text-[#FE7F2D] uppercase tracking-widest">thc club shelf</p>
+                                    <p className="text-xs font-bold text-[#FE7F2D] uppercase tracking-widest">thc club shelf slot</p>
                                     <p className="text-5xl font-black tracking-tighter italic text-[#FE7F2D]">3 months</p>
                                     <div className="space-y-2">
                                         {[
                                             "same Rs. 3,000–5,000 total",
                                             "daily footfall from sayummy's café",
                                             "set up once. always there",
-                                            "your shelf, your rules, your brand",
+                                            "your shelf slot, your rules, your brand",
                                             "visible every single day of the term",
                                         ].map((line, i) => (
                                             <div key={i} className="flex items-start gap-2 text-left">
@@ -544,7 +544,7 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                                             </div>
                                             <div className="space-y-4">
                                                 {[
-                                                    { label: "shelf rental / mo", val: fmt(monthlyRent), accent: false },
+                                                    { label: "shelf slot rent / mo", val: fmt(monthlyRent), accent: false },
                                                     { label: `PPF (${ppfLabel})`, val: fmt(ppfAmt), accent: false },
                                                     { label: "rent credit", val: credit > 0 ? `− ${fmt(credit)}` : "Rs. 0", accent: credit > 0 },
                                                     { label: "onboarding (one-time fee[Rs.800/12mo])", val: `Rs. ${regFeePerMo}`, accent: false },
@@ -659,7 +659,7 @@ export function WhyTHCClub({ value, onTabChange }: { value: string, onTabChange?
                             onClick={() => onTabChange?.("onboarding")}
                             className="px-10 py-4 rounded-full border border-[#FE7F2D]/40 text-sm font-black lowercase italic text-[#FE7F2D] hover:bg-[#FE7F2D]/10 hover:border-[#FE7F2D]/60 transition-all duration-300"
                         >
-                            see if there's a shelf for you →
+                            see if there's a shelf slot for you →
                         </button>
                         <p className="text-xs text-[#010307]/30 italic mt-3">no commitment until you're ready. we'll walk you through everything first.</p>
                     </div>

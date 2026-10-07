@@ -78,7 +78,7 @@ export function AdminLayout({
       if (error || count === null) return;
       if (lastPending.current !== null && count > lastPending.current) {
         const diff = count - lastPending.current;
-        toast.info(`${diff} new shelf booking request${diff > 1 ? "s" : ""}`, {
+        toast.info(`${diff} new shelf slot booking request${diff > 1 ? "s" : ""}`, {
           action: { label: "Review", onClick: () => onTabChange("bookings") },
         });
       }
@@ -99,15 +99,15 @@ export function AdminLayout({
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
     { id: "inbox", label: "Inbox & Requests", icon: MessageSquare },
     { id: "brands", label: "Brand Management", icon: Users },
-    { id: "bookings", label: "Shelf Bookings", icon: BookOpen },
+    { id: "bookings", label: "Shelf Slot Bookings", icon: BookOpen },
     { id: "invoices", label: "Create Invoice", icon: Receipt },
     { id: "staff", label: "Staff Accounts", icon: UserCog },
     { id: "invoice-list", label: "Sales History", icon: FileText },
     { id: "accounts", label: "Accounts", icon: Landmark },
     { id: "payouts", label: "Payouts Tracker", icon: DollarSign },
     { id: "pricing-offers", label: "Pricing & Economics", icon: BadgeDollarSign },
-    { id: "shelf-revenue", label: "Shelf Revenue", icon: TrendingUp },
-    { id: "slots", label: "Shelf Slot Management", icon: Package },
+    { id: "shelf-revenue", label: "Shelf Slot Revenue", icon: TrendingUp },
+    { id: "slots", label: "Shelves & Shelf Slots", icon: Package },
     { id: "bundles", label: "Bundles & Packages", icon: Zap },
     { id: "settings", label: "Content Settings", icon: Settings },
     { id: "profile", label: "Admin Profile", icon: Users },

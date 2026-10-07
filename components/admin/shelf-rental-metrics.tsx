@@ -202,7 +202,7 @@ export function ShelfRentalRevenueMetrics() {
     {
       label: "Premium Sector MRR",
       value: `NPR ${premiumMetrics.revenue.toLocaleString()}`,
-      sub: `${premiumMetrics.occupied}/${Math.max(premiumMetrics.total, 1)} Slots Occupied`,
+      sub: `${premiumMetrics.occupied}/${Math.max(premiumMetrics.total, 1)} Shelf Slots Occupied`,
       icon: Zap,
       color: "text-purple-500",
       bg: "bg-purple-50",
@@ -211,7 +211,7 @@ export function ShelfRentalRevenueMetrics() {
     {
       label: "Standard Sector MRR",
       value: `NPR ${regularMetrics.revenue.toLocaleString()}`,
-      sub: `${regularMetrics.occupied}/${Math.max(regularMetrics.total, 1)} Slots Occupied`,
+      sub: `${regularMetrics.occupied}/${Math.max(regularMetrics.total, 1)} Shelf Slots Occupied`,
       icon: Building2,
       color: "text-blue-500",
       bg: "bg-blue-50",
@@ -231,7 +231,7 @@ export function ShelfRentalRevenueMetrics() {
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[500px] space-y-4">
       <div className="w-12 h-12 border-4 border-gray-100 border-t-[#FE7F2D] rounded-full animate-spin"></div>
-      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#010307]/40">Aggregating Global Shelf Analytics...</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#010307]/40">Aggregating Shelf Slot Analytics...</p>
     </div>
   )
 
@@ -245,7 +245,7 @@ export function ShelfRentalRevenueMetrics() {
                <Layers className="w-8 h-8 text-[#FE7F2D]" />
             </div>
             <div>
-               <h1 className="text-3xl font-black lowercase italic tracking-tight text-[#010307]">shelf intelligence</h1>
+               <h1 className="text-3xl font-black lowercase italic tracking-tight text-[#010307]">shelf slot intelligence</h1>
                <p className="text-[11px] font-black uppercase tracking-widest text-[#010307]/40 mt-1">Spatial Inventory & Yield Projection Matrix</p>
             </div>
         </div>
@@ -487,7 +487,7 @@ export function ShelfRentalRevenueMetrics() {
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-6">
               <div className="space-y-2">
                  <h3 className="font-black text-3xl lowercase italic tracking-tight text-[#010307]">active network leases</h3>
-                 <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">Comprehensive Master Table for Shelf Contracts</p>
+                 <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">Comprehensive Master Table for Shelf Slot Contracts</p>
               </div>
               <Badge className="bg-[#010307] border-none text-white font-black uppercase text-[10px] tracking-[0.2em] px-6 py-3 rounded-[1rem] shadow-xl">
                  {filteredBookings.length} Result Items
