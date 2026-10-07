@@ -48,7 +48,7 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
       const [productsRes, salesRes, bookingRes, slotsRes] = await Promise.all([
         supabase.from("brand_products").select("*").eq("brand_id", brandId),
         supabase.from("brand_sales").select("*").eq("brand_id", brandId).order("year", { ascending: false }).order("month", { ascending: false }),
-        supabase.from("shelf_bookings").select("*").eq("brand_id", brandId).eq("status", "active").maybeSingle(),
+        supabase.from("shelf_bookings").select("*").eq("brand_id", brandId).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("shelf_slots").select("*, shelves(*, shelf_sections(*))").eq("brand_id", brandId)
       ])
 
@@ -61,7 +61,7 @@ export function BrandDashboardOverview({ brandId, onTabChange }: BrandDashboardO
       setAllottedSlots(slotsRes.data || [])
 
       const totalSales = sales.reduce((sum, s) => sum + (s.gross_sales || 0), 0)
-      const totalOrders = sales.length
+      const totalOrders = sales.reduce((sum, s) => sum + (s.invoice_count || 0), 0)
       const totalStockValue = products.reduce((sum, p) => sum + ((p.price * p.stock_quantity) || 0), 0)
  
       setStats({

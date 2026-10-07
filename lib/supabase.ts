@@ -5,6 +5,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Accounts on our own domain are the THC team, not brand partners; keep them out of brand lists.
+// Usage: query.or(EXCLUDE_TEAM_EMAILS). Keeps rows with no email (a plain NOT ILIKE would drop NULLs).
+export const EXCLUDE_TEAM_EMAILS = "email.is.null,email.not.ilike.*thehiddencollectiveclub*"
+
 // ============================================================
 // Existing Types
 // ============================================================

@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { supabase, type Brand, type BrandChangeRequest, type BrandContract, type BrandProduct, type Enquiry, type Invoice, type ShelfBooking, type VisitRequest } from "@/lib/supabase"
+import { supabase, EXCLUDE_TEAM_EMAILS, type Brand, type BrandChangeRequest, type BrandContract, type BrandProduct, type Enquiry, type Invoice, type ShelfBooking, type VisitRequest } from "@/lib/supabase"
 import { generateSKU, processImageFile } from "@/lib/utils"
 import { AlertCircle, ArrowLeft, BarChart3, Calendar, Check, ChevronRight, Clock, X as CloseX, DollarSign, FileText, History, Image as ImageIcon, Info, Instagram, LayoutGrid, Mail, MessageSquare, Package, Phone, Search, ShieldCheck, StickyNote, Trash2, TrendingUp, Users } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -111,26 +111,31 @@ export function BrandManagement() {
 
   const fetchBrands = async () => {
     setLoading(true)
-    const { data: brandsRes } = await supabase
-      .from("brands")
-      .select("*")
-      .order("updated_at", { ascending: false })
-    
-    // Instead of fetching ALL brand products, we fetch summaries for the visible brands
-    // However, since brand list is often small (hundreds), we can keep it relatively simple 
-    // but we should avoid fetching thousands of rows unnecessarily.
-    // For now, let's just make the selection precise.
-    const { data: stockData } = await supabase
-      .from("brand_products")
-      .select("brand_id, stock_quantity, price")
+    const [brandsRes, stockRes] = await Promise.all([
+      supabase.from("brands").select("*").or(EXCLUDE_TEAM_EMAILS).order("created_at", { ascending: false }),
+      supabase.from("brand_products").select("brand_id, stock_quantity, price"),
+    ])
+
+    if (brandsRes.error) {
+      console.error("[brands] load failed:", brandsRes.error)
+      toast.error(`Could not load brands: ${brandsRes.error.message}`)
+      setBrands([])
+      setLoading(false)
+      return
+    }
+    if (stockRes.error) console.error("[brands] stock summary failed:", stockRes.error.message)
 
     const stockSummary: Record<string, number> = {}
-    stockData?.forEach(p => {
+    stockRes.data?.forEach(p => {
       stockSummary[p.brand_id] = (stockSummary[p.brand_id] || 0) + ((p.stock_quantity * p.price) || 0)
     })
 
-    const brandsWithStock = (brandsRes || []).map(b => ({
+    // Self-registered rows can have nulls; normalise so rendering never throws.
+    const brandsWithStock = (brandsRes.data || []).map(b => ({
       ...b,
+      business_name: b.business_name || b.email?.split("@")[0] || "unnamed brand",
+      email: b.email || "",
+      onboarding_status: b.onboarding_status || "pending",
       total_stock_value: stockSummary[b.id] || 0
     }))
 
@@ -274,13 +279,18 @@ export function BrandManagement() {
   const updateBrandCRM = async (data: Partial<Brand>) => {
     if (!selectedBrand) return
     try {
-      const { error } = await supabase.rpc('admin_update_brand_crm', {
-        p_brand_id: selectedBrand.id,
-        p_admin_notes: data.admin_notes !== undefined ? data.admin_notes : selectedBrand.admin_notes,
-        p_onboarding_status: data.onboarding_status !== undefined ? data.onboarding_status : selectedBrand.onboarding_status
-      })
-
-      if (error) throw error
+      if (data.is_active !== undefined) {
+        // admin_update_brand_crm has no is_active param, so write it directly.
+        const { error } = await supabase.from("brands").update({ is_active: data.is_active }).eq("id", selectedBrand.id)
+        if (error) throw error
+      } else {
+        const { error } = await supabase.rpc('admin_update_brand_crm', {
+          p_brand_id: selectedBrand.id,
+          p_admin_notes: data.admin_notes !== undefined ? data.admin_notes : selectedBrand.admin_notes,
+          p_onboarding_status: data.onboarding_status !== undefined ? data.onboarding_status : selectedBrand.onboarding_status
+        })
+        if (error) throw error
+      }
       setSelectedBrand({ ...selectedBrand, ...data })
       toast.success('CRM Record Updated Successfully')
       fetchBrands() // refresh the list
@@ -357,14 +367,15 @@ export function BrandManagement() {
     }
   }
 
+  const term = searchTerm.toLowerCase()
   const filtered = brands.filter(
-    (b) =>
-      b.business_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      b.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (b) => b.business_name.toLowerCase().includes(term) || b.email.toLowerCase().includes(term)
   )
 
-  const pendingBrands = filtered.filter((b) => b.onboarding_status === "pending")
-  const activeBrands = filtered.filter((b) => b.onboarding_status !== "pending")
+  // "Awaiting approval" = registered but not yet activated/rejected (incl. those who picked a slot).
+  const isAwaiting = (b: Brand) => b.onboarding_status === "pending" || b.onboarding_status === "slot_selected"
+  const pendingBrands = filtered.filter(isAwaiting)
+  const activeBrands = filtered.filter((b) => !isAwaiting(b))
 
   if (view === "detail" && selectedBrand) {
     return (
@@ -1207,7 +1218,7 @@ export function BrandManagement() {
       <TableBody>
         {loading ? (
           <TableRow>
-            <TableCell colSpan={5} className="text-center py-24">
+            <TableCell colSpan={6} className="text-center py-24">
               <div className="flex flex-col items-center gap-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FE7F2D] border-t-transparent shadow-lg shadow-orange-500/10"></div>
                 <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest">Waking up the database...</p>
@@ -1216,7 +1227,7 @@ export function BrandManagement() {
           </TableRow>
         ) : list.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={5} className="text-center py-24">
+            <TableCell colSpan={6} className="text-center py-24">
               <Users className="w-16 h-16 mx-auto text-gray-100 mb-6" />
               <p className="text-gray-500 font-black uppercase tracking-widest text-xs">No brands found matching your search.</p>
             </TableCell>
@@ -1319,7 +1330,7 @@ export function BrandManagement() {
       </div>
 
       {/* Tabbed Sections */}
-      <Tabs defaultValue={pendingBrands.length > 0 ? "pending" : "active"} className="w-full">
+      <Tabs key={loading ? "loading" : "ready"} defaultValue={pendingBrands.length > 0 ? "pending" : "active"} className="w-full">
         <TabsList className="bg-transparent border-b border-gray-100 rounded-none w-full justify-start h-auto p-0 mb-0 gap-8">
           <TabsTrigger
             value="active"

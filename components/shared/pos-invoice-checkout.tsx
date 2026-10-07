@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback, useRef } from "react"
-import { supabase, type Brand, type BrandProduct, type PPFTier } from "@/lib/supabase"
+import { supabase, type Brand, type BrandProduct } from "@/lib/supabase"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,13 +23,7 @@ interface CartItem {
   quantity: number
 }
 
-export interface PosActor {
-  id: string
-  name?: string
-}
-
 interface PosInvoiceCheckoutProps {
-  getCurrentActor: () => Promise<PosActor | null>
   title?: string
   description?: string
   compact?: boolean
@@ -37,7 +31,6 @@ interface PosInvoiceCheckoutProps {
 }
 
 export function PosInvoiceCheckout({
-  getCurrentActor,
   title = "invoice generator (pos)",
   description = "create a sale invoice — stock and sales data update automatically.",
   compact = false,
@@ -46,7 +39,6 @@ export function PosInvoiceCheckout({
   const [brands, setBrands] = useState<Brand[]>([])
   const [selectedBrandId, setSelectedBrandId] = useState<string>("")
   const [products, setProducts] = useState<BrandProduct[]>([])
-  const [ppfTiers, setPpfTiers] = useState<PPFTier[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [customerName, setCustomerName] = useState("")
   const [customerPhone, setCustomerPhone] = useState("")
@@ -60,25 +52,23 @@ export function PosInvoiceCheckout({
   const printRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    async function loadBrandsAndTiers() {
-      const [brandsRes, productsRes, tiersRes] = await Promise.all([
+    async function loadBrands() {
+      const [brandsRes, productsRes] = await Promise.all([
         supabase.from("brands").select("*").order("business_name"),
         supabase.from("brand_products").select("brand_id").eq("is_active", true),
-        supabase.from("ppf_tiers").select("*").order("min_sales_amount", { ascending: false })
       ])
-
-      if (brandsRes.error) {
-        console.error("Failed to load brands:", brandsRes.error.message)
+      const loadErr = brandsRes.error || productsRes.error
+      if (loadErr) {
+        console.error("Failed to load POS catalog:", loadErr.message)
+        setError(`Could not load brands: ${loadErr.message}`)
         setBrands([])
-      } else {
-        const activeBrandIds = new Set((productsRes.data || []).map(p => p.brand_id))
-        const brandsWithProducts = (brandsRes.data || []).filter(b => activeBrandIds.has(b.id))
-        setBrands(brandsWithProducts)
+        return
       }
-
-      setPpfTiers(tiersRes.data || [])
+      // Only brands with at least one sellable product.
+      const activeBrandIds = new Set((productsRes.data || []).map((p) => p.brand_id))
+      setBrands((brandsRes.data || []).filter((b) => activeBrandIds.has(b.id)))
     }
-    loadBrandsAndTiers()
+    loadBrands()
   }, [])
 
   const fetchProducts = useCallback(async () => {
@@ -127,8 +117,6 @@ export function PosInvoiceCheckout({
   const discountAmt = parseFloat(discount) || 0
   const total = Math.max(subtotal - discountAmt, 0)
 
-  const applicableTier = ppfTiers.find((t) => total >= t.min_sales_amount) || ppfTiers[ppfTiers.length - 1] || { ppf_rate: 3 }
-  const ppfInfo = { rate: applicableTier.ppf_rate, amount: total * (applicableTier.ppf_rate / 100) }
 
   const handlePrint = () => {
     const printContent = printRef.current
@@ -167,69 +155,29 @@ export function PosInvoiceCheckout({
     setError(null)
 
     try {
-      const currentActor = await getCurrentActor()
-      if (!currentActor) throw new Error("Not authenticated")
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error("Session expired. Please sign in again.")
 
-      const { data: numData } = await supabase.rpc("generate_invoice_number")
-      const invoiceNumber = numData || `INV-${Date.now()}`
-
-      const { data: invoice, error: invErr } = await supabase
-        .from("invoices")
-        .insert({
-          invoice_number: invoiceNumber,
+      // Server prices the cart, checks stock and writes everything (see app/api/pos/invoices).
+      const res = await fetch("/api/pos/invoices", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
           brand_id: selectedBrandId,
-          created_by: currentActor.id,
-          customer_name: customerName || null,
-          customer_phone: customerPhone || null,
-          subtotal,
-          discount_amount: discountAmt,
-          total_amount: total,
-          ppf_rate: ppfInfo.rate,
-          ppf_amount: ppfInfo.amount,
+          items: cart.map((c) => ({ product_id: c.product.id, quantity: c.quantity })),
+          discount: discountAmt,
           payment_method: paymentMethod,
-          status: "paid",
-        })
-        .select("*")
-        .single()
-
-      if (invErr || !invoice) throw invErr || new Error("Invoice creation failed")
-
-      const lineItems = cart.map((c) => ({
-        invoice_id: invoice.id,
-        product_id: c.product.id,
-        product_name: c.product.name,
-        product_sku: c.product.sku || null,
-        unit_price: c.product.price,
-        quantity: c.quantity,
-        line_total: c.product.price * c.quantity,
-      }))
-
-      const { error: lineErr } = await supabase.from("invoice_line_items").insert(lineItems)
-      if (lineErr) throw lineErr
-
-      for (const c of cart) {
-        const newStock = c.product.stock_quantity - c.quantity
-        const { error: stockErr } = await supabase
-          .from("brand_products")
-          .update({ stock_quantity: newStock })
-          .eq("id", c.product.id)
-        if (stockErr) throw stockErr
+          customer_name: customerName,
+          customer_phone: customerPhone,
+        }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.invoice) {
+        if (res.status === 409) fetchProducts()
+        throw new Error(json.error || `Invoice failed (HTTP ${res.status})`)
       }
 
-      const stockLogs = cart.map((c) => ({
-        product_id: c.product.id,
-        brand_id: selectedBrandId,
-        previous_stock: c.product.stock_quantity,
-        new_stock: c.product.stock_quantity - c.quantity,
-        change_amount: -c.quantity,
-        change_type: "sale" as const,
-        reference_id: invoice.id,
-        notes: "Sale generated via POS",
-      }))
-      const { error: logsErr } = await supabase.from("product_stock_logs").insert(stockLogs)
-      if (logsErr) console.error("Error writing stock logs", logsErr)
-
-      setSuccessInvoice({ ...invoice, invoice_line_items: lineItems })
+      setSuccessInvoice(json.invoice)
       setShowInvoice(true)
       setCart([])
       setCustomerName("")
@@ -285,7 +233,7 @@ export function PosInvoiceCheckout({
                         {brands.map((brand) => (
                           <CommandItem
                             key={brand.id}
-                            value={brand.business_name}
+                            value={`${brand.business_name || brand.email} ${brand.id}`}
                             onSelect={() => {
                               setSelectedBrandId(brand.id === selectedBrandId ? "" : brand.id)
                               setBrandPopoverOpen(false)

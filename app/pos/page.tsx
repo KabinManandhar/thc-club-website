@@ -60,11 +60,6 @@ function StaffPosContent() {
             title="store pos"
             description="ring up brand products and print receipts."
             onSaleComplete={() => setSalesRefreshKey((k) => k + 1)}
-            getCurrentActor={async () => {
-              const user = await staffAuth.getCurrentUser()
-              if (!user) return null
-              return { id: user.id, name: user.name }
-            }}
           />
         </TabsContent>
         <TabsContent value="today" className="mt-0 outline-none">

@@ -73,7 +73,8 @@ export function ShelfBooking({ brandId, isFirstTime, onComplete }: { brandId?: s
         status: "pending",
         section: selectedSection?.name,
         section_tier: selectedSection?.section_tier,
-        notes: `Alpha Portal Booking - ${selectedSection?.name} (${tier}) for ${duration}`
+        brand_agreement_accepted: false,
+        admin_notes: `Portal booking: ${selectedSection?.name} (${tier} level) for ${duration}.${registrationFee ? ` Includes ${registrationFee} NPR registration fee.` : ""}`
       })
 
       if (error) throw error

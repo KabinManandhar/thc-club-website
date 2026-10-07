@@ -17,7 +17,7 @@ import FullScreenBanner from "@/components/ui/home-banner"
 import Marquee from "@/components/ui/marquee"
 import { UserLoginForm } from "@/components/user-login-form"
 import { UserSignupForm } from "@/components/user-signup-form"
-import { supabase, type Brand } from "@/lib/supabase"
+import { supabase, EXCLUDE_TEAM_EMAILS, type Brand } from "@/lib/supabase"
 import { userAuth } from "@/lib/user-auth"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
@@ -387,6 +387,7 @@ function LandingPageContent() {
         .from("brands")
         .select("id, business_name, logo_url, instagram_handle, description, full_name, business_sector, brand_tag")
         .eq("onboarding_status", "active")
+        .or(EXCLUDE_TEAM_EMAILS)
         .order("business_name", { ascending: true })
       console.log("brandss", data)
       if (data) setBrands(data as Brand[])

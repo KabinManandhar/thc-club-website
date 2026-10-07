@@ -14,9 +14,10 @@ interface ShelfGridPickerProps {
   onSelect: (slot: ShelfSlot) => void
   selectedSlotId?: string
   selectedSlotIds?: string[]
+  preferredSection?: string // listed first and marked as the brand's request
 }
 
-export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, selectedSlotIds = [] }: ShelfGridPickerProps) {
+export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, selectedSlotIds = [], preferredSection }: ShelfGridPickerProps) {
   const [slots, setSlots] = useState<ShelfSlot[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -49,7 +50,9 @@ export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, sele
     return matchesSearch && matchesShelfType && matchesStatus
   })
 
-  const sections = Array.from(new Set(slots.map(s => s.section || "Unassigned"))).sort()
+  const sections = Array.from(new Set(slots.map(s => s.section || "Unassigned"))).sort((a, b) =>
+    a === preferredSection ? -1 : b === preferredSection ? 1 : a.localeCompare(b)
+  )
 
   if (loading) {
     return (
@@ -104,6 +107,9 @@ export function ShelfGridPicker({ shelfTypeLimit, onSelect, selectedSlotId, sele
             <div key={sectionName} className="space-y-4">
               <div className="flex items-center gap-4">
                 <h3 className="text-lg font-black text-gray-900 uppercase tracking-tighter border-l-4 border-[#FE7F2D] pl-3 leading-none">{sectionName}</h3>
+                {sectionName === preferredSection && (
+                  <Badge className="bg-[#FE7F2D] text-white text-[9px] uppercase tracking-wider">Requested by brand</Badge>
+                )}
                 <div className="h-[1px] flex-1 bg-gray-100"></div>
                 <span className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">{sectionSlotsData.length} Slots</span>
               </div>

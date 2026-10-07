@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { adminAuth } from "@/lib/auth"
-import { supabase, type BrandChangeRequest, type StockUpdateRequest } from "@/lib/supabase"
+import { supabase, EXCLUDE_TEAM_EMAILS, type BrandChangeRequest, type StockUpdateRequest } from "@/lib/supabase"
 import { cn } from "@/lib/utils"
 import { AlertCircle, AlertTriangle, ArrowUpRight, Building2, Check, X as CloseX, DollarSign, Layers, LayoutGrid, MessageSquare, Package, Plus, Shield, Target, TrendingUp, Users } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -86,7 +86,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
   const fetchStats = async () => {
     try {
       const [brandsRes, enquiriesRes, bookingsRes, slotsRes, stockRes, changesRes, financeRes, brandSalesRes, payoutsRes, pricingRes, brandProductsRes] = await Promise.all([
-        supabase.from("brands").select("onboarding_status"),
+        supabase.from("brands").select("onboarding_status").or(EXCLUDE_TEAM_EMAILS),
         supabase.from("enquiries").select("status", { count: 'exact', head: false }),
         supabase.from("shelf_bookings").select("status", { count: 'exact', head: false }),
         supabase.from("shelf_slots").select("status, shelf_type"),
@@ -95,7 +95,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         supabase.from("brand_change_requests").select("id", { count: 'exact', head: true }).eq("status", "pending"),
         supabase.from("invoices").select("total_amount, ppf_amount").eq("status", "paid"),
         supabase.from("brand_sales").select("brand_id, month, year"),
-        supabase.from("payouts").select("brand_id, month, year"),
+        supabase.from("brand_settlements").select("brand_id, period_month, period_year").eq("status", "paid"),
         supabase.from("shelf_pricing_tiers").select("*"),
         supabase.from("brand_products").select("price, stock_quantity")
       ])
@@ -110,7 +110,8 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
       const salesData = brandSalesRes.data || []
       const payoutsData = payoutsRes.data || []
 
-      const finalizedKeys = new Set(payoutsData.map(p => `${p.brand_id}-${p.month}-${p.year}`))
+      // Brand-months with sales that have not been paid out yet.
+      const finalizedKeys = new Set(payoutsData.map(p => `${p.brand_id}-${p.period_month}-${p.period_year}`))
       const pendingSettlements = salesData.filter(s => !finalizedKeys.has(`${s.brand_id}-${s.month}-${s.year}`))
 
       const totalSales = financeData.reduce((sum, inv) => sum + Number(inv.total_amount || 0), 0)
@@ -357,6 +358,21 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
         </div>
       </div>
 
+      {stats.pendingBookings > 0 && (
+        <button
+          onClick={() => onTabChange("bookings")}
+          className="w-full flex items-center justify-between gap-4 rounded-2xl border border-[#FE7F2D]/30 bg-[#FE7F2D]/5 px-6 py-4 text-left hover:bg-[#FE7F2D]/10 transition-colors"
+        >
+          <span className="flex items-center gap-3">
+            <Package className="w-5 h-5 text-[#FE7F2D]" />
+            <span className="font-black text-sm">
+              {stats.pendingBookings} shelf booking request{stats.pendingBookings > 1 ? "s" : ""} waiting for approval
+            </span>
+          </span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-[#FE7F2D]">Review →</span>
+        </button>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat) => {
@@ -453,7 +469,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
                               "h-full rounded-full transition-all duration-1000",
                               lvl === 'eye_level' ? "bg-[#FE7F2D]" : lvl === 'bottom' ? "bg-blue-400" : "bg-purple-400"
                             )}
-                            style={{ width: `${((data.total - data.available) / data.total) * 100}%` }}
+                            style={{ width: `${data.total ? ((data.total - data.available) / data.total) * 100 : 0}%` }}
                           />
                         </div>
                       </div>
@@ -499,7 +515,7 @@ export function DashboardOverview({ onTabChange }: DashboardOverviewProps) {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Global Occupancy</p>
-                <p className="text-2xl font-black text-black tracking-tighter">{((stats.occupiedSlots / (stats.occupiedSlots + stats.availableSlots)) * 100).toFixed(1)}%</p>
+                <p className="text-2xl font-black text-black tracking-tighter">{(stats.occupiedSlots + stats.availableSlots ? (stats.occupiedSlots / (stats.occupiedSlots + stats.availableSlots)) * 100 : 0).toFixed(1)}%</p>
               </div>
               <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-gray-400 group-hover:bg-[#FE7F2D] group-hover:text-white transition-all"><ArrowUpRight className="w-5 h-5" /></div>
             </div>

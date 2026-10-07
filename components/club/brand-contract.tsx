@@ -160,7 +160,7 @@ export function BrandContract({ brandId, brandName }: BrandContractProps) {
         pdf.text(`Contract ID: ${contract.id}`, 20, 100)
       }
 
-      pdf.save(`THC_Partnership_Agreement_${brandName.replace(/[^z-z0-9]/gi, '_').toLowerCase()}.pdf`)
+      pdf.save(`THC_Partnership_Agreement_${brandName.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.pdf`)
       toast.success("Contract PDF Downloaded.")
     } catch (e: any) {
       toast.error("Failed to generate PDF: " + e.message)

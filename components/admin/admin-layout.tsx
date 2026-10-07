@@ -5,6 +5,7 @@ import type React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { adminAuth, type AdminUser } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
 import {
   BadgeDollarSign,
   BarChart3,
@@ -25,7 +26,8 @@ import {
   X
 } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -63,6 +65,30 @@ export function AdminLayout({
     };
     loadUser();
   }, []);
+
+  // Pending shelf bookings submitted by brands. ponytail: 60s poll; switch to Supabase realtime if instant alerts matter.
+  const [pendingBookings, setPendingBookings] = useState(0);
+  const lastPending = useRef<number | null>(null);
+  useEffect(() => {
+    const check = async () => {
+      const { count, error } = await supabase
+        .from("shelf_bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+      if (error || count === null) return;
+      if (lastPending.current !== null && count > lastPending.current) {
+        const diff = count - lastPending.current;
+        toast.info(`${diff} new shelf booking request${diff > 1 ? "s" : ""}`, {
+          action: { label: "Review", onClick: () => onTabChange("bookings") },
+        });
+      }
+      lastPending.current = count;
+      setPendingBookings(count);
+    };
+    check();
+    const id = setInterval(check, 60_000);
+    return () => clearInterval(id);
+  }, [activeTab]);
 
   const handleLogout = async () => {
     await adminAuth.logout();
@@ -169,6 +195,11 @@ export function AdminLayout({
                     >
                       <Icon className={`w-4 h-4 mr-3 transition-colors ${activeTab === item.id ? "text-white" : "text-[#010307]/30 group-hover:text-[#FE7F2D]"}`} />
                       <span className="font-bold text-[12px] lowercase tracking-wide whitespace-nowrap">{item.label.toLowerCase()}</span>
+                      {item.id === "bookings" && pendingBookings > 0 && (
+                        <span className={`ml-auto min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${activeTab === item.id ? "bg-white text-[#FE7F2D]" : "bg-[#FE7F2D] text-white"}`}>
+                          {pendingBookings}
+                        </span>
+                      )}
                     </Button>
                   </li>
                 );

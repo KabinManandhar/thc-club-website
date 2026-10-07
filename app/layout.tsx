@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Space_Grotesk } from "next/font/google"
 import type React from "react"
+import { Toaster } from "sonner"
 import "./globals.css"
 
 const spaceGrotesk = Space_Grotesk({
@@ -91,6 +92,7 @@ export default function RootLayout({
       <body className="font-space-grotesk">
         <EnvBanner />
         {children}
+        <Toaster position="top-center" richColors closeButton />
         <Analytics />
         <SpeedInsights />
       </body>

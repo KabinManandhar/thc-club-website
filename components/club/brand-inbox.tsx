@@ -66,8 +66,12 @@ export function BrandInbox({ brandId }: BrandInboxProps) {
     setSubmitting(true)
     try {
       if (formType === "enquiry") {
+        const { data: brand } = await supabase.from("brands").select("business_name, full_name, contact_name, email, phone").eq("id", brandId).single()
         const { error } = await supabase.from("enquiries").insert({
           brand_id: brandId,
+          name: brand?.full_name || brand?.contact_name || brand?.business_name || "Brand",
+          email: brand?.email || "",
+          phone: brand?.phone || null,
           subject: form.subject,
           message: form.message,
           status: "pending",
