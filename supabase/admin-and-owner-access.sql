@@ -72,7 +72,8 @@ declare
 begin
   foreach t in array array[
     'brands', 'brand_products', 'invoices', 'invoice_line_items',
-    'product_stock_logs', 'brand_sales', 'brand_settlements', 'shelf_bookings'
+    'product_stock_logs', 'brand_sales', 'brand_settlements', 'shelf_bookings',
+    'promotional_offers', 'shelf_pricing_tiers', 'ppf_tiers'
   ] loop
     execute format('drop policy if exists "admin_all_%1$s" on public.%1$I', t);
     execute format(

@@ -11,6 +11,12 @@ import { BarChart3, DollarSign, Package, Save, Tag, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
+// Supabase never throws, and an update blocked by RLS returns 0 rows with no error.
+function mustWrite({ data, error }: { data: unknown[] | null; error: { message: string } | null }) {
+  if (error) throw error
+  if (!data?.length) throw new Error("No rows saved — check admin permissions (RLS).")
+}
+
 export function PricingOffersManagement() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -50,11 +56,11 @@ export function PricingOffersManagement() {
           bottom_price: tier.bottom_price,
           eye_level_price: tier.eye_level_price,
           top_level_price: tier.top_level_price
-        }).eq("id", tier.id)
+        }).eq("id", tier.id).select("id").then(mustWrite)
       }
       toast.success("Shelf Slot Pricing updated successfully!")
     } catch (err: any) {
-      toast.error("Error updating pricing.")
+      toast.error("Error updating pricing. " + err.message)
     } finally {
       setSaving(false)
     }
@@ -68,11 +74,11 @@ export function PricingOffersManagement() {
           min_sales_amount: tier.min_sales_amount,
           ppf_rate: tier.ppf_rate,
           rent_waiver_percent: Math.min(100, Math.max(0, tier.rent_waiver_percent))
-        }).eq("id", tier.id)
+        }).eq("id", tier.id).select("id").then(mustWrite)
       }
       toast.success("PPF Rules updated successfully!")
     } catch (err: any) {
-      toast.error("Error updating PPF tiers.")
+      toast.error("Error updating PPF tiers. " + err.message)
     } finally {
       setSaving(false)
     }
@@ -84,7 +90,7 @@ export function PricingOffersManagement() {
       for (const offer of offers) {
         if (offer.id.startsWith("new-")) {
           const { id, ...newOffer } = offer
-          await supabase.from("promotional_offers").insert(newOffer)
+          await supabase.from("promotional_offers").insert({ ...newOffer, promo_code: newOffer.promo_code || null }).select("id").then(mustWrite)
         } else {
           await supabase.from("promotional_offers").update({
             name: offer.name,
@@ -93,13 +99,13 @@ export function PricingOffersManagement() {
             discount_value: offer.discount_value,
             target_limit: offer.target_limit || null,
             is_active: offer.is_active
-          }).eq("id", offer.id)
+          }).eq("id", offer.id).select("id").then(mustWrite)
         }
       }
       toast.success("Promotional options updated!")
       fetchData() // to get actual IDs
     } catch (err: any) {
-      toast.error("Error updating offers.")
+      toast.error("Error updating offers. " + err.message)
     } finally {
       setSaving(false)
     }
