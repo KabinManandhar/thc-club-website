@@ -20,6 +20,8 @@ import { AdminProfile } from "@/components/admin/admin-profile";
 import { BundleManagement } from "@/components/admin/bundle-management";
 import { StaffManagement } from "@/components/admin/staff-management";
 import { adminAuth } from "@/lib/auth";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
@@ -32,6 +34,21 @@ function AdminDashboardContent() {
   useEffect(() => {
     checkAuth();
   }, [searchParams]);
+
+  // supabase-js refreshes the token itself; if that refresh fails it signs out silently and
+  // every query runs as anon (RLS then returns empty lists). Drop back to login when that happens.
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== "SIGNED_OUT") return;
+      localStorage.removeItem("admin_session");
+      localStorage.removeItem("admin_user");
+      setIsAuthenticated((was) => {
+        if (was) toast.error("Session expired. Please log in again.", { id: "session-expired" });
+        return false;
+      });
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const checkAuth = async () => {
     try {
